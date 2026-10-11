@@ -280,6 +280,51 @@ export function inferExtract(clicked: Element): { spec: ExtractSpec; label: stri
   };
 }
 
+const OUTSIDE_CONTENT =
+  'nav, header, footer, aside, [role="navigation"], [role="banner"], [role="contentinfo"], [data-ghostclick], ' +
+  '.references, .reflist, .mw-references, [role="doc-endnotes"], .footnotes, #footnotes, .navbox, .comments, #comments';
+const NOT_ITEMS = new Set(['P', 'BR', 'HR', 'SPAN', 'OPTION', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE', 'CODE', 'LINK', 'META']);
+
+function representative(item: Element) {
+  if (item instanceof HTMLTableRowElement) return item.cells[0] ?? item;
+  const anchor = [...item.querySelectorAll('a[href]')].find((link) => visibleText(link).length > 2);
+  return anchor ?? item.querySelector('h1, h2, h3, h4, h5, h6') ?? item.firstElementChild ?? item;
+}
+
+export function findMainList(): Element | null {
+  let best: { item: Element; score: number } | null = null;
+  const parents = [...document.body.querySelectorAll('*')].slice(0, 20_000);
+  for (const parent of parents) {
+    if (parent.children.length < 3 || SKIP_TEXT.has(parent.tagName) || parent.closest(OUTSIDE_CONTENT)) continue;
+    const groups = new Map<string, Element[]>();
+    for (const child of parent.children) {
+      if (NOT_ITEMS.has(child.tagName) || SKIP.has(child.tagName)) continue;
+      const key = keyOf(child);
+      groups.set(key, [...(groups.get(key) ?? []), child]);
+    }
+    for (const items of groups.values()) {
+      if (items.length < 3) continue;
+      const lengths = items.slice(0, 30).map((item) => visibleText(item).length);
+      const average = lengths.reduce((sum, length) => sum + length, 0) / lengths.length;
+      if (average < 15) continue;
+      const linked = items.slice(0, 30).filter((item) => item.querySelector('a[href]')).length / Math.min(items.length, 30);
+      const tableRows = items[0] instanceof HTMLTableRowElement ? 2 : 1;
+      const score = items.length * Math.min(average, 250) * (linked >= 0.5 ? 1.5 : 1) * tableRows;
+      if (!best || score > best.score) best = { item: items[Math.floor(items.length / 2)]!, score };
+    }
+  }
+  if (!best) return null;
+  const item = best.item.tagName === 'DD' && best.item.previousElementSibling?.tagName === 'DT' ? best.item.previousElementSibling : best.item;
+  return representative(item);
+}
+
+export function autoExtract() {
+  const start = findMainList();
+  if (!start) return null;
+  const { spec, label } = inferExtract(start);
+  return { spec, label, rows: runExtract(spec) };
+}
+
 function read(element: Element | null, attr: ExtractField['attr']) {
   if (!element) return '';
   if (attr === 'href') return element instanceof HTMLAnchorElement ? element.href : (element.getAttribute('href') ?? '');

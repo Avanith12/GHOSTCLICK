@@ -1,4 +1,4 @@
-import type { Snapshot } from '@/lib/types';
+import type { Row, Snapshot } from '@/lib/types';
 
 export type Command = (message: Record<string, unknown>) => Promise<{ ok?: boolean; snapshot?: Snapshot; id?: string; error?: string } | null>;
 
@@ -25,6 +25,19 @@ export async function pageMarkdown() {
   } catch {
     throw new Error('Ghostclick cannot read this tab. Reload the page once and try again.');
   }
+}
+
+export async function findList() {
+  const tabId = await activeTabId();
+  if (!tabId) throw new Error('Open a website first.');
+  let response: { ok: boolean; rows: Row[]; url: string; title: string } | null = null;
+  try {
+    response = await chrome.tabs.sendMessage(tabId, { type: 'AUTO_EXTRACT' }, { frameId: 0 });
+  } catch {
+    throw new Error('Ghostclick cannot read this tab. Reload the page once and try again.');
+  }
+  if (!response?.ok || !response.rows.length) throw new Error('No repeated list was found on this page. Try picking it yourself.');
+  return response;
 }
 
 export async function downloadText(filename: string, text: string, type: string) {

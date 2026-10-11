@@ -20,6 +20,7 @@ Click the Ghostclick icon to open the side panel. It has three tabs: Ask, Workfl
 |---|---|
 | Fill a form many times with different values | Record once, then Run with new values, or upload a CSV under “Run once per row” |
 | Advising-hold style tasks | Ask: “Clear the advising hold for Grace Hopper, ID 55667788”. The planner picks the workflow and fills the fields, and you confirm before it runs |
+| Find items by description | Ask: “Find the repos related to diagram design”. Ghostclick finds the main list on the page by itself and keeps matching items. With a model loaded it matches by meaning; without one it matches keywords |
 | Web scraping | Data → Scrape a list on this page, click one item, then download CSV or JSON |
 | PDFs | Data → Read the PDF in this tab, or Open a PDF file. Save it as text, ask questions, or describe what to pull out into a table. Values that do not appear word for word in the PDF are flagged in a “not found in PDF” column |
 | Save an article neatly | Data → Save page as document, which downloads clean Markdown |

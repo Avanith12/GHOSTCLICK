@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { existsSync, readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { inferExtract, runExtract } from './extract';
+import { autoExtract, inferExtract, runExtract } from './extract';
 
 beforeAll(() => {
   if (!globalThis.CSS?.escape) {
@@ -44,6 +44,25 @@ describe('saved real pages', () => {
       const sample = Object.fromEntries(Object.entries(rows[0] ?? {}).map(([key, value]) => [key, value.slice(0, 50)]));
       console.log(name.toUpperCase(), rows.length, spec.itemSelector, JSON.stringify(sample));
       expect(rows.length).toBeGreaterThanOrEqual(minimum);
+    });
+  }
+
+  const automatic = [
+    ['/tmp/site-github.html', 10, /\//],
+    ['/tmp/site-countries.html', 250, /Andorra/],
+    ['/tmp/site-arxiv.html', 50, /Title/],
+    ['/tmp/site-algolia.html', 20, /Rust/i],
+    ['/tmp/hn.html', 30, /./],
+    ['/tmp/books.html', 20, /A Light in the Attic/],
+    ['/tmp/wiki.html', 40, /Amazon/],
+  ] as const;
+  for (const [file, minimum, first] of automatic) {
+    it.skipIf(!existsSync(file))(`finds the main list without a click: ${file}`, () => {
+      load(file);
+      const found = autoExtract();
+      console.log('AUTO', file, found?.rows.length, found?.spec.itemSelector, JSON.stringify(found?.rows[0]).slice(0, 160));
+      expect(found?.rows.length ?? 0).toBeGreaterThanOrEqual(minimum);
+      expect(Object.values(found?.rows[0] ?? {}).join(' ')).toMatch(first);
     });
   }
 

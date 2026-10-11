@@ -1,6 +1,7 @@
 import type { MLCEngine } from '@mlc-ai/web-llm';
+import { parseKeep, rowText } from '@/lib/filter';
 import { parseModelChoice } from '@/lib/heal';
-import type { HumanPrompt } from '@/lib/types';
+import type { HumanPrompt, Row } from '@/lib/types';
 
 export const MODELS = [
   { id: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', label: 'Qwen2.5 1.5B · fastest, about 1 GB' },
@@ -89,7 +90,8 @@ export async function planTask(request: string, workflows: PlannerWorkflow[], ha
     `You plan tasks for a browser extension. Reply with one JSON object only.
 Actions:
 {"action":"run","workflowId":"<id>","variables":{"<field key>":"<value>"},"reply":"<one sentence>"}  use a saved workflow; only fill fields the request gives a value for
-{"action":"scrape","reply":"..."}  collect a repeated list or table from the current page
+{"action":"find","question":"<what items to keep, or empty for all>","reply":"..."}  collect items from the main list or table on the current page, optionally only those matching a description
+{"action":"scrape","reply":"..."}  the user wants to click the list themselves
 {"action":"save_page","reply":"..."}  save the current page as a clean document
 {"action":"ask_page","question":"<question>","reply":"..."}  answer or summarize using the current page
 {"action":"ask_data","question":"<question>","reply":"..."}  answer using data already scraped${hasData ? '' : ' (no data scraped yet)'}
@@ -129,6 +131,22 @@ Reply with JSON only: {"rows":[{"key":"value"}]}. If nothing matches, reply {"ro
   return rows
     .filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object' && !Array.isArray(row))
     .map((row) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, value == null ? '' : String(value)])));
+}
+
+export async function filterRows(filter: string, rows: Row[], onProgress?: (done: number) => void) {
+  const keep: number[] = [];
+  for (let start = 0; start < rows.length; start += 12) {
+    const batch = rows.slice(start, start + 12);
+    const list = batch.map((row, index) => `${index + 1}. ${rowText(row)}`).join('\n');
+    const reply = await chat(
+      'You filter a list of items. Keep an item only if it matches the request by meaning, not just by shared words. Reply with JSON only: {"keep":[item numbers]}. Reply {"keep":[]} if none match.',
+      `Request: ${filter}\n\nItems:\n${list}`,
+      80,
+    );
+    keep.push(...parseKeep(reply, batch.length).map((index) => start + index));
+    onProgress?.(Math.min(start + 12, rows.length));
+  }
+  return keep;
 }
 
 export async function answer(question: string, context: string) {

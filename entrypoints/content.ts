@@ -1,4 +1,4 @@
-import { captchaPending, inferExtract, pageMarkdown, runExtract } from '@/lib/extract';
+import { autoExtract, captchaPending, inferExtract, pageMarkdown, runExtract } from '@/lib/extract';
 import { pageMatches } from '@/lib/format';
 import { rankCandidates } from '@/lib/heal';
 import {
@@ -54,6 +54,10 @@ export default defineContentScript({
       if (message?.type === 'PICK_DONE') endPick();
       if (message?.type === 'PAGE_MARKDOWN' && top) {
         sendResponse({ ok: true, ...pageMarkdown(), url: location.href });
+      }
+      if (message?.type === 'AUTO_EXTRACT' && top) {
+        const found = autoExtract();
+        sendResponse({ ok: Boolean(found), rows: found?.rows ?? [], url: location.href, title: document.title });
       }
       return undefined;
     });

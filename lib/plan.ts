@@ -1,7 +1,8 @@
+import { filterPhrase } from './filter';
 import { words } from './format';
 import type { Workflow } from './types';
 
-export type PlanAction = 'run' | 'scrape' | 'save_page' | 'ask_page' | 'ask_data' | 'record' | 'read_pdf';
+export type PlanAction = 'run' | 'find' | 'scrape' | 'save_page' | 'ask_page' | 'ask_data' | 'record' | 'read_pdf';
 
 export type Plan = {
   action: PlanAction;
@@ -13,7 +14,7 @@ export type Plan = {
   source: 'model' | 'rules';
 };
 
-const ACTIONS: PlanAction[] = ['run', 'scrape', 'save_page', 'ask_page', 'ask_data', 'record', 'read_pdf'];
+const ACTIONS: PlanAction[] = ['run', 'find', 'scrape', 'save_page', 'ask_page', 'ask_data', 'record', 'read_pdf'];
 
 export function workflowFields(workflow: Workflow) {
   return workflow.steps
@@ -41,6 +42,9 @@ export function validatePlan(raw: Record<string, unknown> | null, workflows: Wor
   }
   if (action === 'ask_page' || action === 'ask_data') {
     return { action, question: String(raw.question ?? request), reply, source: 'model' };
+  }
+  if (action === 'find') {
+    return { action, question: String(raw.question ?? filterPhrase(request)).trim(), reply, source: 'model' };
   }
   if (action === 'record') {
     return { action, name: String(raw.name ?? '').slice(0, 80), reply, source: 'model' };
@@ -85,11 +89,23 @@ export function rulesPlan(request: string, workflows: Workflow[], hasData: boole
   if (/\bpdf\b/.test(text)) {
     return { action: 'read_pdf', reply: 'Read the PDF in this tab, then save it or pull out what you need.', source: 'rules' };
   }
+  if (/\b(pick|choose|click)\b.*\b(list|table|items?)\b/.test(text)) {
+    return { action: 'scrape', reply: 'Click one item in the list you want.', source: 'rules' };
+  }
   if (
     /\b(scrape|extract|collect|gather|grab|harvest|table|list)\b/.test(text) ||
-    /\b(get|pull|copy|fetch|find)\b.*\b(all|every|each)\b/.test(text)
+    /\b(get|pull|copy|fetch|find|show|want|need|give me)\b.*\b(all|every|each|any)\b/.test(text) ||
+    /\b(find|show|get|want|need|give me)\b.*\b(related to|about|that mention|mentioning|containing)\b/.test(text)
   ) {
-    return { action: 'scrape', reply: 'Pick one item in the list on the page.', source: 'rules' };
+    const question = filterPhrase(request);
+    return {
+      action: 'find',
+      question,
+      reply: question
+        ? `Find the main list on this page and keep items about “${question}”.`
+        : 'Find the main list on this page and collect every item.',
+      source: 'rules',
+    };
   }
   if (/\b(save|download|export)\b.*\b(page|article|document)\b|\bclean (copy|document)\b|\bmarkdown\b/.test(text)) {
     return { action: 'save_page', reply: 'Save this page as a clean document.', source: 'rules' };

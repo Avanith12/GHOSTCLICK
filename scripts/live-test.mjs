@@ -390,6 +390,37 @@ if (only.has('ask')) {
   });
 }
 
+if (only.has('find')) {
+  const requests = [
+    ['https://github.com/trending', 'in the trending repos i want every repo that is related to diagram design or something'],
+    ['https://github.com/trending', 'find the repos related to AI agents'],
+    ['https://news.ycombinator.com/', 'show me every story about AI on this page'],
+    ['https://books.toscrape.com/', 'get every book on this page'],
+  ];
+  for (const [url, request] of requests) {
+    await guarded('find', `Ask: “${request}”`, async () => {
+      await msg({ type: 'CLEAR_RESULTS' });
+      await panel.bringToFront();
+      await panel.reload({ waitUntil: 'load' });
+      await panel.waitForSelector('textarea');
+      await panel.type('textarea', request);
+      await clickText(panel, 'Plan it');
+      await sleep(500);
+      const heading = await panel.$eval('.plan h2', (element) => element.textContent);
+      await open(url);
+      await panel.evaluate(() => [...document.querySelectorAll('button')].find((button) => button.textContent.trim() === 'Find them')?.click());
+      await panel.waitForFunction(() => /items match|Collected|No repeated list|cannot read/.test(document.body.innerText), { timeout: 20_000, polling: 300 });
+      const result = await panel.evaluate(() => {
+        const title = [...document.querySelectorAll('.plan h2')].at(-1)?.textContent ?? document.querySelector('.error')?.textContent ?? '';
+        const items = [...document.querySelectorAll('ol.found li')].map((item) => item.textContent).slice(0, 5);
+        return { title, items };
+      });
+      const state = await snap();
+      note('find', `Ask: “${request}”`, state.results.rows.length > 0 || /0 of \d+/.test(result.title), `plan “${heading}” → ${result.title} | ${result.items.join(' ; ')}`);
+    });
+  }
+}
+
 async function clickText(page, text) {
   const handle = await page.waitForFunction(
     (wanted) => [...document.querySelectorAll('button')].find((button) => button.textContent.trim() === wanted),
