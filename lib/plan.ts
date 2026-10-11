@@ -12,6 +12,7 @@ export type Plan = {
   name?: string;
   reply: string;
   source: 'model' | 'rules';
+  confident?: boolean;
 };
 
 const ACTIONS: PlanAction[] = ['run', 'find', 'scrape', 'save_page', 'ask_page', 'ask_data', 'record', 'read_pdf'];
@@ -67,7 +68,7 @@ function bestWorkflow(request: string, workflows: Workflow[]) {
     for (const word of wanted) if (have.has(word)) score += 1;
     if (!best || score > best.score) best = { workflow, score };
   }
-  return best && best.score > 0 ? best.workflow : null;
+  return best && best.score > 0 ? best : null;
 }
 
 function guessValues(request: string, workflow: Workflow) {
@@ -84,13 +85,38 @@ function guessValues(request: string, workflow: Workflow) {
   return values;
 }
 
+const LIST_HINT =
+  /\b(all|every|each|any|list|lists|items?|which|ones|find|show|get|collect|scrape|extract|repos?|results?|related|about|products?|stories|articles|posts|links|rows|table|headlines)\b/i;
+
+export function choosePlan(model: Plan | null, rules: Plan, request: string): Plan {
+  if (!model) return rules;
+  if (rules.confident && (model.action !== rules.action || (rules.action === 'run' && model.workflowId !== rules.workflowId))) {
+    return rules;
+  }
+  if ((model.action === 'find' || model.action === 'scrape') && rules.action !== model.action && !LIST_HINT.test(request)) {
+    return rules;
+  }
+  if (model.action === 'run') {
+    const lower = request.toLowerCase();
+    const stated = Object.entries(model.variables ?? {}).filter(([, value]) => lower.includes(value.toLowerCase()));
+    const guessed = rules.action === 'run' && rules.workflowId === model.workflowId ? rules.variables : {};
+    return { ...model, variables: { ...guessed, ...Object.fromEntries(stated) } };
+  }
+  if (model.action === 'find') {
+    const question =
+      rules.action === 'find' ? (rules.question ?? '') : filterPhrase(model.question ?? '') || (model.question ?? '');
+    return { ...model, question };
+  }
+  return model;
+}
+
 export function rulesPlan(request: string, workflows: Workflow[], hasData: boolean): Plan {
   const text = request.toLowerCase();
   if (/\bpdf\b/.test(text)) {
-    return { action: 'read_pdf', reply: 'Read the PDF in this tab, then save it or pull out what you need.', source: 'rules' };
+    return { action: 'read_pdf', reply: 'Read the PDF in this tab, then save it or pull out what you need.', source: 'rules', confident: true };
   }
   if (/\b(pick|choose|click)\b.*\b(list|table|items?)\b/.test(text)) {
-    return { action: 'scrape', reply: 'Click one item in the list you want.', source: 'rules' };
+    return { action: 'scrape', reply: 'Click one item in the list you want.', source: 'rules', confident: true };
   }
   if (
     /\b(scrape|extract|collect|gather|grab|harvest|table|list)\b/.test(text) ||
@@ -105,10 +131,11 @@ export function rulesPlan(request: string, workflows: Workflow[], hasData: boole
         ? `Find the main list on this page and keep items about “${question}”.`
         : 'Find the main list on this page and collect every item.',
       source: 'rules',
+      confident: true,
     };
   }
   if (/\b(save|download|export)\b.*\b(page|article|document)\b|\bclean (copy|document)\b|\bmarkdown\b/.test(text)) {
-    return { action: 'save_page', reply: 'Save this page as a clean document.', source: 'rules' };
+    return { action: 'save_page', reply: 'Save this page as a clean document.', source: 'rules', confident: true };
   }
   if (/\b(summar|what does|explain)\w*/.test(text)) {
     return {
@@ -116,19 +143,21 @@ export function rulesPlan(request: string, workflows: Workflow[], hasData: boole
       question: request,
       reply: 'Answer from the page with the local model.',
       source: 'rules',
+      confident: /\bsummar/.test(text),
     };
   }
   if (/\b(record|teach|show you|learn)\b/.test(text)) {
-    return { action: 'record', name: request.slice(0, 60), reply: 'Show the task once while Ghostclick records.', source: 'rules' };
+    return { action: 'record', name: request.slice(0, 60), reply: 'Show the task once while Ghostclick records.', source: 'rules', confident: true };
   }
-  const workflow = bestWorkflow(request, workflows);
-  if (workflow) {
+  const match = bestWorkflow(request, workflows);
+  if (match) {
     return {
       action: 'run',
-      workflowId: workflow.id,
-      variables: guessValues(request, workflow),
-      reply: `Run “${workflow.name}”. Check the values before you start.`,
+      workflowId: match.workflow.id,
+      variables: guessValues(request, match.workflow),
+      reply: `Run “${match.workflow.name}”. Check the values before you start.`,
       source: 'rules',
+      confident: match.score >= 2,
     };
   }
   return {

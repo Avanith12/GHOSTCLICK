@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { toCsv } from '@/lib/csv';
 import { keywordFilter, rowTitle } from '@/lib/filter';
-import { rulesPlan, validatePlan, workflowFields, type Plan } from '@/lib/plan';
+import { choosePlan, rulesPlan, validatePlan, workflowFields, type Plan } from '@/lib/plan';
+import { dataContext } from '@/lib/rank';
 import type { Row, Snapshot } from '@/lib/types';
 import { downloadText, fileName, findList, pageMarkdown, type Command } from './api';
 import { answer, filterRows, modelReady, planTask } from './model';
@@ -60,7 +60,7 @@ export function AskView({
         );
         next = validatePlan(raw, snap.workflows, text);
       }
-      next ??= rulesPlan(text, snap.workflows, snap.results.rows.length > 0);
+      next = choosePlan(next, rulesPlan(text, snap.workflows, snap.results.rows.length > 0), text);
       setPlan(next);
       setName(next.name || text.slice(0, 60));
       const workflow = snap.workflows.find((item) => item.id === next?.workflowId);
@@ -130,7 +130,8 @@ export function AskView({
           return;
         }
         if (!(await needModel())) return;
-        setReply(await answer(plan.question || request, toCsv(snap.results.columns, snap.results.rows.slice(0, 80))));
+        const question = plan.question || request;
+        setReply(await answer(question, dataContext(question, snap.results.columns, snap.results.rows)));
       } else if (plan.action === 'record') {
         const response = await command({ type: 'START_RECORDING', name, goal: request });
         if (response?.ok) setPlan(null);
@@ -258,6 +259,9 @@ export function AskView({
           </h2>
           {found.filter && !found.byModel ? (
             <p className="hint">Matched by keywords. Load a model below to match by meaning.</p>
+          ) : null}
+          {found.byModel && !/Phi/.test(snap.settings.model) ? (
+            <p className="hint">Small models miss some matches. Phi-3.5 Mini in Settings is much better at this.</p>
           ) : null}
           {found.kept.length ? (
             <ol className="found">

@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { chunkPages, linesFromItems, relevantText, UNVERIFIED, verifyRows } from './pdfText';
+import { chunkPages, cleanRows, linesFromItems, relevantText, UNVERIFIED, verifyRows } from './pdfText';
+
+describe('cleanRows', () => {
+  it('drops empty rows, echoed column names, and repeats', () => {
+    const rows = [
+      { number: 'number', heading: '' },
+      { number: 'heading', heading: 'key' },
+      { number: '3', heading: 'Model Architecture' },
+      { number: '', heading: '' },
+      { number: '3', heading: 'Model Architecture ' },
+      { number: '3.1', heading: 'Encoder and Decoder Stacks' },
+    ];
+    expect(cleanRows(rows, ['number', 'heading'])).toEqual([rows[2], rows[5]]);
+  });
+});
 
 const at = (str: string, x: number, y: number) => ({ str, transform: [1, 0, 0, 1, x, y] });
 

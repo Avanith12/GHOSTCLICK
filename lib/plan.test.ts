@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rulesPlan, validatePlan } from './plan';
+import { choosePlan, rulesPlan, validatePlan } from './plan';
 import type { Workflow } from './types';
 
 const hold: Workflow = {
@@ -43,6 +43,39 @@ describe('rulesPlan', () => {
 
   it('asks to record when nothing matches', () => {
     expect(rulesPlan('book a dentist appointment', [hold], false).action).toBe('record');
+  });
+});
+
+describe('choosePlan', () => {
+  const request = 'Clear the advising hold for Grace Hopper, ID 55667788, grace@navy.mil';
+
+  it('keeps a confident rule plan when the model picks a different action', () => {
+    const model = { action: 'scrape' as const, reply: '', source: 'model' as const };
+    expect(choosePlan(model, rulesPlan(request, [hold], false), request).action).toBe('run');
+  });
+
+  it('drops model values that were not in the request', () => {
+    const model = {
+      action: 'run' as const,
+      workflowId: 'hold',
+      variables: { studentname: 'Grace Hopper', email: 'invented@example.com' },
+      reply: '',
+      source: 'model' as const,
+    };
+    const plan = choosePlan(model, rulesPlan(request, [hold], false), request);
+    expect(plan.variables).toEqual({ studentname: 'Grace Hopper', email: 'grace@navy.mil', studentid: '55667788' });
+  });
+
+  it('does not turn a task into a list search', () => {
+    const model = { action: 'find' as const, question: 'book a dentist appointment', reply: '', source: 'model' as const };
+    const text = 'book a dentist appointment on this site';
+    expect(choosePlan(model, rulesPlan(text, [hold], false), text).action).toBe('record');
+  });
+
+  it('trims a wordy model filter down to the topic', () => {
+    const model = { action: 'find' as const, question: 'Find repositories related to diagram design', reply: '', source: 'model' as const };
+    const rules = rulesPlan('which ones would help me draw', [hold], false);
+    expect(choosePlan(model, rules, 'which ones would help me draw').question).toBe('diagram design');
   });
 });
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toCsv } from '@/lib/csv';
+import { dataContext } from '@/lib/rank';
 import type { Snapshot } from '@/lib/types';
 import { downloadText, downloadUrls, fileName, pageMarkdown, type Command } from './api';
 import { answer, modelReady } from './model';
@@ -49,7 +50,7 @@ export function DataView({
     setReply('');
     try {
       if (!modelReady() && !(await model.load(snap.settings.model))) return;
-      setReply(await answer(question, toCsv(columns, rows.slice(0, 80))));
+      setReply(await answer(question, dataContext(question, columns, rows)));
     } catch (error) {
       setReply(error instanceof Error ? error.message : 'The model could not answer.');
     } finally {

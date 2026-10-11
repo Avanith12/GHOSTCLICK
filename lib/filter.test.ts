@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterPhrase, keywordFilter, parseKeep, rowTitle } from './filter';
+import { filterPhrase, keywordFilter, parseVotes, rowTitle } from './filter';
 
 const repos = [
   { title: 'acme / drawflow', url: 'https://github.com/acme/drawflow', about: 'Draw diagrams and flowcharts in the browser' },
@@ -23,10 +23,17 @@ describe('keywordFilter', () => {
   });
 });
 
-describe('parseKeep', () => {
-  it('reads item numbers and drops ones that are out of range', () => {
-    expect(parseKeep('Sure: {"keep":[1, 3, 3, 9]}', 3)).toEqual([0, 2]);
-    expect(parseKeep('no json here', 3)).toEqual([]);
+describe('parseVotes', () => {
+  it('keeps yes votes and drops ones that are out of range', () => {
+    expect(parseVotes('1: yes\n2: no\n3. Yes\n9: yes', 3)).toEqual([0, 2]);
+    expect(parseVotes('no votes here', 3)).toEqual([]);
+  });
+});
+
+describe('keywordFilter with every word', () => {
+  it('needs all the words to appear', () => {
+    expect(keywordFilter('diagram design', repos, true)).toEqual([]);
+    expect(keywordFilter('design systems', repos, true)).toEqual([2]);
   });
 });
 

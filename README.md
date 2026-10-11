@@ -54,6 +54,13 @@ These are existing open-weight models: Qwen2.5 from Alibaba (Apache 2.0), Llama 
 - Only one example per workflow. Merging several demonstrations is not built yet.
 - Scanned PDFs (images of text) have no readable text. OCR is not built yet.
 - Very long PDFs are read in full, but table extraction looks at the first 20 parts (about 60,000 characters).
+- Pulling tables out of PDFs is the weakest feature. Qwen 1.5B finds few rows; Phi-3.5 finds more but many need checking (they are flagged).
+- Finding items by meaning depends on the model. Phi-3.5 Mini is clearly best; Qwen 1.5B and Llama 3B miss or over-include items.
+- The local model's plan is cross-checked by simple rules: when the rules are sure (PDF, a saved workflow that clearly fits, a list request), they win, and any value the model fills in must appear in what you typed.
+
+## Model test
+
+`CHROME_PATH=… MODEL=Phi-3.5-mini-instruct-q4f16_1-MLC node scripts/model-test.mjs` runs the model features headed on a real GPU (WebGPU is not available in headless Linux Chrome).
 
 ## Development
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { chunkPages, pdfMarkdown, relevantText, UNVERIFIED, verifyRows } from '@/lib/pdfText';
+import { chunkPages, cleanRows, pdfMarkdown, relevantText, UNVERIFIED, verifyRows } from '@/lib/pdfText';
 import type { Row, Snapshot } from '@/lib/types';
 import { downloadText, fileName, type Command } from './api';
 import { answer, extractRows, modelReady } from './model';
@@ -92,7 +92,7 @@ export function PdfPanel({
         collected.push(...rows);
       }
       const source = pdf.pages.join('\n');
-      const checked = verifyRows(collected, source);
+      const checked = verifyRows(cleanRows(collected, keys), source);
       const flagged = checked.filter((row) => row[UNVERIFIED]).length;
       const response = await command({
         type: 'SET_RESULTS',

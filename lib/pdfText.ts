@@ -61,6 +61,19 @@ function normalize(value: string) {
 
 export const UNVERIFIED = 'not found in PDF';
 
+export function cleanRows(rows: Row[], keys: string[]) {
+  const names = new Set(['key', 'value', ...keys, ...rows.flatMap((row) => Object.keys(row))].map((key) => key.trim().toLowerCase()));
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    const values = Object.values(row).map((value) => value.trim().toLowerCase()).filter(Boolean);
+    if (values.length === 0 || values.every((value) => names.has(value))) return false;
+    const signature = values.join('\u0000');
+    if (seen.has(signature)) return false;
+    seen.add(signature);
+    return true;
+  });
+}
+
 export function verifyRows(rows: Row[], source: string) {
   const haystack = normalize(source);
   return rows.map((row) => {

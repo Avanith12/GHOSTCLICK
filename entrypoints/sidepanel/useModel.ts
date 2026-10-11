@@ -37,5 +37,6 @@ export function useModel(): ModelState {
 }
 
 function labelFor(id: string) {
-  return MODELS.find((model) => model.id === id)?.label.split(' · ')[0] ?? id;
+  const base = id.replace('q4f32_1', 'q4f16_1');
+  return MODELS.find((model) => model.id === base)?.label.split(' · ')[0] ?? id;
 }

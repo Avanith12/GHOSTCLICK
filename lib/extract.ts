@@ -121,6 +121,7 @@ const NOISE = new Set([
   'tmp', 'mr', 'ml', 'fg', 'muted', 'inline', 'float', 'right', 'left', 'center', 'bold', 'wrap', 'nowrap',
   'lg', 'md', 'sm', 'xs', 'xl', 'no', 'outline', 'hover', 'underline', 'secondary', 'tertiary', 'primary',
   'aok', 'offscreen', 'declarative', 'crayons', 'story', 'puis', 'puisg', 'list', 'null', 'fw', 'fs',
+  'my', 'mx', 'pt', 'pb', 'm', 'p', 'd',
 ]);
 const ACCOUNT_LINK = /\/(login|signin|sign_in|signup|sign_up|register|share)\b|^javascript:|^#/i;
 const INLINE = new Set(['SPAN', 'B', 'STRONG', 'EM', 'I', 'SUP', 'SUB', 'SMALL', 'ABBR', 'TIME', 'BDI', 'MARK', 'DATA']);
@@ -162,6 +163,7 @@ function fieldName(element: Element, used: Map<string, number>, fallback: string
   if (!base && (fallback === 'title' || fallback === 'image') && !used.has(fallback)) base = fallback;
   if (!base) base = [...element.classList].map(cleanName).find(Boolean) ?? '';
   if (!base && /^h[1-6]$/.test(tag)) base = 'heading';
+  if (!base && tag === 'p' && value.length > 30) base = 'description';
   base ||= fallback;
   const count = (used.get(base) ?? 0) + 1;
   used.set(base, count);

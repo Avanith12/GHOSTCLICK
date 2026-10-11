@@ -382,10 +382,9 @@ if (only.has('ask')) {
     await sleep(500);
     const heading = await panel.$eval('.plan h2', (element) => element.textContent);
     await open('https://books.toscrape.com/catalogue/category/books/mystery_3/index.html');
-    await panel.evaluate(() => [...document.querySelectorAll('button')].find((button) => button.textContent.trim() === 'Pick the list')?.click());
-    await sleep(1200);
-    await site.click('article.product_pod .price_color');
-    const state = await waitIdle(8000);
+    await panel.evaluate(() => [...document.querySelectorAll('button')].find((button) => button.textContent.trim() === 'Find them')?.click());
+    await panel.waitForFunction(() => /items match|Collected|No repeated list|cannot read/.test(document.body.innerText), { timeout: 20_000, polling: 300 });
+    const state = await snap();
     note('ask', 'Ask: “get all the book titles and prices on this page”', state.results.rows.length >= 10, `plan “${heading}” → ${state.results.rows.length} rows; first ${JSON.stringify(brief(state.results.rows[0]))}`);
   });
 }
