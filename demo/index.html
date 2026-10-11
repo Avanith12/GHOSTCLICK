@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advising hold release</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="site">
+        <div>
+          <p class="school">Northwind College · practice portal</p>
+          <h1>Advising hold release</h1>
+        </div>
+        <p class="step">Step 1 of 2</p>
+      </header>
+      <form action="/details.html" method="get">
+        <label>
+          Student name
+          <input id="student-name" name="studentName" autocomplete="name" required />
+        </label>
+        <label>
+          Email
+          <input id="email" name="email" type="email" autocomplete="email" required />
+        </label>
+        <label>
+          Student ID
+          <input id="student-id" name="studentId" required />
+        </label>
+        <div class="actions" id="actions">
+          <button type="submit" id="continue" data-testid="continue">Continue</button>
+        </div>
+      </form>
+      <p class="warn" id="break-banner" hidden>
+        Redesigned page. The Continue button was renamed and moved. A replay should stop and ask which control to use.
+      </p>
+      <p class="note">
+        This is a local stand-in for a campus form. It is not connected to a real student system.
+        <button type="button" class="secondary" id="break-toggle" data-ghostclick="demo">Simulate a redesigned button</button>
+      </p>
+    </div>
+    <script>
+      const key = "ghostclick-demo-break";
+      const actions = document.querySelector("#actions");
+      const toggle = document.querySelector("#break-toggle");
+      const banner = document.querySelector("#break-banner");
+
+      function render() {
+        const broken = sessionStorage.getItem(key) === "1";
+        toggle.textContent = broken ? "Restore the original button" : "Simulate a redesigned button";
+        banner.hidden = !broken;
+        actions.innerHTML = broken
+          ? '<button type="button" id="cancel-request">Cancel</button><div><button type="submit" id="next-step">Next</button></div>'
+          : '<button type="submit" id="continue" data-testid="continue">Continue</button>';
+        document.querySelector("#cancel-request")?.addEventListener("click", () => {
+          window.alert("Cancelled. The repaired step should choose Next, not Cancel.");
+        });
+      }
+
+      toggle.addEventListener("click", () => {
+        sessionStorage.setItem(key, sessionStorage.getItem(key) === "1" ? "0" : "1");
+        render();
+      });
+      render();
+    </script>
+  </body>
+</html>

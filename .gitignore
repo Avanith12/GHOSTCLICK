@@ -1,0 +1,7 @@
+node_modules
+.output
+.wxt
+dist
+*.local
+.DS_Store
+.tmp-chrome-profile

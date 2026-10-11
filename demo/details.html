@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hold details</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="site">
+        <div>
+          <p class="school">Northwind College · practice portal</p>
+          <h1>Why is the hold being released?</h1>
+        </div>
+        <p class="step">Step 2 of 2</p>
+      </header>
+      <form action="/done.html" method="get" id="details">
+        <p id="who"></p>
+        <label>
+          Term
+          <select id="term" name="term" required>
+            <option value="">Choose a term</option>
+            <option>Fall 2026</option>
+            <option>Spring 2027</option>
+          </select>
+        </label>
+        <label>
+          Reason
+          <textarea id="reason" name="reason" required></textarea>
+        </label>
+        <div class="actions">
+          <button type="submit" id="submit-request">Submit request</button>
+        </div>
+      </form>
+    </div>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const form = document.querySelector("#details");
+      for (const key of ["studentName", "email", "studentId"]) {
+        const hidden = document.createElement("input");
+        hidden.type = "hidden";
+        hidden.name = key;
+        hidden.value = params.get(key) ?? "";
+        form.prepend(hidden);
+      }
+      const name = params.get("studentName") || "this student";
+      document.querySelector("#who").textContent = `Request for ${name}.`;
+    </script>
+  </body>
+</html>

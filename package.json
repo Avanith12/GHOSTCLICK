@@ -1,0 +1,32 @@
+{
+  "name": "ghostclick",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "demo": "node scripts/demo-server.mjs",
+    "test": "vitest run",
+    "check:panel": "node scripts/inspect-panel.mjs",
+    "test:live": "node scripts/live-test.mjs",
+    "prepare:ext": "wxt prepare"
+  },
+  "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.85",
+    "pdfjs-dist": "^6.4.299",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.4",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@wxt-dev/module-react": "^1.2.2",
+    "jsdom": "^26.1.0",
+    "puppeteer-core": "^24.43.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4",
+    "wxt": "^0.21.4"
+  }
+}
