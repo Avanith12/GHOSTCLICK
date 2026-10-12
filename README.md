@@ -1,10 +1,12 @@
 <p align="center">
-  <img src="docs/icon.png" alt="Ghostclick icon" width="128" />
+  <img src="docs/ghostclick_banner.gif" alt="Ghostclick: a ghost clicking a cursor" width="100%" />
 </p>
 
-# Ghostclick
+<h1 align="center">Ghostclick</h1>
 
-Show a website task once, then ask for it again in plain words.
+<p align="center"><b>Show a website task once, then ask for it again in plain words.</b></p>
+
+---
 
 Ghostclick is a Chrome extension that records what you do on a website and replays it for you, with new values whenever you need. A small AI model runs on your own computer to understand your requests and fix steps when a website changes. Nothing is sent to a server, and no account or API key is needed.
 
@@ -94,6 +96,8 @@ It downloads once and then runs on your graphics card through WebGPU. Recording,
 - Captchas are never solved automatically
 
 ## Team
+
+<img src="docs/ghostclick_mini_animated.gif" alt="Ghostclick ghost" width="96" align="right" />
 
 - Avanith Kanamarlapudi
 - Kurt Sooknanan
