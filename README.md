@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/icon.png" alt="Ghostclick icon" width="128" />
+</p>
+
 # Ghostclick
 
 Show a website task once, then ask for it again in plain words.
