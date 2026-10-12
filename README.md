@@ -95,14 +95,32 @@ entrypoints/              Chrome extension shells (WXT needs these names)
   content.ts              Runs inside web pages: records clicks, replays steps, scrolls, scrapes
   sidepanel/              The side panel UI (Ask, Workflows, Data tabs)
 features/
-  scrape/                 Finds repeated items on a page and turns them into rows
-  find/                   Keyword matching for "find items about X"
-  data-questions/         Sorts and picks rows before the model answers questions about data
-  planner/                Turns a typed request into a plan (rules, cross-checked with the model)
-  workflows/              Element selectors and self-repair for replays
-  pdf/                    Reads PDFs and pulls out tables
-  model/                  Local AI model (WebLLM): loading, planning, find by meaning, answers
-shared/                   Types, CSV, text helpers, tab connection
+  scrape-lists/           "Scrape a list": finds repeated items on a page and turns them into rows
+    listScraper.ts
+  find-items/             "Find items about X" without the model: keyword search
+    keywordSearch.ts
+  answer-data-questions/  "Which is cheapest?": sorts rows before the model answers
+    sortRowsForQuestion.ts
+  understand-request/     Turns a typed request into a plan (rules, cross-checked with the model)
+    requestPlanner.ts
+  record-and-replay/      Finding page elements again during replay, and self-repair
+    elementSelectors.ts
+    selfRepair.ts
+  save-page/              "Save page as document": page to clean Markdown
+    pageToMarkdown.ts
+  captcha/                Detects a captcha so replay pauses for a human
+    detectCaptcha.ts
+  read-pdf/               Opens PDFs, reads their text, pulls out tables
+    loadPdf.ts
+    pdfContent.ts
+  local-ai/               The local AI model (WebLLM): loading, planning, find by meaning, answers
+    localModel.ts
+    useLocalModel.ts
+shared/                   Used by several features
+  types.ts                Data shapes (workflow, step, row, settings)
+  csv.ts                  CSV read and write
+  textHelpers.ts          Text cleanup and URL matching
+  tabConnection.ts        Reconnects to a tab after the extension reloads
 scripts/                  Live tests on real websites (live-test.mjs, model-test.mjs)
 ```
 

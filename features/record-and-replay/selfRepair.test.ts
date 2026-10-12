@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseModelChoice, rankCandidates } from './heal';
+import { parseModelChoice, rankCandidates } from './selfRepair';
 import type { Candidate } from '@/shared/types';
 
 function candidate(selector: string, label: string): Candidate {

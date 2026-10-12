@@ -1,6 +1,6 @@
 import type { MLCEngine } from '@mlc-ai/web-llm';
-import { bestKeywordMatches, keywordFilter, rowText, rowWords } from '@/features/find/filter';
-import { parseModelChoice } from '@/features/workflows/heal';
+import { bestKeywordMatches, keywordFilter, rowText, rowWords } from '@/features/find-items/keywordSearch';
+import { parseModelChoice } from '@/features/record-and-replay/selfRepair';
 import type { HumanPrompt, Row } from '@/shared/types';
 
 export const MODELS = [

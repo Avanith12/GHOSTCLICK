@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dataContext, numberOf, rankRows } from './rank';
+import { dataContext, numberOf, rankRows } from './sortRowsForQuestion';
 
 const books = [
   { title: 'A', price: '£51.77', link: 'https://example.com/a' },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { choosePlan, rulesPlan, validatePlan } from './plan';
+import { choosePlan, rulesPlan, validatePlan } from './requestPlanner';
 import type { Workflow } from '@/shared/types';
 
 const hold: Workflow = {

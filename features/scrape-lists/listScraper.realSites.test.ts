@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { existsSync, readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { autoExtract, inferExtract, runExtract } from './extract';
+import { autoExtract, inferExtract, runExtract } from './listScraper';
 
 beforeAll(() => {
   if (!globalThis.CSS?.escape) {

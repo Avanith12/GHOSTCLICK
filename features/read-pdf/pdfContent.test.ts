@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chunkPages, cleanRows, linesFromItems, relevantText, UNVERIFIED, verifyRows } from './pdfText';
+import { chunkPages, cleanRows, linesFromItems, relevantText, UNVERIFIED, verifyRows } from './pdfContent';
 
 describe('cleanRows', () => {
   it('drops empty rows, echoed column names, and repeats', () => {

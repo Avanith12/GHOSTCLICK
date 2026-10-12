@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bestKeywordMatches, filterPhrase, keywordFilter, parseVotes, rowTitle } from './filter';
+import { bestKeywordMatches, filterPhrase, keywordFilter, parseVotes, rowTitle } from './keywordSearch';
 
 const repos = [
   { title: 'acme / drawflow', url: 'https://github.com/acme/drawflow', about: 'Draw diagrams and flowcharts in the browser' },

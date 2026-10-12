@@ -1,4 +1,4 @@
-import { reachTab } from '@/shared/reach';
+import { reachTab } from '@/shared/tabConnection';
 import type { Row, Snapshot } from '@/shared/types';
 
 export type Command = (message: Record<string, unknown>) => Promise<{ ok?: boolean; snapshot?: Snapshot; id?: string; error?: string } | null>;

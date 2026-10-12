@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mapColumns, parseCsv, toCsv } from './csv';
-import { pageMatches } from './format';
+import { pageMatches } from './textHelpers';
 
 describe('pageMatches', () => {
   it('treats ids in the address as the same page', () => {

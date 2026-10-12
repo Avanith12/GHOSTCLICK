@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { loadModel, loadedModel, MODELS, modelReady } from './model';
+import { loadModel, loadedModel, MODELS, modelReady } from './localModel';
 
 export type ModelPhase = 'idle' | 'loading' | 'ready' | 'error';
 

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { toCsv } from '@/shared/csv';
-import { dataContext } from '@/features/data-questions/rank';
+import { dataContext } from '@/features/answer-data-questions/sortRowsForQuestion';
 import type { Snapshot } from '@/shared/types';
 import { downloadText, downloadUrls, fileName, pageMarkdown, type Command } from './api';
-import { answer, modelReady } from '@/features/model/model';
+import { answer, modelReady } from '@/features/local-ai/localModel';
 import { PdfPanel } from './PdfPanel';
-import type { ModelState } from '@/features/model/useModel';
+import type { ModelState } from '@/features/local-ai/useLocalModel';
 
 const FILE_LINK = /\.(pdf|docx?|xlsx?|csv|pptx?|zip|txt|rtf|odt|epub|jpe?g|png|gif|webp|mp3|mp4)(\?|#|$)/i;
 

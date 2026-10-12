@@ -1,5 +1,5 @@
-import { filterPhrase } from '@/features/find/filter';
-import { words } from '@/shared/format';
+import { filterPhrase } from '@/features/find-items/keywordSearch';
+import { words } from '@/shared/textHelpers';
 import type { Workflow } from '@/shared/types';
 
 export type PlanAction = 'run' | 'find' | 'scrape' | 'save_page' | 'ask_page' | 'ask_data' | 'record' | 'read_pdf';

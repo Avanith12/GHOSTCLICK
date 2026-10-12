@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync, existsSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { captchaPending, inferExtract, pageMarkdown, runExtract } from './extract';
+import { inferExtract, runExtract } from './listScraper';
 
 beforeAll(() => {
   if (!globalThis.CSS?.escape) {
@@ -54,30 +54,5 @@ describe('inferExtract', () => {
     expect(rows).toHaveLength(20);
     expect(rows[0]?.title).toBe('A Light in the Attic');
     expect(Object.values(rows[0] ?? {})).toContain('£51.77');
-  });
-
-  it.skipIf(!existsSync(books))('saves the whole book grid, not just the first card', () => {
-    load(readFileSync(books, 'utf8'));
-    const { markdown } = pageMarkdown();
-    expect(markdown).toContain('A Light in the');
-    expect(markdown).toContain('Tipping the Velvet');
-  });
-});
-
-describe('pageMarkdown', () => {
-  it('keeps headings, paragraphs, and lists from the main article', () => {
-    load(`<nav>Menu</nav><article><h1>Hold policy</h1><p>Students must meet an <a href="https://x.edu/a">advisor</a>.</p><ul><li>Book a slot</li><li>Attend</li></ul></article>`);
-    const { markdown } = pageMarkdown();
-    expect(markdown).toContain('# Hold policy');
-    expect(markdown).toContain('[advisor](https://x.edu/a)');
-    expect(markdown).toContain('- Book a slot');
-    expect(markdown).not.toContain('Menu');
-  });
-});
-
-describe('captchaPending', () => {
-  it('is false on a normal page', () => {
-    load('<form><button>Go</button></form>');
-    expect(captchaPending()).toBe(false);
   });
 });

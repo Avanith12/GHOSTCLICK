@@ -1,6 +1,8 @@
-import { autoExtract, autoExtractAll, captchaPending, inferExtract, pageMarkdown, runExtract } from '@/features/scrape/extract';
-import { pageMatches } from '@/shared/format';
-import { rankCandidates } from '@/features/workflows/heal';
+import { captchaPending } from '@/features/captcha/detectCaptcha';
+import { pageMarkdown } from '@/features/save-page/pageToMarkdown';
+import { autoExtract, autoExtractAll, inferExtract, runExtract } from '@/features/scrape-lists/listScraper';
+import { pageMatches } from '@/shared/textHelpers';
+import { rankCandidates } from '@/features/record-and-replay/selfRepair';
 import {
   clickableTarget,
   collectCandidates,
@@ -10,7 +12,7 @@ import {
   findStepElement,
   readValue,
   setNativeValue,
-} from '@/features/workflows/selectors';
+} from '@/features/record-and-replay/elementSelectors';
 import type { Row, SessionMode, WorkflowStep } from '@/shared/types';
 
 type Job = {

@@ -1,4 +1,4 @@
-import { cleanText, slug } from '@/shared/format';
+import { cleanText, slug } from '@/shared/textHelpers';
 import type { WorkflowStep } from '@/shared/types';
 
 export type DescribedElement = {

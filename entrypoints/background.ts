@@ -1,5 +1,5 @@
-import { stepSummary } from '@/shared/format';
-import { reachTab } from '@/shared/reach';
+import { stepSummary } from '@/shared/textHelpers';
+import { reachTab } from '@/shared/tabConnection';
 import type {
   Decision,
   ExtractSpec,

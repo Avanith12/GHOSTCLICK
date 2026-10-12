@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { bestKeywordMatches, rowTitle } from '@/features/find/filter';
-import { choosePlan, rulesPlan, validatePlan, workflowFields, type Plan } from '@/features/planner/plan';
-import { dataContext } from '@/features/data-questions/rank';
+import { bestKeywordMatches, rowTitle } from '@/features/find-items/keywordSearch';
+import { choosePlan, rulesPlan, validatePlan, workflowFields, type Plan } from '@/features/understand-request/requestPlanner';
+import { dataContext } from '@/features/answer-data-questions/sortRowsForQuestion';
 import type { Row, Snapshot } from '@/shared/types';
 import { downloadText, fileName, findList, pageMarkdown, type Command } from './api';
-import { answer, filterRows, modelReady, planTask } from '@/features/model/model';
-import type { ModelState } from '@/features/model/useModel';
+import { answer, filterRows, modelReady, planTask } from '@/features/local-ai/localModel';
+import type { ModelState } from '@/features/local-ai/useLocalModel';
 
 type Found = { total: number; kept: Row[]; filter: string; byModel: boolean };
 
