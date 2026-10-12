@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { keywordFilter, rowTitle } from '@/features/find/filter';
+import { bestKeywordMatches, rowTitle } from '@/features/find/filter';
 import { choosePlan, rulesPlan, validatePlan, workflowFields, type Plan } from '@/features/planner/plan';
 import { dataContext } from '@/features/data-questions/rank';
 import type { Row, Snapshot } from '@/shared/types';
@@ -101,8 +101,7 @@ export function AskView({
             kept = keep.map((index) => list.rows[index]!).filter(Boolean);
             byModel = true;
           } else {
-            const every = keywordFilter(filter, list.rows, true);
-            kept = (every.length ? every : keywordFilter(filter, list.rows)).map((index) => list.rows[index]!);
+            kept = bestKeywordMatches(filter, list.rows).map((index) => list.rows[index]!);
           }
         }
         await command({ type: 'SET_RESULTS', rows: kept, source: list.url });

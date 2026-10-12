@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterPhrase, keywordFilter, parseVotes, rowTitle } from './filter';
+import { bestKeywordMatches, filterPhrase, keywordFilter, parseVotes, rowTitle } from './filter';
 
 const repos = [
   { title: 'acme / drawflow', url: 'https://github.com/acme/drawflow', about: 'Draw diagrams and flowcharts in the browser' },
@@ -20,6 +20,17 @@ describe('keywordFilter', () => {
   it('finds longer words inside compound words', () => {
     const products = [{ title: 'Garmin vívoactive 6 GPS Smartwatch' }, { title: 'Owala water bottle' }, { title: 'Bracelet Watch' }];
     expect(keywordFilter('watches', products)).toEqual([0, 2]);
+  });
+
+  it('keeps only the items that match the most words', () => {
+    const products = [
+      { title: 'Owala FreeSip Stainless Steel Water Bottle 24 oz' },
+      { title: 'Galaxy Tab, IP68 Water-Resistant' },
+      { title: 'Coffee machine for hot or cold foam drinks' },
+      { title: 'Owala FreeSip Sway Water Bottle 30 oz' },
+    ];
+    expect(bestKeywordMatches('water bottle for drinking', products)).toEqual([0, 3]);
+    expect(bestKeywordMatches('kettle', products)).toEqual([]);
   });
 
   it('ignores urls and keeps everything for an empty filter', () => {

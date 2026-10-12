@@ -28,24 +28,41 @@ function stem(word: string) {
   return word.replace(/(ing|ings|ed|es|s)$/, '');
 }
 
-export function keywordFilter(filter: string, rows: Row[], everyWord = false) {
-  const wanted = filter
+export function bestKeywordMatches(filter: string, rows: Row[]) {
+  const ranked = keywordFilter(filter, rows);
+  if (ranked.length === 0) return [];
+  const hits = keywordHits(filter, rows);
+  const most = hits[ranked[0]!]!;
+  return ranked.filter((index) => hits[index] === most).sort((left, right) => left - right);
+}
+
+function keywordHits(filter: string, rows: Row[]) {
+  const patterns = keywordPatterns(filter);
+  return rows.map((row) => {
+    const text = rowText(row, 2000);
+    return patterns.filter((pattern) => pattern.test(text)).length;
+  });
+}
+
+function keywordPatterns(filter: string) {
+  return filter
     .toLowerCase()
     .split(/[^a-z0-9+#.]+/)
     .filter((word) => word.length > 1 && !STOP.has(word))
     .map(stem)
-    .filter((word) => word.length > 1);
-  if (wanted.length === 0) return rows.map((_, index) => index);
-  const patterns = wanted.map((word) => {
-    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(word.length <= 3 ? `\\b${escaped}\\b` : word.length === 4 ? `\\b${escaped}` : escaped, 'i');
-  });
-  return rows
-    .map((row, index) => {
-      const text = rowText(row, 2000);
-      const hits = patterns.filter((pattern) => pattern.test(text)).length;
-      return { index, hits };
-    })
+    .filter((word) => word.length > 1)
+    .map((word) => {
+      const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(word.length <= 3 ? `\\b${escaped}\\b` : word.length === 4 ? `\\b${escaped}` : escaped, 'i');
+    });
+}
+
+export function keywordFilter(filter: string, rows: Row[], everyWord = false) {
+  const patterns = keywordPatterns(filter);
+  if (patterns.length === 0) return rows.map((_, index) => index);
+  const hits = keywordHits(filter, rows);
+  return hits
+    .map((count, index) => ({ index, hits: count }))
     .filter((item) => (everyWord ? item.hits === patterns.length : item.hits > 0))
     .sort((left, right) => right.hits - left.hits || left.index - right.index)
     .map((item) => item.index);

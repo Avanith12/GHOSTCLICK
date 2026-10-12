@@ -1,5 +1,5 @@
 import type { MLCEngine } from '@mlc-ai/web-llm';
-import { keywordFilter, rowText, rowWords } from '@/features/find/filter';
+import { bestKeywordMatches, keywordFilter, rowText, rowWords } from '@/features/find/filter';
 import { parseModelChoice } from '@/features/workflows/heal';
 import type { HumanPrompt, Row } from '@/shared/types';
 
@@ -211,7 +211,7 @@ export async function filterRows(filter: string, rows: Row[], onProgress?: (done
     if ((await yesScore(filter, rowWords(rows[index]!))) >= 0.5) kept.add(index);
     onProgress?.(done + 1, order.length);
   }
-  if (kept.size === 0) return mentioned.sort((left, right) => left - right);
+  if (kept.size === 0) return bestKeywordMatches(filter, rows);
   return [...kept].sort((left, right) => left - right);
 }
 
