@@ -1,4 +1,4 @@
-import type { Row } from './types';
+import type { Row } from '@/shared/types';
 
 export type TextItem = {
   str: string;

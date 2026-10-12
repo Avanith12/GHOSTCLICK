@@ -11,7 +11,11 @@ beforeAll(() => {
 
 function load(file: string) {
   document.open();
-  document.write(readFileSync(file, 'utf8').replace(/<script[\s\S]*?<\/script>/gi, ''));
+  document.write(
+    readFileSync(file, 'utf8')
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, ''),
+  );
   document.close();
 }
 
@@ -34,6 +38,7 @@ describe('saved real pages', () => {
     ['github', 'article.Box-row h2 a', 10],
     ['amazon', '[data-component-type="s-search-result"] h2', 16],
     ['algolia', '.Story_title a span', 20],
+    ['amazon-store', '[data-testid="grid-item-buy-price"]', 100],
   ] as const;
   for (const [name, selector, minimum] of live) {
     const file = `/tmp/site-${name}.html`;
@@ -55,6 +60,7 @@ describe('saved real pages', () => {
     ['/tmp/hn.html', 30, /./],
     ['/tmp/books.html', 20, /A Light in the Attic/],
     ['/tmp/wiki.html', 40, /Amazon/],
+    ['/tmp/site-amazon-fall.html', 20, /\$\d/],
   ] as const;
   for (const [file, minimum, first] of automatic) {
     it.skipIf(!existsSync(file))(`finds the main list without a click: ${file}`, () => {

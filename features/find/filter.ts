@@ -1,4 +1,4 @@
-import type { Row } from './types';
+import type { Row } from '@/shared/types';
 
 const STOP = new Set([
   'the', 'and', 'for', 'that', 'this', 'are', 'with', 'about', 'related', 'relating', 'any', 'all', 'every',
@@ -20,6 +20,7 @@ export function rowWords(row: Row, limit = 300) {
 }
 
 export function rowTitle(row: Row) {
+  if (row.title && row.title.length > 3) return row.title;
   return Object.values(row).find((value) => value && value.length > 3 && !/^https?:\/\//.test(value)) ?? '';
 }
 
@@ -37,7 +38,7 @@ export function keywordFilter(filter: string, rows: Row[], everyWord = false) {
   if (wanted.length === 0) return rows.map((_, index) => index);
   const patterns = wanted.map((word) => {
     const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(word.length <= 3 ? `\\b${escaped}\\b` : `\\b${escaped}`, 'i');
+    return new RegExp(word.length <= 3 ? `\\b${escaped}\\b` : word.length === 4 ? `\\b${escaped}` : escaped, 'i');
   });
   return rows
     .map((row, index) => {

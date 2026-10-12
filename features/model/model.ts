@@ -1,7 +1,7 @@
 import type { MLCEngine } from '@mlc-ai/web-llm';
-import { keywordFilter, rowText, rowWords } from '@/lib/filter';
-import { parseModelChoice } from '@/lib/heal';
-import type { HumanPrompt, Row } from '@/lib/types';
+import { keywordFilter, rowText, rowWords } from '@/features/find/filter';
+import { parseModelChoice } from '@/features/workflows/heal';
+import type { HumanPrompt, Row } from '@/shared/types';
 
 export const MODELS = [
   { id: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', label: 'Qwen2.5 1.5B · fastest, about 1 GB' },
@@ -199,16 +199,20 @@ async function yesScore(topic: string, item: string) {
   return yes + no > 0 ? yes / (yes + no) : 0;
 }
 
-export async function filterRows(filter: string, rows: Row[], onProgress?: (done: number) => void) {
-  const scores: number[] = [];
-  for (const [index, row] of rows.entries()) {
-    scores.push(await yesScore(filter, rowWords(row)));
-    onProgress?.(index + 1);
-  }
+const MAX_SCORED = 150;
+
+export async function filterRows(filter: string, rows: Row[], onProgress?: (done: number, total: number) => void) {
+  const mentioned = keywordFilter(filter, rows);
+  const first = new Set(mentioned);
+  const order = [...mentioned, ...rows.map((_, index) => index).filter((index) => !first.has(index))].slice(0, MAX_SCORED);
   const literal = new Set(keywordFilter(filter, rows, true));
-  const kept = scores.map((score, index) => ({ score, index })).filter(({ score, index }) => score >= 0.5 || literal.has(index));
-  if (kept.length === 0) return keywordFilter(filter, rows).sort((left, right) => left - right);
-  return kept.map(({ index }) => index);
+  const kept = new Set(literal);
+  for (const [done, index] of order.entries()) {
+    if ((await yesScore(filter, rowWords(rows[index]!))) >= 0.5) kept.add(index);
+    onProgress?.(done + 1, order.length);
+  }
+  if (kept.size === 0) return mentioned.sort((left, right) => left - right);
+  return [...kept].sort((left, right) => left - right);
 }
 
 export async function answer(question: string, context: string) {

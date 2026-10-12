@@ -6,7 +6,7 @@ export default defineConfig({
     name: 'Ghostclick',
     description:
       'Show a website task once, then ask for it again in plain words. Replays, scrapes, and checks pages with a local model that never leaves your computer.',
-    permissions: ['sidePanel', 'storage', 'unlimitedStorage', 'tabs', 'downloads'],
+    permissions: ['sidePanel', 'storage', 'unlimitedStorage', 'tabs', 'downloads', 'scripting'],
     host_permissions: ['http://*/*', 'https://*/*'],
     action: {
       default_title: 'Open Ghostclick',

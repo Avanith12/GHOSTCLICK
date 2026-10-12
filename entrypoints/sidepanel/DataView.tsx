@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { toCsv } from '@/lib/csv';
-import { dataContext } from '@/lib/rank';
-import type { Snapshot } from '@/lib/types';
+import { toCsv } from '@/shared/csv';
+import { dataContext } from '@/features/data-questions/rank';
+import type { Snapshot } from '@/shared/types';
 import { downloadText, downloadUrls, fileName, pageMarkdown, type Command } from './api';
-import { answer, modelReady } from './model';
+import { answer, modelReady } from '@/features/model/model';
 import { PdfPanel } from './PdfPanel';
-import type { ModelState } from './useModel';
+import type { ModelState } from '@/features/model/useModel';
 
 const FILE_LINK = /\.(pdf|docx?|xlsx?|csv|pptx?|zip|txt|rtf|odt|epub|jpe?g|png|gif|webp|mp3|mp4)(\?|#|$)/i;
 

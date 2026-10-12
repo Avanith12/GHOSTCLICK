@@ -1,4 +1,4 @@
-import { linesFromItems, type TextItem } from '@/lib/pdfText';
+import { linesFromItems, type TextItem } from './pdfText';
 
 export type PdfDocument = {
   title: string;

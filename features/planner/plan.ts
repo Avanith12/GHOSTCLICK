@@ -1,6 +1,6 @@
-import { filterPhrase } from './filter';
-import { words } from './format';
-import type { Workflow } from './types';
+import { filterPhrase } from '@/features/find/filter';
+import { words } from '@/shared/format';
+import type { Workflow } from '@/shared/types';
 
 export type PlanAction = 'run' | 'find' | 'scrape' | 'save_page' | 'ask_page' | 'ask_data' | 'record' | 'read_pdf';
 
@@ -134,6 +134,18 @@ export function rulesPlan(request: string, workflows: Workflow[], hasData: boole
       confident: true,
     };
   }
+  const named = request.match(
+    /^\s*(?:please\s+)?(?:(?:can|could) you\s+)?(?:find|fine|fnd|fin|finde|fidn|search(?: for)?|look for|show|list|which are|where (?:is|are)|is there|are there|any)\s+(?:me\s+)?(?:the\s+|any\s+|an?\s+|some\s+)?(.+?)(\s+(?:on|in|from)\s+(?:this|the)\s+(?:page|site|website|list|results)\b.*)?[\s.?!]*$/i,
+  );
+  const wanted = named && !/^(you|items?|things|stuff|everything|results?|rows|links|list|products?)\b/i.test(named[1]!.trim()) ? named[1]!.trim() : '';
+  const findWanted = (confident: boolean): Plan => ({
+    action: 'find',
+    question: wanted,
+    reply: `Find the main list on this page and keep items about “${wanted}”.`,
+    source: 'rules',
+    confident,
+  });
+  if (wanted && named?.[2]) return findWanted(true);
   if (/\b(save|download|export)\b.*\b(page|article|document)\b|\bclean (copy|document)\b|\bmarkdown\b/.test(text)) {
     return { action: 'save_page', reply: 'Save this page as a clean document.', source: 'rules', confident: true };
   }
@@ -160,6 +172,7 @@ export function rulesPlan(request: string, workflows: Workflow[], hasData: boole
       confident: match.score >= 2,
     };
   }
+  if (wanted) return findWanted(false);
   return {
     action: 'record',
     name: request.slice(0, 60),

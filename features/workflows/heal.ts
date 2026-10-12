@@ -1,4 +1,4 @@
-import type { Candidate } from './types';
+import type { Candidate } from '@/shared/types';
 
 function normalize(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();

@@ -1,6 +1,6 @@
-import { autoExtract, captchaPending, inferExtract, pageMarkdown, runExtract } from '@/lib/extract';
-import { pageMatches } from '@/lib/format';
-import { rankCandidates } from '@/lib/heal';
+import { autoExtract, autoExtractAll, captchaPending, inferExtract, pageMarkdown, runExtract } from '@/features/scrape/extract';
+import { pageMatches } from '@/shared/format';
+import { rankCandidates } from '@/features/workflows/heal';
 import {
   clickableTarget,
   collectCandidates,
@@ -10,8 +10,8 @@ import {
   findStepElement,
   readValue,
   setNativeValue,
-} from '@/lib/selectors';
-import type { SessionMode, WorkflowStep } from '@/lib/types';
+} from '@/features/workflows/selectors';
+import type { Row, SessionMode, WorkflowStep } from '@/shared/types';
 
 type Job = {
   mode: SessionMode;
@@ -32,9 +32,17 @@ export default defineContentScript({
   allFrames: true,
   runAt: 'document_idle',
   main() {
-    const scope = globalThis as typeof globalThis & { __ghostclick?: boolean };
-    if (scope.__ghostclick) return;
-    scope.__ghostclick = true;
+    const scope = globalThis as typeof globalThis & { __ghostclick?: () => boolean };
+    if (scope.__ghostclick?.()) return;
+    const runtime = chrome.runtime;
+    scope.__ghostclick = () => {
+      try {
+        return Boolean(runtime.id);
+      } catch {
+        return false;
+      }
+    };
+    if (window === window.top) document.querySelectorAll('[data-ghostclick]').forEach((element) => element.remove());
 
     const top = window === window.top;
     let mode: SessionMode = 'idle';
@@ -56,8 +64,11 @@ export default defineContentScript({
         sendResponse({ ok: true, ...pageMarkdown(), url: location.href });
       }
       if (message?.type === 'AUTO_EXTRACT' && top) {
-        const found = autoExtract();
-        sendResponse({ ok: Boolean(found), rows: found?.rows ?? [], url: location.href, title: document.title });
+        void loadAll(() => document.links.length).then(() => {
+          const rows = message.all ? mergeLists(autoExtractAll().map((list) => list.rows)) : (autoExtract()?.rows ?? []);
+          sendResponse({ ok: rows.length > 0, rows, url: location.href, title: document.title });
+        });
+        return true;
       }
       return undefined;
     });
@@ -116,7 +127,7 @@ export default defineContentScript({
       if (mode === 'picking') {
         event.preventDefault();
         event.stopPropagation();
-        if (event.target instanceof Element) pick(event.target);
+        if (event.target instanceof Element) void pick(event.target);
         return;
       }
       if (mode !== 'recording') return;
@@ -136,10 +147,12 @@ export default defineContentScript({
       if (mode === 'picking' && event.key === 'Escape') void send({ type: 'CANCEL_PICK' });
     }
 
-    function pick(target: Element) {
+    async function pick(target: Element) {
       const { spec, label } = inferExtract(target);
-      const rows = runExtract(spec);
       endPick();
+      void log('Scrolling to load the whole list…');
+      await loadAll(() => runExtract(spec).length);
+      const rows = runExtract(spec);
       void send({
         type: 'PICKED',
         spec,
@@ -222,6 +235,8 @@ export default defineContentScript({
 
           if (step.kind === 'extract' && step.extract) {
             await waitForQuiet();
+            const spec = step.extract;
+            await loadAll(() => runExtract(spec).length);
             let rows = runExtract(step.extract);
             for (let tries = 0; rows.length === 0 && tries < 12; tries += 1) {
               await sleep(300);
@@ -409,6 +424,19 @@ function candidatesFor(step: WorkflowStep) {
     : candidates;
 }
 
+function mergeLists(lists: Row[][]) {
+  const seen = new Set<string>();
+  const merged: Row[] = [];
+  for (const row of lists.flat()) {
+    const links = Object.values(row).filter((value) => /^https?:\/\//.test(value)).map((value) => value.split('?')[0]);
+    const key = links.length ? links.join(' ') : JSON.stringify(row);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(row);
+  }
+  return merged;
+}
+
 function sameOrigin(url: string) {
   try {
     return new URL(url).origin === location.origin;
@@ -425,6 +453,27 @@ async function waitForText(expected: string) {
     await sleep(300);
   }
   return false;
+}
+
+async function loadAll(count: () => number, limit = 20_000) {
+  const root = document.scrollingElement ?? document.documentElement;
+  const start = window.scrollY;
+  const began = Date.now();
+  let lastCount = count();
+  let lastHeight = root.scrollHeight;
+  let idle = 0;
+  while (idle < 8 && Date.now() - began < limit) {
+    window.scrollBy(0, window.innerHeight * 0.9);
+    await sleep(400);
+    const atBottom = window.innerHeight + window.scrollY >= root.scrollHeight - 4;
+    if (atBottom) await waitForQuiet(700, 3000);
+    const nextCount = count();
+    const height = root.scrollHeight;
+    idle = nextCount > lastCount || height > lastHeight ? 0 : idle + (atBottom ? 4 : 1);
+    lastCount = Math.max(lastCount, nextCount);
+    lastHeight = Math.max(lastHeight, height);
+  }
+  window.scrollTo(0, start);
 }
 
 function waitForQuiet(quiet = 1200, limit = 8000) {

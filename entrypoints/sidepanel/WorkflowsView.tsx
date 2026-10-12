@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { mapColumns, parseCsv } from '@/lib/csv';
-import { stepSummary } from '@/lib/format';
-import { workflowFields } from '@/lib/plan';
-import type { Snapshot, Workflow, WorkflowStep } from '@/lib/types';
+import { mapColumns, parseCsv } from '@/shared/csv';
+import { stepSummary } from '@/shared/format';
+import { workflowFields } from '@/features/planner/plan';
+import type { Snapshot, Workflow, WorkflowStep } from '@/shared/types';
 import type { Command } from './api';
 
 export function WorkflowsView({

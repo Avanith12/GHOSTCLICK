@@ -90,9 +90,11 @@ async function scrape(name, url, selector) {
   if (!started?.ok) return note('scrape', name, false, `pick did not start: ${started?.snapshot?.statusText}`);
   await sleep(900);
   await site.$eval(selector, (element) => element.scrollIntoView({ block: 'center' }));
+  const start = Date.now();
   await site.click(selector);
-  const state = await waitIdle(8000);
+  const state = await waitIdle(25_000);
   const { rows, columns } = state.results;
+  name = `${name} (${((Date.now() - start) / 1000).toFixed(1)}s)`;
   note(
     'scrape',
     name,
@@ -182,6 +184,7 @@ if (only.has('scrape')) {
     ['Stack Overflow', 'https://stackoverflow.com/questions', '.s-post-summary--content-title a'],
     ['Amazon search', 'https://www.amazon.com/s?k=usb+c+cable', '[data-component-type="s-search-result"] h2'],
     ['arXiv listing', 'https://arxiv.org/list/cs.AI/recent', 'dl dt a[title="Abstract"]'],
+    ['Amazon store (loads more as you scroll)', 'https://www.amazon.com/stores/page/EBE27793-5C09-46E0-92C2-15B4414C1154/', '[data-testid="grid-item-buy-price"]'],
   ];
   for (const [name, url, selector] of sites) await guarded('scrape', name, () => scrape(name, url, selector));
 }

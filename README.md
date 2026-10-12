@@ -87,6 +87,27 @@ Pick a model at the bottom of the panel and click **Load model**:
 
 It downloads once and then runs on your graphics card through WebGPU. Recording, replay, scraping, and saving pages all work without a model.
 
+## Project structure
+
+```
+entrypoints/              Chrome extension shells (WXT needs these names)
+  background.ts           Session state, recording, replay, batch runs
+  content.ts              Runs inside web pages: records clicks, replays steps, scrolls, scrapes
+  sidepanel/              The side panel UI (Ask, Workflows, Data tabs)
+features/
+  scrape/                 Finds repeated items on a page and turns them into rows
+  find/                   Keyword matching for "find items about X"
+  data-questions/         Sorts and picks rows before the model answers questions about data
+  planner/                Turns a typed request into a plan (rules, cross-checked with the model)
+  workflows/              Element selectors and self-repair for replays
+  pdf/                    Reads PDFs and pulls out tables
+  model/                  Local AI model (WebLLM): loading, planning, find by meaning, answers
+shared/                   Types, CSV, text helpers, tab connection
+scripts/                  Live tests on real websites (live-test.mjs, model-test.mjs)
+```
+
+Each `*.test.ts` file sits next to the code it checks. Run them with `npx vitest run`.
+
 ## Limits
 
 - One example per workflow

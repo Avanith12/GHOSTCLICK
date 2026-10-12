@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { keywordFilter, rowTitle } from '@/lib/filter';
-import { choosePlan, rulesPlan, validatePlan, workflowFields, type Plan } from '@/lib/plan';
-import { dataContext } from '@/lib/rank';
-import type { Row, Snapshot } from '@/lib/types';
+import { keywordFilter, rowTitle } from '@/features/find/filter';
+import { choosePlan, rulesPlan, validatePlan, workflowFields, type Plan } from '@/features/planner/plan';
+import { dataContext } from '@/features/data-questions/rank';
+import type { Row, Snapshot } from '@/shared/types';
 import { downloadText, fileName, findList, pageMarkdown, type Command } from './api';
-import { answer, filterRows, modelReady, planTask } from './model';
-import type { ModelState } from './useModel';
+import { answer, filterRows, modelReady, planTask } from '@/features/model/model';
+import type { ModelState } from '@/features/model/useModel';
 
 type Found = { total: number; kept: Row[]; filter: string; byModel: boolean };
 
@@ -90,18 +90,19 @@ export function AskView({
         const response = await command({ type: 'START_REPLAY', workflowId: plan.workflowId, variables: values });
         if (response?.ok) setPlan(null);
       } else if (plan.action === 'find') {
-        const list = await findList();
         const filter = plan.question?.trim() ?? '';
+        const list = await findList(Boolean(filter));
         let kept = list.rows;
         let byModel = false;
         if (filter) {
           if (modelReady()) {
-            setProgress(`Reading items 0 of ${list.rows.length}…`);
-            const keep = await filterRows(filter, list.rows, (done) => setProgress(`Reading items ${done} of ${list.rows.length}…`));
+            setProgress('Reading items…');
+            const keep = await filterRows(filter, list.rows, (done, total) => setProgress(`Reading items ${done} of ${total}…`));
             kept = keep.map((index) => list.rows[index]!).filter(Boolean);
             byModel = true;
           } else {
-            kept = keywordFilter(filter, list.rows).map((index) => list.rows[index]!);
+            const every = keywordFilter(filter, list.rows, true);
+            kept = (every.length ? every : keywordFilter(filter, list.rows)).map((index) => list.rows[index]!);
           }
         }
         await command({ type: 'SET_RESULTS', rows: kept, source: list.url });

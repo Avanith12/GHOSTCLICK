@@ -1,4 +1,5 @@
-import { stepSummary } from '@/lib/format';
+import { stepSummary } from '@/shared/format';
+import { reachTab } from '@/shared/reach';
 import type {
   Decision,
   ExtractSpec,
@@ -10,7 +11,7 @@ import type {
   Snapshot,
   Workflow,
   WorkflowStep,
-} from '@/lib/types';
+} from '@/shared/types';
 
 const MAX_ROWS = 2000;
 
@@ -197,15 +198,6 @@ async function handle(message: { type?: string; [key: string]: unknown }, sender
   }
 }
 
-async function ping(tabId: number) {
-  try {
-    const response = await chrome.tabs.sendMessage(tabId, { type: 'PING' }, { frameId: 0 });
-    return Boolean(response?.ok);
-  } catch {
-    return false;
-  }
-}
-
 async function startRecording(name: string, goal: string) {
   const tab = await activeTab();
   const problem = usableTab(tab);
@@ -236,7 +228,7 @@ async function startRecording(name: string, goal: string) {
   };
   session.statusText = 'Recording. Do the task in the page, then save.';
   await persist();
-  if (!(await ping(tab.id))) await chrome.tabs.reload(tab.id);
+  if (!(await reachTab(tab.id))) await chrome.tabs.reload(tab.id);
   return { ok: true, snapshot: snapshot() };
 }
 
@@ -563,7 +555,7 @@ async function startPick() {
     await persist();
     return { ok: false, snapshot: snapshot() };
   }
-  if (!(await ping(tab.id))) {
+  if (!(await reachTab(tab.id))) {
     session.statusText = 'Reload the page once so Ghostclick can reach it, then try again.';
     await persist();
     return { ok: false, snapshot: snapshot() };

@@ -1,5 +1,5 @@
-import { cleanText, slug } from './format';
-import type { WorkflowStep } from './types';
+import { cleanText, slug } from '@/shared/format';
+import type { WorkflowStep } from '@/shared/types';
 
 export type DescribedElement = {
   selector: string;

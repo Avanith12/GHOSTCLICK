@@ -17,6 +17,11 @@ describe('keywordFilter', () => {
     expect(keywordFilter('AI', stories)).toEqual([1]);
   });
 
+  it('finds longer words inside compound words', () => {
+    const products = [{ title: 'Garmin vívoactive 6 GPS Smartwatch' }, { title: 'Owala water bottle' }, { title: 'Bracelet Watch' }];
+    expect(keywordFilter('watches', products)).toEqual([0, 2]);
+  });
+
   it('ignores urls and keeps everything for an empty filter', () => {
     expect(keywordFilter('github', repos)).toEqual([]);
     expect(keywordFilter('', repos)).toEqual([0, 1, 2]);

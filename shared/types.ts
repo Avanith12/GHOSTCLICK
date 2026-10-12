@@ -6,6 +6,8 @@ export type ExtractField = {
   attr: 'text' | 'href' | 'src';
   next?: boolean;
   closest?: string;
+  alt?: string;
+  index?: number;
 };
 
 export type ExtractSpec = {

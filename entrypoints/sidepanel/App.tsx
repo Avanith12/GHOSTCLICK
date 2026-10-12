@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Candidate, Snapshot } from '@/lib/types';
+import type { Candidate, Snapshot } from '@/shared/types';
 import type { Command } from './api';
 import { AskView } from './AskView';
 import { DataView } from './DataView';
-import { MODELS, modelReady, suggestRepair } from './model';
-import { useModel, type ModelState } from './useModel';
+import { MODELS, modelReady, suggestRepair } from '@/features/model/model';
+import { useModel, type ModelState } from '@/features/model/useModel';
 import { StepList, WorkflowsView } from './WorkflowsView';
 
 type Tab = 'ask' | 'workflows' | 'data';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { choosePlan, rulesPlan, validatePlan } from './plan';
-import type { Workflow } from './types';
+import type { Workflow } from '@/shared/types';
 
 const hold: Workflow = {
   id: 'hold',
@@ -34,6 +34,14 @@ describe('rulesPlan', () => {
     const plan = rulesPlan('in the trending repos i want every repo that is related to diagram design or something', [hold], false);
     expect(plan).toMatchObject({ action: 'find', question: 'diagram design' });
     expect(rulesPlan('find the stories about rust on this page', [hold], false).question).toBe('rust');
+    expect(rulesPlan('find the headphones on this page', [hold], false)).toMatchObject({ action: 'find', question: 'headphones' });
+    expect(rulesPlan('show me water bottles on this page', [hold], false)).toMatchObject({ action: 'find', question: 'water bottles' });
+    expect(rulesPlan('find me a water bottle from this page', [hold], false)).toMatchObject({ action: 'find', question: 'water bottle' });
+    expect(rulesPlan('fine me a water bottle in this page', [hold], false)).toMatchObject({ action: 'find', question: 'water bottle' });
+    expect(rulesPlan('is there a smartwatch on this page?', [hold], false)).toMatchObject({ action: 'find', question: 'smartwatch' });
+    expect(rulesPlan('find me a water bottle', [hold], false)).toMatchObject({ action: 'find', question: 'water bottle' });
+    expect(rulesPlan('show you how to clear a hold', [], false).action).toBe('record');
+    expect(rulesPlan('save this page', [hold], false).action).toBe('save_page');
   });
 
   it('ignores filler words when matching workflows', () => {
