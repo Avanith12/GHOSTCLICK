@@ -56,16 +56,34 @@ export async function loadModel(modelId: string, onProgress: (text: string) => v
   }
 }
 
-async function chat(system: string, user: string, maxTokens: number) {
+async function withEngine<T>(task: (current: MLCEngine) => Promise<T>) {
   if (!engine) throw new Error('Load a local model first.');
-  const reply = await engine.chat.completions.create({
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
-    temperature: 0,
-    max_tokens: maxTokens,
-  });
+  try {
+    return await task(engine);
+  } catch (error) {
+    // WebLLM unloads itself when the GPU device is lost, leaving our engine reference stale.
+    if (error instanceof Error && error.name === 'ModelNotLoadedError') {
+      engine = null;
+      loadedId = '';
+      throw new Error(
+        'The graphics card dropped the local model, usually because it ran low on memory. Choose Load model to load it again, or pick a smaller model.',
+      );
+    }
+    throw error;
+  }
+}
+
+async function chat(system: string, user: string, maxTokens: number) {
+  const reply = await withEngine((current) =>
+    current.chat.completions.create({
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      temperature: 0,
+      max_tokens: maxTokens,
+    }),
+  );
   return reply.choices[0]?.message?.content ?? '';
 }
 
@@ -154,22 +172,23 @@ Reply with JSON only: {"rows":[{"key":"value"}]}. If nothing matches, reply {"ro
 }
 
 async function yesScore(topic: string, item: string) {
-  if (!engine) throw new Error('Load a local model first.');
-  const reply = await engine.chat.completions.create({
-    messages: [
-      { role: 'system', content: 'You decide if an item is mainly about a topic. Answer with one word: yes or no.' },
-      { role: 'user', content: 'Topic: cooking\nItem: Easy weeknight pasta recipes with five ingredients' },
-      { role: 'assistant', content: 'yes' },
-      { role: 'user', content: 'Topic: cooking\nItem: A kitchen-themed puzzle game for iPhone' },
-      { role: 'assistant', content: 'no' },
-      { role: 'user', content: `Topic: ${topic}\nItem: ${item}` },
-    ],
-    temperature: 1,
-    top_p: 1,
-    max_tokens: 1,
-    logprobs: true,
-    top_logprobs: 5,
-  });
+  const reply = await withEngine((current) =>
+    current.chat.completions.create({
+      messages: [
+        { role: 'system', content: 'You decide if an item is mainly about a topic. Answer with one word: yes or no.' },
+        { role: 'user', content: 'Topic: cooking\nItem: Easy weeknight pasta recipes with five ingredients' },
+        { role: 'assistant', content: 'yes' },
+        { role: 'user', content: 'Topic: cooking\nItem: A kitchen-themed puzzle game for iPhone' },
+        { role: 'assistant', content: 'no' },
+        { role: 'user', content: `Topic: ${topic}\nItem: ${item}` },
+      ],
+      temperature: 1,
+      top_p: 1,
+      max_tokens: 1,
+      logprobs: true,
+      top_logprobs: 5,
+    }),
+  );
   let yes = 0;
   let no = 0;
   for (const { token, logprob } of reply.choices[0]?.logprobs?.content?.[0]?.top_logprobs ?? []) {
