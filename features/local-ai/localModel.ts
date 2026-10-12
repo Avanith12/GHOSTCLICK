@@ -1,12 +1,13 @@
 import type { MLCEngine } from '@mlc-ai/web-llm';
 import { bestKeywordMatches, keywordFilter, rowText, rowWords } from '@/features/find-items/keywordSearch';
-import { parseModelChoice } from '@/features/record-and-replay/selfRepair';
+import { parseModelChoice, parseNumberChoice } from '@/features/record-and-replay/selfRepair';
 import type { HumanPrompt, Row } from '@/shared/types';
 
 export const MODELS = [
   { id: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', label: 'Qwen2.5 1.5B · fastest, about 1 GB' },
   { id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC', label: 'Llama 3.2 3B · balanced, about 2 GB' },
   { id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', label: 'Phi-3.5 Mini · strongest, about 2.2 GB' },
+  { id: 'Phi-3.5-vision-instruct-q4f16_1-MLC', label: 'Phi-3.5 Vision · also sees screenshots, about 4 GB' },
 ];
 
 let engine: MLCEngine | null = null;
@@ -19,6 +20,10 @@ export function modelReady() {
 
 export function loadedModel() {
   return loadedId;
+}
+
+export function visionReady() {
+  return Boolean(engine) && loadedId.includes('-vision-');
 }
 
 type GpuNavigator = Navigator & {
@@ -137,11 +142,12 @@ Examples:
 
 const DESTRUCTIVE = /\b(cancel|delete|remove|back|reset|clear|discard|unsubscribe|sign ?out|log ?out)\b/i;
 
-export async function suggestRepair(prompt: HumanPrompt) {
+export async function suggestRepair(prompt: HumanPrompt, screenshot?: string) {
   const safe = DESTRUCTIVE.test(prompt.step.label)
     ? prompt.candidates
     : prompt.candidates.filter((candidate) => !DESTRUCTIVE.test(`${candidate.label} ${candidate.selector}`));
   const candidates = safe.length ? safe : prompt.candidates;
+  if (screenshot && visionReady()) return lookForRepair(prompt, candidates, screenshot);
   const choices = candidates
     .map((candidate) => `- selector: ${candidate.selector} | label: ${candidate.label} | tag: ${candidate.tag}`)
     .join('\n');
@@ -151,6 +157,45 @@ export async function suggestRepair(prompt: HumanPrompt) {
     120,
   );
   return parseModelChoice(text, candidates.map((candidate) => candidate.selector));
+}
+
+async function lookForRepair(prompt: HumanPrompt, candidates: HumanPrompt['candidates'], screenshot: string) {
+  const allowed = new Set(candidates.map((candidate) => candidate.selector));
+  const choices = prompt.candidates
+    .map((candidate, index) => ({ candidate, number: index + 1 }))
+    .filter(({ candidate }) => allowed.has(candidate.selector))
+    .map(({ candidate, number }) => `${number}. "${candidate.label}" (${candidate.tag})`)
+    .join('\n');
+  const action = prompt.step.kind === 'click' ? 'clicked' : 'typed into';
+  const reply = await withEngine((current) =>
+    current.chat.completions.create({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `This is a screenshot of a web page. Orange tags with numbers mark the controls that can be used.
+A recorded step ${action} "${prompt.step.label}", but that control has moved or changed.
+Which numbered control continues the same task?
+${choices}
+Never choose a control that cancels, deletes, or goes back unless the recorded control did that.
+Reply with JSON only: {"number":<tag number>,"reason":"short reason"}`,
+            },
+            { type: 'image_url', image_url: { url: screenshot } },
+          ],
+        },
+      ],
+      temperature: 0,
+      max_tokens: 80,
+    }),
+  );
+  const choice = parseNumberChoice(
+    reply.choices[0]?.message?.content ?? '',
+    prompt.candidates.map((candidate) => candidate.selector),
+    [...allowed],
+  );
+  return choice ? { ...choice, sawPage: true } : null;
 }
 
 export async function extractRows(request: string, columns: string[], text: string) {

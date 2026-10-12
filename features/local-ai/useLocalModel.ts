@@ -28,7 +28,14 @@ export function useModel(): ModelState {
       return true;
     } catch (error) {
       setPhase('error');
-      setText(error instanceof Error ? error.message : 'The local model could not load.');
+      const detail = error instanceof Error ? error.message : String((error as { message?: unknown })?.message ?? error ?? '');
+      setText(
+        /disposed|out of memory|device (was )?lost/i.test(detail)
+          ? 'The graphics card ran out of memory. Close other tabs or panels that have a local model loaded, then try again, or pick a smaller model.'
+          : detail
+            ? `The local model could not load: ${detail}`
+            : 'The local model could not load.',
+      );
       return false;
     }
   }, []);

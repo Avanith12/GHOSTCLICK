@@ -13,7 +13,7 @@ import {
   readValue,
   setNativeValue,
 } from '@/features/record-and-replay/elementSelectors';
-import type { Row, SessionMode, WorkflowStep } from '@/shared/types';
+import type { Candidate, Row, SessionMode, WorkflowStep } from '@/shared/types';
 
 type Job = {
   mode: SessionMode;
@@ -44,7 +44,11 @@ export default defineContentScript({
         return false;
       }
     };
-    if (window === window.top) document.querySelectorAll('[data-ghostclick]').forEach((element) => element.remove());
+    if (window === window.top) {
+      document
+        .querySelectorAll('[data-ghostclick="hud"], [data-ghostclick="outline"], [data-ghostclick="marks"]')
+        .forEach((element) => element.remove());
+    }
 
     const top = window === window.top;
     let mode: SessionMode = 'idle';
@@ -303,12 +307,13 @@ export default defineContentScript({
         }
       }
 
+      const unmark = markCandidates(ranked.ranked);
       const decision = await askHuman({
         kind: 'repair',
         step,
         candidates: ranked.ranked,
         reason: `“${step.label}” is not where it was recorded. Pick the control that should be used.`,
-      });
+      }).finally(unmark);
       if (!decision?.approved || !decision.selector) {
         await send({ type: 'STOP_REPLAY', reason: 'Replay stopped before a repaired step.' });
         return null;
@@ -424,6 +429,33 @@ function candidatesFor(step: WorkflowStep) {
   return recordedTag
     ? [...candidates.filter((item) => item.tag === recordedTag), ...candidates.filter((item) => item.tag !== recordedTag)]
     : candidates;
+}
+
+function markCandidates(candidates: Candidate[]) {
+  const layer = document.createElement('div');
+  layer.dataset.ghostclick = 'marks';
+  candidates.forEach((candidate, index) => {
+    const rect = findBySelector(candidate.selector)?.getBoundingClientRect();
+    if (!rect?.width || !rect.height) return;
+    const left = rect.left + window.scrollX;
+    const top = rect.top + window.scrollY;
+    const ring = document.createElement('div');
+    Object.assign(ring.style, {
+      position: 'absolute', left: `${left - 3}px`, top: `${top - 3}px`, width: `${rect.width + 6}px`, height: `${rect.height + 6}px`,
+      border: '3px solid #e2571e', borderRadius: '6px', pointerEvents: 'none', zIndex: '2147483646', boxSizing: 'border-box',
+    });
+    const tag = document.createElement('div');
+    tag.textContent = String(index + 1);
+    Object.assign(tag.style, {
+      position: 'absolute', left: `${Math.max(0, left - 14)}px`, top: `${Math.max(0, top - 14)}px`,
+      minWidth: '26px', height: '26px', borderRadius: '13px', background: '#e2571e', color: '#ffffff',
+      font: 'bold 17px/26px Arial, sans-serif', textAlign: 'center', pointerEvents: 'none', zIndex: '2147483647',
+      boxShadow: '0 0 0 2px #ffffff',
+    });
+    layer.append(ring, tag);
+  });
+  document.documentElement.append(layer);
+  return () => layer.remove();
 }
 
 function mergeLists(lists: Row[][]) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseModelChoice, rankCandidates } from './selfRepair';
+import { parseModelChoice, parseNumberChoice, rankCandidates } from './selfRepair';
 import type { Candidate } from '@/shared/types';
 
 function candidate(selector: string, label: string): Candidate {
@@ -42,5 +42,25 @@ describe('parseModelChoice', () => {
 
   it('rejects a selector the page did not offer', () => {
     expect(parseModelChoice('{"selector":"#made-up","reason":"no"}', ['#next-step'])).toBeNull();
+  });
+});
+
+describe('parseNumberChoice', () => {
+  const selectors = ['#next-step', '#cancel-request', '#help'];
+
+  it('maps the numbered tag the model chose to its control', () => {
+    expect(parseNumberChoice('{"number":1,"reason":"Next continues the form."}', selectors)).toEqual({
+      selector: '#next-step',
+      reason: 'Next continues the form.',
+    });
+  });
+
+  it('accepts a bare number', () => {
+    expect(parseNumberChoice('3', selectors)?.selector).toBe('#help');
+  });
+
+  it('rejects numbers without a tag and controls that were filtered out', () => {
+    expect(parseNumberChoice('{"number":7}', selectors)).toBeNull();
+    expect(parseNumberChoice('{"number":2}', selectors, ['#next-step', '#help'])).toBeNull();
   });
 });

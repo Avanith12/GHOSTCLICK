@@ -3,7 +3,8 @@ import type { Candidate, Snapshot } from '@/shared/types';
 import type { Command } from './api';
 import { AskView } from './AskView';
 import { DataView } from './DataView';
-import { MODELS, modelReady, suggestRepair } from '@/features/local-ai/localModel';
+import { MODELS, modelReady, suggestRepair, visionReady } from '@/features/local-ai/localModel';
+import { pageScreenshot } from '@/features/local-ai/pageScreenshot';
 import { useModel, type ModelState } from '@/features/local-ai/useLocalModel';
 import { StepList, WorkflowsView } from './WorkflowsView';
 
@@ -181,7 +182,7 @@ function PickView({ command }: { command: Command }) {
 }
 
 function RunView({ snap, model, command }: { snap: Snapshot; model: ModelState; command: Command }) {
-  const [suggestion, setSuggestion] = useState<{ selector: string; reason: string } | null>(null);
+  const [suggestion, setSuggestion] = useState<{ selector: string; reason: string; sawPage?: boolean } | null>(null);
   const [thinking, setThinking] = useState(false);
   const asked = useRef('');
   const prompt = snap.prompt;
@@ -201,7 +202,8 @@ function RunView({ snap, model, command }: { snap: Snapshot; model: ModelState; 
     setThinking(true);
     try {
       if (!modelReady() && !(await model.load(snap.settings.model))) return;
-      setSuggestion(await suggestRepair(prompt));
+      const screenshot = visionReady() && snap.tabId ? await pageScreenshot(snap.tabId).catch(() => null) : null;
+      setSuggestion(await suggestRepair(prompt, screenshot ?? undefined));
     } finally {
       setThinking(false);
     }
@@ -234,10 +236,14 @@ function RunView({ snap, model, command }: { snap: Snapshot; model: ModelState; 
       {prompt?.kind === 'repair' ? (
         <div className="prompt">
           <p>{prompt.reason}</p>
-          {thinking ? <p className="hint">The local model is reading the page’s controls…</p> : null}
+          {thinking ? (
+            <p className="hint">
+              {visionReady() ? 'The vision model is looking at a screenshot of the page…' : 'The local model is reading the page’s controls…'}
+            </p>
+          ) : null}
           {suggestion ? (
             <div className="suggestion">
-              <p className="tag">Local model suggests</p>
+              <p className="tag">{suggestion.sawPage ? 'Vision model suggests, from a screenshot' : 'Local model suggests'}</p>
               <strong>{labelFor(prompt.candidates, suggestion.selector)}</strong>
               <p>{suggestion.reason}</p>
               <button type="button" onClick={() => void decide(true, suggestion.selector)}>
@@ -245,11 +251,13 @@ function RunView({ snap, model, command }: { snap: Snapshot; model: ModelState; 
               </button>
             </div>
           ) : null}
-          <p className="hint">Or pick it yourself:</p>
+          <p className="hint">Or pick it yourself. The numbers match the orange tags on the page:</p>
           <div className="choices">
-            {prompt.candidates.map((candidate) => (
+            {prompt.candidates.map((candidate, index) => (
               <button key={candidate.selector} type="button" className="choice" onClick={() => void decide(true, candidate.selector)}>
-                <span>{candidate.label}</span>
+                <span>
+                  {index + 1}. {candidate.label}
+                </span>
                 <small>{candidate.tag}</small>
               </button>
             ))}

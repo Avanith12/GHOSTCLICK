@@ -58,6 +58,7 @@ Click **Scrape a list on this page**, then click one item in a list or table. Gh
 **Smart replay**
 - If a button was renamed or moved, Ghostclick finds the closest match or asks you to pick
 - The AI model can suggest the right button and avoids Cancel, Delete, and Log out
+- With Phi-3.5 Vision loaded, Ghostclick tags the possible buttons with numbers on the page, takes one screenshot, and the model picks a number by looking at it
 - Pauses at captchas so you can solve them, then continues
 
 **Plain-English requests**
@@ -84,8 +85,9 @@ Pick a model at the bottom of the panel and click **Load model**:
 - **Qwen2.5 1.5B**: fastest, about 1 GB
 - **Llama 3.2 3B**: balanced, about 2 GB
 - **Phi-3.5 Mini**: most accurate, about 2.2 GB
+- **Phi-3.5 Vision**: can also read screenshots, used when replay has to repair a step, about 4 GB of graphics memory (about 6 GB on cards without 16-bit support)
 
-It downloads once and then runs on your graphics card through WebGPU. Recording, replay, scraping, and saving pages all work without a model.
+The model only runs when it is needed: to understand a request, answer a question, or repair a step the page structure alone could not fix. It downloads once and then runs on your graphics card through WebGPU. Recording, replay, scraping, and saving pages all work without a model.
 
 ## Project structure
 
@@ -116,6 +118,7 @@ features/
   local-ai/               The local AI model (WebLLM): loading, planning, find by meaning, answers
     localModel.ts
     useLocalModel.ts
+    pageScreenshot.ts     Screenshot of the tab, sized for the vision model
 shared/                   Used by several features
   types.ts                Data shapes (workflow, step, row, settings)
   csv.ts                  CSV read and write

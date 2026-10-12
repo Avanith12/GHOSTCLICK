@@ -315,9 +315,10 @@ try {
       .catch(() => false);
     const choice = suggested ? await panel.$eval('.suggestion strong', (element) => element.textContent) : '';
     const reason = suggested ? await panel.$eval('.suggestion p:not(.tag)', (element) => element.textContent) : await text();
+    const source = suggested ? await panel.$eval('.suggestion .tag', (element) => element.textContent) : '';
     if (suggested) await click('Use this control');
     await sleep(3000);
-    note('Model repairs the redesigned button', /next/i.test(choice) && /details\.html/.test(site.url()), `${seconds(start)} | suggested “${choice}”: ${reason.slice(0, 200)} | page now ${site.url()}`);
+    note('Model repairs the redesigned button', /next/i.test(choice) && /details\.html/.test(site.url()), `${seconds(start)} | ${source} “${choice}”: ${reason.slice(0, 200)} | page now ${site.url()}`);
     await site.evaluate(() => sessionStorage.setItem('ghostclick-demo-break', '0')).catch(() => undefined);
   }
 } catch (error) {

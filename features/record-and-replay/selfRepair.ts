@@ -70,3 +70,22 @@ export function parseModelChoice(text: string, selectors: string[]) {
     return null;
   }
 }
+
+export function parseNumberChoice(text: string, selectors: string[], allowed = selectors) {
+  const json = text.match(/\{[\s\S]*\}/)?.[0];
+  let data: { number?: unknown; reason?: unknown } = {};
+  if (json) {
+    try {
+      data = JSON.parse(json);
+    } catch {
+      data = {};
+    }
+  }
+  const number = Number(data.number ?? text.match(/\d+/)?.[0]);
+  const selector = Number.isInteger(number) ? selectors[number - 1] : undefined;
+  if (!selector || !allowed.includes(selector)) return null;
+  return {
+    selector,
+    reason: typeof data.reason === 'string' && data.reason ? data.reason : 'The vision model chose this control.',
+  };
+}
