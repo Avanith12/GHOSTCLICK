@@ -105,3 +105,7 @@ It downloads once and then runs on your graphics card through WebGPU. Recording,
 - Chelsea Nguyen
 - Kalysha MelendezHernandez
 - Ila Lama
+
+## License
+
+[MIT](LICENSE) © 2026 the Ghostclick team
