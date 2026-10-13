@@ -176,7 +176,6 @@ try {
     const cases = [
       ['Clear the advising hold for Grace Hopper, ID 55667788, grace@navy.mil', /Run “Advising hold release”/],
       ['in the trending repos i want every repo that is related to diagram design or something', /Find items|Collect the list/],
-      ['summarize this page for me', /Answer from this page/],
       ['save this article as a clean document', /Save this page/],
       ['Read the PDF in this tab', /Read a PDF/],
       ['book a dentist appointment on this site', /Teach Ghostclick/],
@@ -215,14 +214,15 @@ try {
   }
 
   if (only.has('summary')) {
-    await panel.bringToFront();
-    await plan('Summarize this page');
     await open('https://en.wikipedia.org/wiki/WebGPU');
+    await tab('Ask');
+    await fill('textarea', 'Summarize this page');
     const start = Date.now();
-    await click('Answer');
-    const done = await waitText(/./, 1000) && (await panel.waitForSelector('.answer', { timeout: 300_000 }).then(() => true).catch(() => false));
+    await click('Plan it');
+    const done = await panel.waitForSelector('.answer', { timeout: 300_000 }).then(() => true).catch(() => false);
     const answerText = done ? await panel.$eval('.answer', (element) => element.textContent) : await text();
-    note('Summarize a Wikipedia article', done && answerText.length > 80, `${seconds(start)} | ${answerText.slice(0, 400)}`);
+    const source = done ? await panel.evaluate(() => document.querySelector('.answer')?.previousElementSibling?.textContent ?? '') : '';
+    note('Summarize a Wikipedia article', done && answerText.length > 80 && /WebGPU/.test(source), `${seconds(start)} | ${source} | ${answerText.slice(0, 400)}`);
   }
 
   if (only.has('data')) {

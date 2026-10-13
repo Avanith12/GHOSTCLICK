@@ -35,6 +35,7 @@ export function AskView({
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState('');
+  const [replyFrom, setReplyFrom] = useState('');
   const [error, setError] = useState('');
   const [found, setFound] = useState<Found | null>(null);
   const [progress, setProgress] = useState('');
@@ -43,8 +44,10 @@ export function AskView({
     if (!text.trim()) return;
     setBusy(true);
     setReply('');
+    setReplyFrom('');
     setError('');
     setFound(null);
+    let answerNow: Plan | null = null;
     try {
       let next: Plan | null = null;
       if (modelReady()) {
@@ -61,6 +64,11 @@ export function AskView({
         next = validatePlan(raw, snap.workflows, text);
       }
       next = choosePlan(next, rulesPlan(text, snap.workflows, snap.results.rows.length > 0), text);
+      if (next.action === 'ask_page' || next.action === 'ask_data') {
+        setPlan(null);
+        answerNow = next;
+        return;
+      }
       setPlan(next);
       setName(next.name || text.slice(0, 60));
       const workflow = snap.workflows.find((item) => item.id === next?.workflowId);
@@ -74,6 +82,7 @@ export function AskView({
     } finally {
       setBusy(false);
     }
+    if (answerNow) await carryOut(answerNow, text);
   }
 
   async function needModel() {
@@ -81,16 +90,16 @@ export function AskView({
     return model.load(snap.settings.model);
   }
 
-  async function carryOut() {
-    if (!plan) return;
+  async function carryOut(current = plan, asked = request) {
+    if (!current) return;
     setBusy(true);
     setError('');
     try {
-      if (plan.action === 'run' && plan.workflowId) {
-        const response = await command({ type: 'START_REPLAY', workflowId: plan.workflowId, variables: values });
+      if (current.action === 'run' && current.workflowId) {
+        const response = await command({ type: 'START_REPLAY', workflowId: current.workflowId, variables: values });
         if (response?.ok) setPlan(null);
-      } else if (plan.action === 'find') {
-        const filter = plan.question?.trim() ?? '';
+      } else if (current.action === 'find') {
+        const filter = current.question?.trim() ?? '';
         const list = await findList(Boolean(filter));
         let kept = list.rows;
         let byModel = false;
@@ -107,33 +116,37 @@ export function AskView({
         await command({ type: 'SET_RESULTS', rows: kept, source: list.url });
         setFound({ total: list.rows.length, kept, filter, byModel });
         setPlan(null);
-      } else if (plan.action === 'scrape') {
+      } else if (current.action === 'scrape') {
         const response = await command({ type: 'START_PICK' });
         if (response?.ok) {
           setPlan(null);
           openTab('data');
         }
-      } else if (plan.action === 'read_pdf') {
+      } else if (current.action === 'read_pdf') {
         setPlan(null);
         openTab('data', undefined, true);
-      } else if (plan.action === 'save_page') {
+      } else if (current.action === 'save_page') {
         const page = await pageMarkdown();
         await downloadText(fileName(page.title, 'md'), page.markdown, 'text/markdown');
         setReply(`Saved “${page.title}” as a Markdown document in Downloads.`);
-      } else if (plan.action === 'ask_page') {
-        if (!(await needModel())) return;
+      } else if (current.action === 'ask_page') {
         const page = await pageMarkdown();
-        setReply(await answer(plan.question || request, page.markdown));
-      } else if (plan.action === 'ask_data') {
+        if (!(await needModel())) return;
+        setProgress(`Reading “${page.title || page.url}”…`);
+        setReply(await answer(current.question || asked, page.markdown));
+        setReplyFrom(`From the page “${page.title || page.url}”`);
+      } else if (current.action === 'ask_data') {
         if (!snap.results.rows.length) {
-          setError('Nothing has been scraped yet.');
+          setError('Nothing has been scraped yet. Scrape a list first, then ask about it.');
           return;
         }
         if (!(await needModel())) return;
-        const question = plan.question || request;
+        const question = current.question || asked;
+        setProgress('Reading the scraped data…');
         setReply(await answer(question, dataContext(question, snap.results.columns, snap.results.rows)));
-      } else if (plan.action === 'record') {
-        const response = await command({ type: 'START_RECORDING', name, goal: request });
+        setReplyFrom(`From the ${snap.results.rows.length} scraped rows`);
+      } else if (current.action === 'record') {
+        const response = await command({ type: 'START_RECORDING', name, goal: asked });
         if (response?.ok) setPlan(null);
       }
     } catch (problem) {
@@ -283,7 +296,12 @@ export function AskView({
           </div>
         </div>
       ) : null}
-      {reply ? <div className="answer">{reply}</div> : null}
+      {reply ? (
+        <>
+          {replyFrom ? <p className="hint">{replyFrom}</p> : null}
+          <div className="answer">{reply}</div>
+        </>
+      ) : null}
       {error ? (
         <p className="error">
           {error}{' '}
