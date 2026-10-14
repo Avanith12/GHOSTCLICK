@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { loadModel, loadedModel, MODELS, modelReady } from './localModel';
+import { isVisionModel, loadModel, loadedModel, MODELS, modelReady, textModelReady, VISION_ONLY } from './localModel';
 
 export type ModelPhase = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -7,6 +7,7 @@ export type ModelState = {
   phase: ModelPhase;
   text: string;
   load: (modelId: string) => Promise<boolean>;
+  loadForText: (modelId: string) => Promise<boolean>;
 };
 
 export function useModel(): ModelState {
@@ -40,7 +41,16 @@ export function useModel(): ModelState {
     }
   }, []);
 
-  return { phase, text, load };
+  const loadForText = useCallback(
+    async (modelId: string) => {
+      if (textModelReady()) return true;
+      if (modelReady() || isVisionModel(modelId)) throw new Error(VISION_ONLY);
+      return load(modelId);
+    },
+    [load],
+  );
+
+  return { phase, text, load, loadForText };
 }
 
 function labelFor(id: string) {

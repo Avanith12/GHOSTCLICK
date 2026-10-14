@@ -10,6 +10,13 @@ export const MODELS = [
   { id: 'Phi-3.5-vision-instruct-q4f16_1-MLC', label: 'Phi-3.5 Vision · also sees screenshots, about 4 GB' },
 ];
 
+// WebLLM reserves graphics memory for the whole context window up front (about 0.75 MB per token for
+// Phi-3.5 in 32-bit), so the default 4,096 does not fit an 8 GB card. Text prompts stay under
+// ANSWER_CHARS plus 400 reply tokens; a vision prompt is a 1,921-token screenshot plus a short question.
+const TEXT_CONTEXT = 3072;
+const VISION_CONTEXT = 2560;
+const ANSWER_CHARS = 5000;
+
 let engine: MLCEngine | null = null;
 let loadedId = '';
 let loading: Promise<void> | null = null;
@@ -22,9 +29,20 @@ export function loadedModel() {
   return loadedId;
 }
 
-export function visionReady() {
-  return Boolean(engine) && loadedId.includes('-vision-');
+export function isVisionModel(modelId: string) {
+  return modelId.includes('-vision-');
 }
+
+export function visionReady() {
+  return Boolean(engine) && isVisionModel(loadedId);
+}
+
+export function textModelReady() {
+  return Boolean(engine) && !isVisionModel(loadedId);
+}
+
+export const VISION_ONLY =
+  'Phi-3.5 Vision is only used to repair replays, because it is too large to also answer questions. Pick Phi-3.5 Mini below and load it for questions and summaries.';
 
 type GpuNavigator = Navigator & {
   gpu?: { requestAdapter: (options?: { powerPreference?: string }) => Promise<{ features: Set<string> } | null> };
@@ -49,9 +67,11 @@ export async function loadModel(modelId: string, onProgress: (text: string) => v
       await engine.unload();
       engine = null;
     }
-    engine = await CreateMLCEngine(resolved, {
-      initProgressCallback: (report) => onProgress(report.text),
-    });
+    engine = await CreateMLCEngine(
+      resolved,
+      { initProgressCallback: (report) => onProgress(report.text) },
+      { context_window_size: isVisionModel(resolved) ? VISION_CONTEXT : TEXT_CONTEXT },
+    );
     loadedId = resolved;
   })();
   try {
@@ -263,7 +283,7 @@ export async function filterRows(filter: string, rows: Row[], onProgress?: (done
 export async function answer(question: string, context: string) {
   return chat(
     'Answer using only the provided content. Be brief and concrete. If the content does not contain the answer, say so.',
-    `Content:\n${context.slice(0, 6000)}\n\nQuestion: ${question}`,
+    `Content:\n${context.slice(0, ANSWER_CHARS)}\n\nQuestion: ${question}`,
     400,
   );
 }

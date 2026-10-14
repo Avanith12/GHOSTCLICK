@@ -380,15 +380,11 @@ if (only.has('ask')) {
     await panel.bringToFront();
     await panel.reload({ waitUntil: 'load' });
     await panel.waitForSelector('textarea');
-    await panel.type('textarea', 'get all the book titles and prices on this page');
-    await clickText(panel, 'Plan it');
-    await sleep(500);
-    const heading = await panel.$eval('.plan h2', (element) => element.textContent);
     await open('https://books.toscrape.com/catalogue/category/books/mystery_3/index.html');
-    await panel.evaluate(() => [...document.querySelectorAll('button')].find((button) => button.textContent.trim() === 'Find them')?.click());
+    await askPanel('get all the book titles and prices on this page');
     await panel.waitForFunction(() => /items match|Collected|No repeated list|cannot read/.test(document.body.innerText), { timeout: 20_000, polling: 300 });
     const state = await snap();
-    note('ask', 'Ask: “get all the book titles and prices on this page”', state.results.rows.length >= 10, `plan “${heading}” → ${state.results.rows.length} rows; first ${JSON.stringify(brief(state.results.rows[0]))}`);
+    note('ask', 'Ask: “get all the book titles and prices on this page”', state.results.rows.length >= 10, `${state.results.rows.length} rows; first ${JSON.stringify(brief(state.results.rows[0]))}`);
   });
 }
 
@@ -405,12 +401,8 @@ if (only.has('find')) {
       await panel.bringToFront();
       await panel.reload({ waitUntil: 'load' });
       await panel.waitForSelector('textarea');
-      await panel.type('textarea', request);
-      await clickText(panel, 'Plan it');
-      await sleep(500);
-      const heading = await panel.$eval('.plan h2', (element) => element.textContent);
       await open(url);
-      await panel.evaluate(() => [...document.querySelectorAll('button')].find((button) => button.textContent.trim() === 'Find them')?.click());
+      await askPanel(request);
       await panel.waitForFunction(() => /items match|Collected|No repeated list|cannot read/.test(document.body.innerText), { timeout: 20_000, polling: 300 });
       const result = await panel.evaluate(() => {
         const title = [...document.querySelectorAll('.plan h2')].at(-1)?.textContent ?? document.querySelector('.error')?.textContent ?? '';
@@ -418,9 +410,19 @@ if (only.has('find')) {
         return { title, items };
       });
       const state = await snap();
-      note('find', `Ask: “${request}”`, state.results.rows.length > 0 || /0 of \d+/.test(result.title), `plan “${heading}” → ${result.title} | ${result.items.join(' ; ')}`);
+      note('find', `Ask: “${request}”`, state.results.rows.length > 0 || /0 of \d+/.test(result.title), `${result.title} | ${result.items.join(' ; ')}`);
     });
   }
+}
+
+async function askPanel(request) {
+  await panel.evaluate((content) => {
+    const field = document.querySelector('textarea');
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(field, content);
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  }, request);
+  await sleep(200);
+  await panel.evaluate(() => [...document.querySelectorAll('button')].find((button) => button.textContent.trim() === 'Go')?.click());
 }
 
 async function clickText(page, text) {

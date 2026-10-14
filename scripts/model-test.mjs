@@ -109,12 +109,16 @@ try {
     await sleep(400);
   }
 
-  async function plan(request) {
+  async function ask(request) {
     await tab('Ask');
     await fill('textarea', request);
+    await click('Go');
+  }
+
+  async function plan(request) {
     const start = Date.now();
-    await click('Plan it');
-    await waitText(/planned by/i, 120_000);
+    await ask(request);
+    await waitText(/understood (by|without)/i, 120_000);
     const card = await panel.evaluate(() => ({
       tag: document.querySelector('.plan .tag')?.textContent ?? '',
       title: document.querySelector('.plan h2')?.textContent ?? '',
@@ -175,9 +179,6 @@ try {
   if (only.has('plan')) {
     const cases = [
       ['Clear the advising hold for Grace Hopper, ID 55667788, grace@navy.mil', /Run “Advising hold release”/],
-      ['in the trending repos i want every repo that is related to diagram design or something', /Find items|Collect the list/],
-      ['save this article as a clean document', /Save this page/],
-      ['Read the PDF in this tab', /Read a PDF/],
       ['book a dentist appointment on this site', /Teach Ghostclick/],
     ];
     for (const [request, expected] of cases) {
@@ -193,12 +194,10 @@ try {
 
   if (only.has('find')) {
     for (const request of ['find the repos related to drawing diagrams or charts', 'find the repos that are about AI coding agents']) {
-      await panel.bringToFront();
-      const planned = await plan(request);
       await open('https://github.com/trending');
       if (process.env.DEBUG) console.log('  list:', JSON.stringify(await listSample()));
       const start = Date.now();
-      await click('Find them');
+      await ask(request);
       await waitText(/items match|Collected|No repeated list|cannot read/, 300_000);
       const result = await panel.evaluate(() => ({
         title: [...document.querySelectorAll('.plan h2')].at(-1)?.textContent ?? document.querySelector('.error')?.textContent ?? '',
@@ -208,17 +207,15 @@ try {
       note(
         `Find by meaning: “${request}”`,
         /items match/.test(result.title) && !/keywords/.test(result.hint),
-        `${seconds(start)} | plan “${planned.title}” | ${result.title} | ${result.items.join(' ; ')}`,
+        `${seconds(start)} | ${result.title} | ${result.items.join(' ; ')}`,
       );
     }
   }
 
   if (only.has('summary')) {
     await open('https://en.wikipedia.org/wiki/WebGPU');
-    await tab('Ask');
-    await fill('textarea', 'Summarize this page');
     const start = Date.now();
-    await click('Plan it');
+    await ask('Summarize this page');
     const done = await panel.waitForSelector('.answer', { timeout: 300_000 }).then(() => true).catch(() => false);
     const answerText = done ? await panel.$eval('.answer', (element) => element.textContent) : await text();
     const source = done ? await panel.evaluate(() => document.querySelector('.answer')?.previousElementSibling?.textContent ?? '') : '';
@@ -226,11 +223,9 @@ try {
   }
 
   if (only.has('data')) {
-    await panel.bringToFront();
-    await plan('get every book on this page');
     await open('https://books.toscrape.com/');
     if (process.env.DEBUG) console.log('  list:', JSON.stringify(await listSample()).slice(0, 400));
-    await click('Find them');
+    await ask('get every book on this page');
     await waitText(/items match|Collected|No repeated list|cannot read/, 60_000);
     const rows = (await snap()).results.rows;
     if (!rows.length) throw new Error(`no books collected; panel shows: ${(await text()).slice(0, 300).replace(/\n/g, ' / ')}`);

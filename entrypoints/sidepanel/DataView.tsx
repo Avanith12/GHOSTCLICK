@@ -3,7 +3,7 @@ import { toCsv } from '@/shared/csv';
 import { dataContext } from '@/features/answer-data-questions/sortRowsForQuestion';
 import type { Snapshot } from '@/shared/types';
 import { downloadText, downloadUrls, fileName, pageMarkdown, type Command } from './api';
-import { answer, modelReady } from '@/features/local-ai/localModel';
+import { answer } from '@/features/local-ai/localModel';
 import { PdfPanel } from './PdfPanel';
 import type { ModelState } from '@/features/local-ai/useLocalModel';
 
@@ -49,7 +49,7 @@ export function DataView({
     setBusy(true);
     setReply('');
     try {
-      if (!modelReady() && !(await model.load(snap.settings.model))) return;
+      if (!(await model.loadForText(snap.settings.model))) return;
       setReply(await answer(question, dataContext(question, columns, rows)));
     } catch (error) {
       setReply(error instanceof Error ? error.message : 'The model could not answer.');

@@ -40,7 +40,7 @@ The side panel has three tabs.
 4. To repeat it, open the workflow, change the values, and click **Run**.
 
 **Ask: tell it what you want**
-Type a request such as *"Clear the advising hold for Grace Hopper, ID 55667788"*, click **Plan it**, check the values, and click **Run**.
+Type a request and press Enter (or click **Go**). Questions, summaries, finding items, and saving pages happen right away. Requests that act on a website show a card first: for *"Clear the advising hold for Grace Hopper, ID 55667788"*, check the filled-in values and click **Run**.
 
 **Data: collect information**
 Click **Scrape a list on this page**, then click one item in a list or table. Ghostclick finds the rest, and you can download them as CSV or JSON.
@@ -85,7 +85,7 @@ Pick a model at the bottom of the panel and click **Load model**:
 - **Qwen2.5 1.5B**: fastest, about 1 GB
 - **Llama 3.2 3B**: balanced, about 2 GB
 - **Phi-3.5 Mini**: most accurate, about 2.2 GB
-- **Phi-3.5 Vision**: can also read screenshots, used when replay has to repair a step, about 4 GB of graphics memory (about 6 GB on cards without 16-bit support)
+- **Phi-3.5 Vision**: reads screenshots, used only when replay has to repair a step. It needs about 4 GB of graphics memory (more on cards without 16-bit support), so questions and summaries use the text models instead
 
 The model only runs when it is needed: to understand a request, answer a question, or repair a step the page structure alone could not fix. It downloads once and then runs on your graphics card through WebGPU. Recording, replay, scraping, and saving pages all work without a model.
 

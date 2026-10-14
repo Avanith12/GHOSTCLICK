@@ -84,7 +84,7 @@ export function verifyRows(rows: Row[], source: string) {
   });
 }
 
-export function relevantText(chunks: string[], question: string, limit = 5500) {
+export function relevantText(chunks: string[], question: string, limit = 5000) {
   const words = new Set(question.toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length > 2));
   const ranked = chunks
     .map((chunk, index) => {

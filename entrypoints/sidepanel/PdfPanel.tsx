@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { chunkPages, cleanRows, pdfMarkdown, relevantText, UNVERIFIED, verifyRows } from '@/features/read-pdf/pdfContent';
 import type { Row, Snapshot } from '@/shared/types';
 import { downloadText, fileName, type Command } from './api';
-import { answer, extractRows, modelReady } from '@/features/local-ai/localModel';
+import { answer, extractRows } from '@/features/local-ai/localModel';
 import { pdfFromFile, pdfFromUrl, type PdfDocument } from '@/features/read-pdf/loadPdf';
 import type { ModelState } from '@/features/local-ai/useLocalModel';
 
@@ -68,8 +68,7 @@ export function PdfPanel({
   }
 
   async function needModel() {
-    if (modelReady()) return true;
-    return model.load(snap.settings.model);
+    return model.loadForText(snap.settings.model);
   }
 
   async function pullOut() {

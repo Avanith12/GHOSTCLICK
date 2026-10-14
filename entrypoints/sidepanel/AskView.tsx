@@ -4,7 +4,7 @@ import { choosePlan, rulesPlan, validatePlan, workflowFields, type Plan } from '
 import { dataContext } from '@/features/answer-data-questions/sortRowsForQuestion';
 import type { Row, Snapshot } from '@/shared/types';
 import { downloadText, fileName, findList, pageMarkdown, type Command } from './api';
-import { answer, filterRows, modelReady, planTask } from '@/features/local-ai/localModel';
+import { answer, filterRows, planTask, textModelReady, visionReady } from '@/features/local-ai/localModel';
 import type { ModelState } from '@/features/local-ai/useLocalModel';
 
 type Found = { total: number; kept: Row[]; filter: string; byModel: boolean };
@@ -50,7 +50,7 @@ export function AskView({
     let answerNow: Plan | null = null;
     try {
       let next: Plan | null = null;
-      if (modelReady()) {
+      if (textModelReady()) {
         const raw = await planTask(
           text,
           snap.workflows.map((workflow) => ({
@@ -64,21 +64,21 @@ export function AskView({
         next = validatePlan(raw, snap.workflows, text);
       }
       next = choosePlan(next, rulesPlan(text, snap.workflows, snap.results.rows.length > 0), text);
-      if (next.action === 'ask_page' || next.action === 'ask_data') {
+      if (next.action !== 'run' && next.action !== 'record') {
         setPlan(null);
         answerNow = next;
-        return;
-      }
-      setPlan(next);
-      setName(next.name || text.slice(0, 60));
-      const workflow = snap.workflows.find((item) => item.id === next?.workflowId);
-      if (workflow) {
-        const defaults: Record<string, string> = {};
-        for (const field of workflowFields(workflow)) defaults[field.key] = field.example;
-        setValues({ ...defaults, ...(next.variables ?? {}) });
+      } else {
+        setPlan(next);
+        setName(next.name || text.slice(0, 60));
+        const workflow = snap.workflows.find((item) => item.id === next?.workflowId);
+        if (workflow) {
+          const defaults: Record<string, string> = {};
+          for (const field of workflowFields(workflow)) defaults[field.key] = field.example;
+          setValues({ ...defaults, ...(next.variables ?? {}) });
+        }
       }
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'Planning failed.');
+      setError(problem instanceof Error ? problem.message : 'Ghostclick could not understand that request.');
     } finally {
       setBusy(false);
     }
@@ -86,8 +86,7 @@ export function AskView({
   }
 
   async function needModel() {
-    if (modelReady()) return true;
-    return model.load(snap.settings.model);
+    return model.loadForText(snap.settings.model);
   }
 
   async function carryOut(current = plan, asked = request) {
@@ -104,7 +103,7 @@ export function AskView({
         let kept = list.rows;
         let byModel = false;
         if (filter) {
-          if (modelReady()) {
+          if (textModelReady()) {
             setProgress('Reading items…');
             const keep = await filterRows(filter, list.rows, (done, total) => setProgress(`Reading items ${done} of ${total}…`));
             kept = keep.map((index) => list.rows[index]!).filter(Boolean);
@@ -173,16 +172,19 @@ export function AskView({
         <textarea
           value={request}
           rows={3}
-          placeholder="Describe the task in your own words"
+          placeholder="Describe the task in your own words, then press Enter"
           onChange={(event) => setRequest(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) void makePlan();
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              if (!busy) void makePlan();
+            }
           }}
         />
       </label>
       <div className="row">
         <button type="button" disabled={busy || !request.trim()} onClick={() => void makePlan()}>
-          {busy && !plan ? 'Thinking…' : 'Plan it'}
+          {busy && !plan ? 'Working…' : 'Go'}
         </button>
       </div>
       <div className="chips">
@@ -200,13 +202,15 @@ export function AskView({
           </button>
         ))}
       </div>
-      {!modelReady() ? (
-        <p className="hint">No local model is loaded, so plans use simple rules. Load one below for real understanding.</p>
+      {visionReady() ? (
+        <p className="hint">Phi-3.5 Vision is loaded for repairing replays. Load Phi-3.5 Mini below for questions and summaries.</p>
+      ) : !textModelReady() ? (
+        <p className="hint">Simple requests work without AI. Summaries and questions load the model below.</p>
       ) : null}
 
       {plan ? (
         <div className="plan">
-          <p className="tag">{plan.source === 'model' ? 'Planned by the local model' : 'Planned by simple rules'}</p>
+          <p className="tag">{plan.source === 'model' ? 'Understood by the local model' : 'Understood without AI'}</p>
           <h2>{title(plan, workflow?.name)}</h2>
           {plan.reply ? <p>{plan.reply}</p> : null}
 
@@ -226,17 +230,6 @@ export function AskView({
               })}
               <p className="hint">Highlighted fields differ from the recording. Check them before you run.</p>
             </div>
-          ) : null}
-
-          {plan.action === 'find' ? (
-            <label>
-              Keep only items about (leave empty for all)
-              <input
-                value={plan.question ?? ''}
-                placeholder="for example: diagrams and design tools"
-                onChange={(event) => setPlan({ ...plan, question: event.target.value })}
-              />
-            </label>
           ) : null}
 
           {plan.action === 'record' ? (
@@ -274,7 +267,7 @@ export function AskView({
             <p className="hint">Matched by keywords. Load a model below to match by meaning.</p>
           ) : null}
           {found.byModel && !/Phi/.test(snap.settings.model) ? (
-            <p className="hint">Small models miss some matches. Phi-3.5 Mini in Settings is much better at this.</p>
+            <p className="hint">Small models miss some matches. Phi-3.5 Mini, chosen below, is much better at this.</p>
           ) : null}
           {found.kept.length ? (
             <ol className="found">
@@ -317,41 +310,9 @@ export function AskView({
 }
 
 function title(plan: Plan, workflowName?: string) {
-  switch (plan.action) {
-    case 'run':
-      return `Run “${workflowName ?? 'workflow'}”`;
-    case 'find':
-      return plan.question ? `Find items about “${plan.question}”` : 'Collect the list on this page';
-    case 'scrape':
-      return 'Scrape a list from this page';
-    case 'save_page':
-      return 'Save this page as a document';
-    case 'ask_page':
-      return 'Answer from this page';
-    case 'ask_data':
-      return 'Answer from scraped data';
-    case 'read_pdf':
-      return 'Read a PDF';
-    default:
-      return 'Teach Ghostclick a new task';
-  }
+  return plan.action === 'run' ? `Run “${workflowName ?? 'workflow'}”` : 'Teach Ghostclick a new task';
 }
 
 function actionLabel(plan: Plan) {
-  switch (plan.action) {
-    case 'run':
-      return 'Run';
-    case 'find':
-      return 'Find them';
-    case 'scrape':
-      return 'Pick the list';
-    case 'save_page':
-      return 'Save document';
-    case 'record':
-      return 'Start recording';
-    case 'read_pdf':
-      return 'Read the PDF';
-    default:
-      return 'Answer';
-  }
+  return plan.action === 'run' ? 'Run' : 'Start recording';
 }
