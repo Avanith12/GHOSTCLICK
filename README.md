@@ -96,26 +96,21 @@ entrypoints/              Chrome extension shells (WXT needs these names)
   background.ts           Session state, recording, replay, batch runs
   content.ts              Runs inside web pages: records clicks, replays steps, scrolls, scrapes
   sidepanel/              The side panel UI (Ask, Workflows, Data tabs)
-features/
-  scrape-lists/           "Scrape a list": finds repeated items on a page and turns them into rows
-    listScraper.ts
-  find-items/             "Find items about X" without the model: keyword search
-    keywordSearch.ts
-  answer-data-questions/  "Which is cheapest?": sorts rows before the model answers
-    sortRowsForQuestion.ts
-  understand-request/     Turns a typed request into a plan (rules, cross-checked with the model)
+features/                 One folder per side-panel tab, plus the shared local model
+  ask/                    Ask tab: understand a typed request, find items by keywords
     requestPlanner.ts
-  record-and-replay/      Finding page elements again during replay, and self-repair
-    elementSelectors.ts
-    selfRepair.ts
-  save-page/              "Save page as document": page to clean Markdown
+    keywordSearch.ts
+  data/                   Data tab: scrape lists, save page, PDFs, answer questions about rows
+    listScraper.ts
     pageToMarkdown.ts
-  captcha/                Detects a captcha so replay pauses for a human
-    detectCaptcha.ts
-  read-pdf/               Opens PDFs, reads their text, pulls out tables
     loadPdf.ts
     pdfContent.ts
-  local-ai/               The local AI model (WebLLM): loading, planning, find by meaning, answers
+    sortRowsForQuestion.ts
+  workflows/              Workflows tab: find controls again, self-repair, captcha pause
+    elementSelectors.ts
+    selfRepair.ts
+    detectCaptcha.ts
+  local-ai/               Shared WebLLM model used by all three tabs
     localModel.ts
     useLocalModel.ts
     pageScreenshot.ts     Screenshot of the tab, sized for the vision model
@@ -124,7 +119,8 @@ shared/                   Used by several features
   csv.ts                  CSV read and write
   textHelpers.ts          Text cleanup and URL matching
   tabConnection.ts        Reconnects to a tab after the extension reloads
-scripts/                  Live tests on real websites (live-test.mjs, model-test.mjs)
+browser-tests/            Drive a real Chrome with the extension loaded (not unit tests)
+                          live-test + model-test check features; demo-server serves the practice page
 ```
 
 Each `*.test.ts` file sits next to the code it checks. Run them with `npx vitest run`.

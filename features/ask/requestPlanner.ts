@@ -1,4 +1,4 @@
-import { filterPhrase } from '@/features/find-items/keywordSearch';
+import { filterPhrase } from '@/features/ask/keywordSearch';
 import { words } from '@/shared/textHelpers';
 import type { Workflow } from '@/shared/types';
 

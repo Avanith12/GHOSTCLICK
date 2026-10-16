@@ -7,10 +7,10 @@
   "scripts": {
     "dev": "wxt",
     "build": "wxt build",
-    "demo": "node scripts/demo-server.mjs",
+    "demo": "node browser-tests/demo-server.mjs",
     "test": "vitest run",
-    "check:panel": "node scripts/inspect-panel.mjs",
-    "test:live": "node scripts/live-test.mjs",
+    "check:panel": "node browser-tests/inspect-panel.mjs",
+    "test:live": "node browser-tests/live-test.mjs",
     "prepare:ext": "wxt prepare"
   },
   "dependencies": {

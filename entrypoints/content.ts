@@ -1,8 +1,8 @@
-import { captchaPending } from '@/features/captcha/detectCaptcha';
-import { pageMarkdown } from '@/features/save-page/pageToMarkdown';
-import { autoExtract, autoExtractAll, inferExtract, runExtract } from '@/features/scrape-lists/listScraper';
+import { captchaPending } from '@/features/workflows/detectCaptcha';
+import { pageMarkdown } from '@/features/data/pageToMarkdown';
+import { autoExtract, autoExtractAll, inferExtract, runExtract } from '@/features/data/listScraper';
 import { pageMatches } from '@/shared/textHelpers';
-import { rankCandidates } from '@/features/record-and-replay/selfRepair';
+import { rankCandidates } from '@/features/workflows/selfRepair';
 import {
   clickableTarget,
   collectCandidates,
@@ -12,7 +12,7 @@ import {
   findStepElement,
   readValue,
   setNativeValue,
-} from '@/features/record-and-replay/elementSelectors';
+} from '@/features/workflows/elementSelectors';
 import type { Candidate, Row, SessionMode, WorkflowStep } from '@/shared/types';
 
 type Job = {

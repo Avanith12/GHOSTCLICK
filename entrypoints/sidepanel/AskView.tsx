@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { bestKeywordMatches, rowTitle } from '@/features/find-items/keywordSearch';
-import { choosePlan, rulesPlan, validatePlan, workflowFields, type Plan } from '@/features/understand-request/requestPlanner';
-import { dataContext } from '@/features/answer-data-questions/sortRowsForQuestion';
+import { bestKeywordMatches, rowTitle } from '@/features/ask/keywordSearch';
+import { choosePlan, rulesPlan, validatePlan, workflowFields, type Plan } from '@/features/ask/requestPlanner';
+import { dataContext } from '@/features/data/sortRowsForQuestion';
 import type { Row, Snapshot } from '@/shared/types';
 import { downloadText, fileName, findList, pageMarkdown, type Command } from './api';
 import { answer, filterRows, planTask, textModelReady, visionReady } from '@/features/local-ai/localModel';

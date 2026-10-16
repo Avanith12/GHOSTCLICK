@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { chunkPages, cleanRows, pdfMarkdown, relevantText, UNVERIFIED, verifyRows } from '@/features/read-pdf/pdfContent';
+import { chunkPages, cleanRows, pdfMarkdown, relevantText, UNVERIFIED, verifyRows } from '@/features/data/pdfContent';
 import type { Row, Snapshot } from '@/shared/types';
 import { downloadText, fileName, type Command } from './api';
 import { answer, extractRows } from '@/features/local-ai/localModel';
-import { pdfFromFile, pdfFromUrl, type PdfDocument } from '@/features/read-pdf/loadPdf';
+import { pdfFromFile, pdfFromUrl, type PdfDocument } from '@/features/data/loadPdf';
 import type { ModelState } from '@/features/local-ai/useLocalModel';
 
 const MAX_PARTS = 20;

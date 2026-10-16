@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toCsv } from '@/shared/csv';
-import { dataContext } from '@/features/answer-data-questions/sortRowsForQuestion';
+import { dataContext } from '@/features/data/sortRowsForQuestion';
 import type { Snapshot } from '@/shared/types';
 import { downloadText, downloadUrls, fileName, pageMarkdown, type Command } from './api';
 import { answer } from '@/features/local-ai/localModel';

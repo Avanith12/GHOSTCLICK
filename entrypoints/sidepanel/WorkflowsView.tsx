@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { mapColumns, parseCsv } from '@/shared/csv';
 import { stepSummary } from '@/shared/textHelpers';
-import { workflowFields } from '@/features/understand-request/requestPlanner';
+import { workflowFields } from '@/features/ask/requestPlanner';
 import type { Snapshot, Workflow, WorkflowStep } from '@/shared/types';
 import type { Command } from './api';
 

@@ -19,7 +19,7 @@ const note = (name, ok, detail) => {
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}: ${detail}`);
 };
 
-const server = spawn(process.execPath, [path.join(root, 'scripts/demo-server.mjs')], {
+const server = spawn(process.execPath, [path.join(root, 'browser-tests/demo-server.mjs')], {
   env: { ...process.env, PORT: String(demoPort) },
   stdio: 'ignore',
 });

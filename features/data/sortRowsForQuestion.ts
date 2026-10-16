@@ -1,5 +1,5 @@
 import { toCsv } from '@/shared/csv';
-import { keywordFilter } from '@/features/find-items/keywordSearch';
+import { keywordFilter } from '@/features/ask/keywordSearch';
 import type { Row } from '@/shared/types';
 
 const LOW = /\b(cheapest|cheaper|lowest|least expensive|least|smallest|fewest|shortest|min(?:imum)?|bottom)\b/i;
