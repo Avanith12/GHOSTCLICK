@@ -93,6 +93,10 @@ export function choosePlan(model: Plan | null, rules: Plan, request: string): Pl
   if (rules.confident && (model.action !== rules.action || (rules.action === 'run' && model.workflowId !== rules.workflowId))) {
     return rules;
   }
+  // Ask answers page questions; never fall through to recording from a model guess.
+  if (model.action === 'record' && (rules.action === 'ask_page' || rules.action === 'ask_data')) {
+    return rules;
+  }
   if ((model.action === 'find' || model.action === 'scrape') && rules.action !== model.action && !LIST_HINT.test(request)) {
     return rules;
   }
@@ -149,17 +153,28 @@ export function rulesPlan(request: string, workflows: Workflow[], hasData: boole
   if (/\b(save|download|export)\b.*\b(page|article|document)\b|\bclean (copy|document)\b|\bmarkdown\b/.test(text)) {
     return { action: 'save_page', reply: 'Save this page as a clean document.', source: 'rules', confident: true };
   }
-  if (/\b(summar|what does|explain)\w*/.test(text)) {
+  if (/\b(record|teach|show you|learn)\b/.test(text)) {
+    return {
+      action: 'record',
+      name: request.slice(0, 60),
+      reply: 'Recording lives in the Workflows tab. Open it to show Ghostclick the task once.',
+      source: 'rules',
+      confident: true,
+    };
+  }
+  if (
+    /\b(summar|explain|describe)\w*/.test(text) ||
+    /\b(what|what's|whats|who|whom|whose|where|when|why|how)\b/.test(text) ||
+    /\btell me\b/.test(text) ||
+    /\?\s*$/.test(request.trim())
+  ) {
     return {
       action: hasData && /\b(data|rows|results|table)\b/.test(text) ? 'ask_data' : 'ask_page',
       question: request,
       reply: 'Answer from the page with the local model.',
       source: 'rules',
-      confident: /\bsummar/.test(text),
+      confident: true,
     };
-  }
-  if (/\b(record|teach|show you|learn)\b/.test(text)) {
-    return { action: 'record', name: request.slice(0, 60), reply: 'Show the task once while Ghostclick records.', source: 'rules', confident: true };
   }
   const match = bestWorkflow(request, workflows);
   if (match) {
@@ -174,9 +189,9 @@ export function rulesPlan(request: string, workflows: Workflow[], hasData: boole
   }
   if (wanted) return findWanted(false);
   return {
-    action: 'record',
-    name: request.slice(0, 60),
-    reply: 'No saved workflow matches. Show the task once and Ghostclick will remember it.',
+    action: hasData ? 'ask_data' : 'ask_page',
+    question: request,
+    reply: 'Answer from the page with the local model.',
     source: 'rules',
   };
 }

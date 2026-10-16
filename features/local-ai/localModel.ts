@@ -146,13 +146,14 @@ Actions:
 {"action":"find","question":"<what items to keep, or empty for all>","reply":"..."}  collect items from the main list or table on the current page, optionally only those matching a description
 {"action":"scrape","reply":"..."}  the user wants to click the list themselves
 {"action":"save_page","reply":"..."}  save the current page as a clean document
-{"action":"ask_page","question":"<question>","reply":"..."}  answer or summarize using the current page
+{"action":"ask_page","question":"<question>","reply":"..."}  answer any question about the current page (default when unsure)
 {"action":"ask_data","question":"<question>","reply":"..."}  answer using data already scraped${hasData ? '' : ' (no data scraped yet)'}
 {"action":"read_pdf","reply":"..."}  the request is about a PDF document
-{"action":"record","name":"<short name>","reply":"..."}  no saved workflow fits, so the user must show the task once
+{"action":"record","name":"<short name>","reply":"..."}  only when the user explicitly asks to record, teach, or show a new workflow
 Examples:
 "Release the hold for Ada Lovelace, ID 1234567" -> {"action":"run","workflowId":"<id of the hold workflow>","variables":{"<name field>":"Ada Lovelace","<id field>":"1234567"},"reply":"Run the hold workflow for Ada Lovelace."}
 "which repos here are about databases" -> {"action":"find","question":"databases","reply":"Keep repos about databases."}
+"what is this page about" -> {"action":"ask_page","question":"what is this page about","reply":"Answer from the page."}
 "what is this article saying" -> {"action":"ask_page","question":"What is this article saying?","reply":"Answer from the page."}`,
     `Saved workflows:\n${catalog || 'none'}\n\nRequest: ${request}`,
     260,

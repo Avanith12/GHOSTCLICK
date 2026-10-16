@@ -31,16 +31,27 @@ Reload any tabs that were open before you installed it.
 
 ## How to use it
 
-The side panel has three tabs.
+The side panel has three tabs. Each job lives in its own tab.
 
-**Workflows: teach it a task**
+**Ask: questions and page tasks (no recording here)**
+Type a request and press Enter (or click **Go**). Load a text model at the bottom first for summaries and questions (Phi-3.5 Mini is a good default; Vision is only for replay repair).
+
+Examples that work in Ask:
+- *"What is this page about?"* / *"Summarize this page"* / *"Who is this?"* — answers from the current page
+- *"Find the items on this page related to AI"* / *"Get every item on this page"* — collects a list
+- *"Save this page as a clean document"* — downloads Markdown
+- *"Read the PDF in this tab"* — opens PDF tools in Data
+- *"Which three are cheapest?"* — after you have scraped rows in Data
+
+If you ask to **record** or **teach** a task, Ask sends you to the Workflows tab instead of starting a recording itself.
+
+**Workflows: teach it a task (record / replay)**
 1. Open the website and click **Record this page**.
 2. Do the task as usual: type, click, submit.
 3. Click **Save workflow**.
 4. To repeat it, open the workflow, change the values, and click **Run**.
 
-**Ask: tell it what you want**
-Type a request and press Enter (or click **Go**). Questions, summaries, finding items, and saving pages happen right away. Requests that act on a website show a card first: for *"Clear the advising hold for Grace Hopper, ID 55667788"*, check the filled-in values and click **Run**.
+You can also start a saved workflow from Ask when your sentence matches one (for example *"Clear the advising hold for Grace Hopper…"*). Check the values on the card, then click **Run**.
 
 **Data: collect information**
 Click **Scrape a list on this page**, then click one item in a list or table. Ghostclick finds the rest, and you can download them as CSV or JSON.
@@ -61,10 +72,12 @@ Click **Scrape a list on this page**, then click one item in a list or table. Gh
 - With Phi-3.5 Vision loaded, Ghostclick tags the possible buttons with numbers on the page, takes one screenshot, and the model picks a number by looking at it
 - Pauses at captchas so you can solve them, then continues
 
-**Plain-English requests**
-- Run a saved workflow and fill in names, emails, and IDs from your sentence
+**Plain-English requests (Ask tab)**
+- Answer questions about the current page, for example *"what is this page about?"*
+- Summarize the page
 - Find items on a page by description, for example *"repos related to AI"*
-- Summarize or answer questions about the current page
+- Run a saved workflow and fill in names, emails, and IDs from your sentence
+- Recording a new task is only in the Workflows tab
 
 **Data and documents**
 - Scrape lists and tables to CSV or JSON
@@ -97,8 +110,8 @@ entrypoints/              Chrome extension shells (WXT needs these names)
   content.ts              Runs inside web pages: records clicks, replays steps, scrolls, scrapes
   sidepanel/              The side panel UI (Ask, Workflows, Data tabs)
 features/                 One folder per side-panel tab, plus the shared local model
-  ask/                    Ask tab: understand a typed request, find items by keywords
-    requestPlanner.ts
+  ask/                    Ask tab: plan requests, answer page questions, find by keywords
+    requestPlanner.ts     Routes Ask to answer / find / save / PDF — not to recording
     keywordSearch.ts
   data/                   Data tab: scrape lists, save page, PDFs, answer questions about rows
     listScraper.ts
@@ -106,7 +119,7 @@ features/                 One folder per side-panel tab, plus the shared local m
     loadPdf.ts
     pdfContent.ts
     sortRowsForQuestion.ts
-  workflows/              Workflows tab: find controls again, self-repair, captcha pause
+  workflows/              Workflows tab: record/replay helpers, self-repair, captcha pause
     elementSelectors.ts
     selfRepair.ts
     detectCaptcha.ts
@@ -125,6 +138,8 @@ browser-tests/            Drive a real Chrome with the extension loaded (not uni
 
 Each `*.test.ts` file sits next to the code it checks. Run them with `npx vitest run`.
 
+While developing with `npm run dev`, load the unpacked folder **`.output/chrome-mv3-dev`** (not `.output/chrome-mv3`) and reload the extension after changes.
+
 ## Limits
 
 - One example per workflow
@@ -132,6 +147,8 @@ Each `*.test.ts` file sits next to the code it checks. Run them with `npx vitest
 - Scanned PDFs (images of text) cannot be read
 - Apps drawn on a canvas, such as Figma or Google Docs, cannot be recorded
 - Captchas are never solved automatically
+- Ask answers from the visible page text; it does not invent facts that are not on the page
+- Recording new workflows only happens in the Workflows tab
 
 ## Team
 

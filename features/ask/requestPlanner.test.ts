@@ -44,13 +44,19 @@ describe('rulesPlan', () => {
     expect(rulesPlan('save this page', [hold], false).action).toBe('save_page');
   });
 
-  it('ignores filler words when matching workflows', () => {
-    const wiki = { ...hold, id: 'wiki', name: 'Test https://en.wikipedia.org/wiki/Main_Page', goal: '' };
-    expect(rulesPlan('open the page about dentists', [wiki], false).action).toBe('record');
+  it('answers page questions instead of recording', () => {
+    expect(rulesPlan('what is this page about?', [hold], false)).toMatchObject({ action: 'ask_page' });
+    expect(rulesPlan('summarize this page', [hold], false)).toMatchObject({ action: 'ask_page' });
+    expect(rulesPlan('who is this person?', [hold], false)).toMatchObject({ action: 'ask_page' });
   });
 
-  it('asks to record when nothing matches', () => {
-    expect(rulesPlan('book a dentist appointment', [hold], false).action).toBe('record');
+  it('ignores filler words when matching workflows', () => {
+    const wiki = { ...hold, id: 'wiki', name: 'Test https://en.wikipedia.org/wiki/Main_Page', goal: '' };
+    expect(rulesPlan('open the page about dentists', [wiki], false).action).toBe('ask_page');
+  });
+
+  it('answers from the page when nothing else matches', () => {
+    expect(rulesPlan('book a dentist appointment', [hold], false).action).toBe('ask_page');
   });
 });
 
@@ -74,10 +80,14 @@ describe('choosePlan', () => {
     expect(plan.variables).toEqual({ studentname: 'Grace Hopper', email: 'grace@navy.mil', studentid: '55667788' });
   });
 
-  it('does not turn a task into a list search', () => {
+  it('does not turn a page question into a list search or a recording', () => {
     const model = { action: 'find' as const, question: 'book a dentist appointment', reply: '', source: 'model' as const };
     const text = 'book a dentist appointment on this site';
-    expect(choosePlan(model, rulesPlan(text, [hold], false), text).action).toBe('record');
+    expect(choosePlan(model, rulesPlan(text, [hold], false), text).action).toBe('ask_page');
+    const record = { action: 'record' as const, name: 'about', reply: '', source: 'model' as const };
+    expect(choosePlan(record, rulesPlan('what is this page about', [hold], false), 'what is this page about').action).toBe(
+      'ask_page',
+    );
   });
 
   it('trims a wordy model filter down to the topic', () => {

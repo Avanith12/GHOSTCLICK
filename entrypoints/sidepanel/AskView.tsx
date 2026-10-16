@@ -32,7 +32,6 @@ export function AskView({
   const [request, setRequest] = useState('');
   const [plan, setPlan] = useState<Plan | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
-  const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState('');
   const [replyFrom, setReplyFrom] = useState('');
@@ -64,18 +63,22 @@ export function AskView({
         next = validatePlan(raw, snap.workflows, text);
       }
       next = choosePlan(next, rulesPlan(text, snap.workflows, snap.results.rows.length > 0), text);
-      if (next.action !== 'run' && next.action !== 'record') {
+      if (next.action === 'record') {
+        // Recording belongs in Workflows, not Ask.
         setPlan(null);
-        answerNow = next;
-      } else {
+        openTab('workflows');
+        setReply('Recording lives in the Workflows tab. Show the task once there and Ghostclick will remember it.');
+      } else if (next.action === 'run') {
         setPlan(next);
-        setName(next.name || text.slice(0, 60));
         const workflow = snap.workflows.find((item) => item.id === next?.workflowId);
         if (workflow) {
           const defaults: Record<string, string> = {};
           for (const field of workflowFields(workflow)) defaults[field.key] = field.example;
           setValues({ ...defaults, ...(next.variables ?? {}) });
         }
+      } else {
+        setPlan(null);
+        answerNow = next;
       }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : 'Ghostclick could not understand that request.');
@@ -145,8 +148,9 @@ export function AskView({
         setReply(await answer(question, dataContext(question, snap.results.columns, snap.results.rows)));
         setReplyFrom(`From the ${snap.results.rows.length} scraped rows`);
       } else if (current.action === 'record') {
-        const response = await command({ type: 'START_RECORDING', name, goal: asked });
-        if (response?.ok) setPlan(null);
+        setPlan(null);
+        openTab('workflows');
+        setReply('Recording lives in the Workflows tab. Show the task once there and Ghostclick will remember it.');
       }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : 'That did not work.');
@@ -232,18 +236,11 @@ export function AskView({
             </div>
           ) : null}
 
-          {plan.action === 'record' ? (
-            <label>
-              Name for the new workflow
-              <input value={name} onChange={(event) => setName(event.target.value)} />
-            </label>
-          ) : null}
-
           <div className="row">
             <button type="button" disabled={busy} onClick={() => void carryOut()}>
-              {busy ? 'Working…' : actionLabel(plan)}
+              {busy ? 'Working…' : 'Run'}
             </button>
-            {plan.action === 'run' && workflow ? (
+            {workflow ? (
               <button type="button" className="ghost" onClick={() => openTab('workflows', workflow.id)}>
                 Open workflow
               </button>
@@ -309,10 +306,6 @@ export function AskView({
   );
 }
 
-function title(plan: Plan, workflowName?: string) {
-  return plan.action === 'run' ? `Run “${workflowName ?? 'workflow'}”` : 'Teach Ghostclick a new task';
-}
-
-function actionLabel(plan: Plan) {
-  return plan.action === 'run' ? 'Run' : 'Start recording';
+function title(_plan: Plan, workflowName?: string) {
+  return `Run “${workflowName ?? 'workflow'}”`;
 }
