@@ -29,6 +29,15 @@ Then in Chrome:
 
 Reload any tabs that were open before you installed it.
 
+### Dev vs production build
+
+| Folder | How you get it | Keep a terminal running? |
+|--------|----------------|--------------------------|
+| `.output/chrome-mv3` | `npm run build` | **No** — the extension works on its own |
+| `.output/chrome-mv3-dev` | `npm run dev` | **Yes** — leave `npm run dev` running, or Chrome shows WebSocket / “Failed to connect to dev server” errors |
+
+For normal use and demos, load **`.output/chrome-mv3`**. Use **`.output/chrome-mv3-dev`** only when you are editing code and want live reload.
+
 ## How to use it
 
 The side panel has three tabs. Each job lives in its own tab.
@@ -138,7 +147,7 @@ browser-tests/            Drive a real Chrome with the extension loaded (not uni
 
 Each `*.test.ts` file sits next to the code it checks. Run them with `npx vitest run`.
 
-While developing with `npm run dev`, load the unpacked folder **`.output/chrome-mv3-dev`** (not `.output/chrome-mv3`) and reload the extension after changes.
+While developing with `npm run dev`, load **`.output/chrome-mv3-dev`** and keep that command running. For a build you can close, use `npm run build` and load **`.output/chrome-mv3`**.
 
 ## Limits
 
