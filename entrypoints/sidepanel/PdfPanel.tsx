@@ -48,8 +48,8 @@ export function PdfPanel({
       setPdf(doc);
       setStatus(
         characters < 20
-          ? `“${doc.title}” has ${doc.pages.length} pages but almost no text. It is probably scanned images, which need text recognition (OCR).`
-          : `Read “${doc.title}”: ${doc.pages.length} pages, ${characters.toLocaleString()} characters.`,
+          ? `“${doc.title}” has ${doc.pages.length} pages but almost no text. It is probably a scanned image PDF — Ghostclick cannot OCR those yet. Use a PDF that contains selectable text.`
+          : `Read “${doc.title}”: ${doc.pages.length} pages, ${characters.toLocaleString()} characters. Load a local model below to ask questions or pull out a table.`,
       );
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Could not read that PDF.');

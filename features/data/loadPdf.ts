@@ -25,33 +25,65 @@ export async function pdfFromUrl(url: string) {
 }
 
 export async function pdfFromFile(file: File) {
-  return readPdf(await file.arrayBuffer(), file.name, file.name);
+  if (!/\.pdf$/i.test(file.name) && file.type && file.type !== 'application/pdf') {
+    throw new Error('Please choose a PDF file (.pdf).');
+  }
+  return readPdf(await file.arrayBuffer(), file.name, file.name, true);
 }
 
-async function readPdf(data: ArrayBuffer, name: string, source: string): Promise<PdfDocument> {
+function workerUrl(bundled: string) {
+  // Vite emits an absolute path like "/assets/pdf.worker….mjs". In the side panel that must be a
+  // chrome-extension:// URL, or pdf.js fails to start the worker and uploads look broken.
+  const path = bundled.replace(/^\//, '');
+  try {
+    if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
+      return chrome.runtime.getURL(path);
+    }
+  } catch {
+    // Not running as an extension (unit tests).
+  }
+  return bundled.startsWith('/') || bundled.startsWith('http') ? bundled : `/${path}`;
+}
+
+async function readPdf(data: ArrayBuffer, name: string, source: string, fromFile = false): Promise<PdfDocument> {
   if (data.byteLength > MAX_BYTES) throw new Error('This PDF is larger than 40 MB.');
   const head = new TextDecoder().decode(new Uint8Array(data.slice(0, 1024)));
-  if (!head.includes('%PDF')) throw new Error('This tab is not showing a PDF file.');
+  if (!head.includes('%PDF')) {
+    throw new Error(
+      fromFile
+        ? 'That file is not a readable PDF (or it is damaged).'
+        : 'This tab is not showing a PDF file.',
+    );
+  }
 
   const pdfjs = await import('pdfjs-dist');
   const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
-  pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl(worker.default);
 
   const task = pdfjs.getDocument({ data: new Uint8Array(data) });
-  const document = await task.promise;
-  const pages: string[] = [];
-  for (let number = 1; number <= document.numPages; number += 1) {
-    const page = await document.getPage(number);
-    const content = await page.getTextContent();
-    const items: TextItem[] = content.items.flatMap((item) =>
-      'str' in item ? [{ str: item.str, transform: item.transform }] : [],
-    );
-    pages.push(linesFromItems(items));
+  let document;
+  try {
+    document = await task.promise;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : 'unknown error';
+    throw new Error(`Could not open this PDF (${detail}). Try another file, or a PDF that is not password-protected.`);
   }
-  const metadata = await document.getMetadata().catch(() => null);
-  const info = metadata?.info as { Title?: string } | undefined;
-  await task.destroy();
-  const title = info?.Title?.trim();
-  const usable = title && !/^(about:blank|untitled|microsoft word - )/i.test(title);
-  return { title: usable ? title : name.replace(/\.pdf$/i, ''), source, pages };
+  try {
+    const pages: string[] = [];
+    for (let number = 1; number <= document.numPages; number += 1) {
+      const page = await document.getPage(number);
+      const content = await page.getTextContent();
+      const items: TextItem[] = content.items.flatMap((item) =>
+        'str' in item ? [{ str: item.str, transform: item.transform }] : [],
+      );
+      pages.push(linesFromItems(items));
+    }
+    const metadata = await document.getMetadata().catch(() => null);
+    const info = metadata?.info as { Title?: string } | undefined;
+    const title = info?.Title?.trim();
+    const usable = title && !/^(about:blank|untitled|microsoft word - )/i.test(title);
+    return { title: usable ? title : name.replace(/\.pdf$/i, ''), source, pages };
+  } finally {
+    await task.destroy().catch(() => undefined);
+  }
 }
