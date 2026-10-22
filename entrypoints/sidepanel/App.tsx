@@ -47,10 +47,15 @@ export function App() {
   }, [snap?.settings?.theme]);
 
   if (!snap) return <main className="loading">Loading…</main>;
+  const brandIcon = chrome.runtime.getURL('icon-48.png');
+
   if (!snap.results || !snap.settings) {
     return (
       <main>
-        <h1 className="brand">Ghostclick</h1>
+        <h1 className="brand">
+          <img className="brand-icon" src={brandIcon} alt="" width={28} height={28} />
+          Ghostclick
+        </h1>
         <p className="tagline">Reload to finish updating</p>
         <p>
           The panel is newer than the background script still running in Chrome. Open chrome://extensions, click the reload
@@ -65,7 +70,10 @@ export function App() {
       <header>
         <div className="header-row">
           <div>
-            <h1 className="brand">Ghostclick</h1>
+            <h1 className="brand">
+              <img className="brand-icon" src={brandIcon} alt="" width={28} height={28} />
+              Ghostclick
+            </h1>
             <p className="tagline">Show it once. Ask it again.</p>
           </div>
           <button

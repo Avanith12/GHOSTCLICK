@@ -73,6 +73,9 @@ header {
 }
 
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
   font-size: 26px;
   font-weight: 700;
@@ -80,6 +83,13 @@ header {
   line-height: 1.1;
   color: var(--cyan-bright);
   text-shadow: 0 0 24px rgba(92, 225, 255, 0.25);
+}
+
+.brand-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .tagline {
