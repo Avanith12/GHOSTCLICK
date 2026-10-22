@@ -29,6 +29,14 @@ Then in Chrome:
 
 Reload any tabs that were open before you installed it.
 
+### Practice form (for Workflows)
+
+The campus practice form is one file: [`demo/index.html`](demo/index.html).
+
+**Easiest:** in Cursor/VS Code, right‑click `demo/index.html` → **Open with Live Server** (or the Live Preview equivalent). The form opens in your browser — no `npm run demo` needed.
+
+You can still run `npm run demo` if you prefer; that serves the same file at `http://127.0.0.1:4173`.
+
 ### Dev vs production build
 
 | Folder | How you get it | Keep a terminal running? |
@@ -141,8 +149,9 @@ shared/                   Used by several features
   csv.ts                  CSV read and write
   textHelpers.ts          Text cleanup and URL matching
   tabConnection.ts        Reconnects to a tab after the extension reloads
+demo/                     Practice form for Workflows (single file: index.html — use Live Server)
 browser-tests/            Drive a real Chrome with the extension loaded (not unit tests)
-                          live-test + model-test check features; demo-server serves the practice page
+                          live-test + model-test; demo-server can still serve demo/index.html
 ```
 
 Each `*.test.ts` file sits next to the code it checks. Run them with `npx vitest run`.
