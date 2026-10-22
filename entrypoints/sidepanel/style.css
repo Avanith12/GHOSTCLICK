@@ -57,6 +57,21 @@ header {
   margin-bottom: 2px;
 }
 
+.header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.theme-toggle {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+}
+
 .brand {
   margin: 0;
   font-size: 26px;
@@ -483,4 +498,121 @@ p {
 
 strong {
   color: var(--cyan-bright);
+}
+
+/* Light theme — same layout, inverted palette; all text black */
+html[data-theme='light'] {
+  --bg: #f4f7fb;
+  --bg-lift: #ffffff;
+  --ink: #000000;
+  --cyan: #000000;
+  --cyan-bright: #000000;
+  --cyan-dim: #000000;
+  --muted: #000000;
+  --line: #c5d0e0;
+  --line-strong: #8fa3bf;
+  --panel: rgba(255, 255, 255, 0.88);
+  --danger: #b42318;
+  --warn: #b45309;
+  --ok: #0f7a45;
+  color: #000000;
+  background:
+    radial-gradient(100% 70% at 100% 0%, rgba(0, 0, 0, 0.04), transparent 50%),
+    radial-gradient(80% 50% at 0% 100%, rgba(0, 0, 0, 0.03), transparent 45%),
+    var(--bg);
+}
+
+html[data-theme='light'] body {
+  color: #000000;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+}
+
+html[data-theme='light'] .brand,
+html[data-theme='light'] .tagline,
+html[data-theme='light'] .mark,
+html[data-theme='light'] .loading,
+html[data-theme='light'] .status,
+html[data-theme='light'] .hint,
+html[data-theme='light'] footer p,
+html[data-theme='light'] h2,
+html[data-theme='light'] label,
+html[data-theme='light'] p,
+html[data-theme='light'] strong,
+html[data-theme='light'] .tag,
+html[data-theme='light'] .answer,
+html[data-theme='light'] details summary,
+html[data-theme='light'] th,
+html[data-theme='light'] td,
+html[data-theme='light'] .suggestion p,
+html[data-theme='light'] .choice small,
+html[data-theme='light'] .workflow small {
+  color: #000000;
+  text-shadow: none;
+}
+
+html[data-theme='light'] input:not([type]),
+html[data-theme='light'] input[type='text'],
+html[data-theme='light'] textarea,
+html[data-theme='light'] select {
+  color: #000000;
+}
+
+html[data-theme='light'] input:not([type])::placeholder,
+html[data-theme='light'] input[type='text']::placeholder,
+html[data-theme='light'] textarea::placeholder {
+  color: #444444;
+}
+
+html[data-theme='light'] button.ghost,
+html[data-theme='light'] button.choice,
+html[data-theme='light'] button.workflow,
+html[data-theme='light'] button.back,
+html[data-theme='light'] button.chip,
+html[data-theme='light'] label.file,
+html[data-theme='light'] .tabs button {
+  color: #000000;
+}
+
+html[data-theme='light'] button.ghost:hover:not(:disabled),
+html[data-theme='light'] button.choice:hover:not(:disabled),
+html[data-theme='light'] button.workflow:hover:not(:disabled),
+html[data-theme='light'] button.back:hover:not(:disabled),
+html[data-theme='light'] button.chip:hover:not(:disabled),
+html[data-theme='light'] .tabs button:hover:not(:disabled) {
+  border-color: #000000;
+  background: rgba(0, 0, 0, 0.05);
+  color: #000000;
+  box-shadow: none;
+}
+
+html[data-theme='light'] button:not(.ghost):not(.choice):not(.workflow):not(.back):not(.chip) {
+  background: #000000;
+  color: #ffffff;
+}
+
+html[data-theme='light'] button:not(.ghost):not(.choice):not(.workflow):not(.back):not(.chip):hover:not(:disabled) {
+  background: #222222;
+  box-shadow: none;
+}
+
+html[data-theme='light'] .tabs button.active {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+}
+
+html[data-theme='light'] th {
+  background: #edf2f8;
+  color: #000000;
+}
+
+html[data-theme='light'] input:not([type]):focus,
+html[data-theme='light'] input[type='text']:focus,
+html[data-theme='light'] textarea:focus,
+html[data-theme='light'] select:focus {
+  outline: 2px solid rgba(0, 0, 0, 0.25);
+  border-color: #000000;
 }

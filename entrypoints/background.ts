@@ -36,7 +36,7 @@ const emptyResults = (): Results => ({ columns: [], rows: [], source: '' });
 let session = emptySession();
 let workflows: Workflow[] = [];
 let results = emptyResults();
-let settings: Settings = { screenshots: false, model: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC' };
+let settings: Settings = { screenshots: false, model: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', theme: 'dark' };
 let ready: Promise<void> | null = null;
 let writing: Promise<void> = Promise.resolve();
 
@@ -64,7 +64,11 @@ async function ensureReady() {
         ...workflow,
         goal: workflow.goal ?? '',
       }));
-      settings = { ...settings, ...((local.settings as Partial<Settings> | undefined) ?? {}) };
+      settings = {
+        ...settings,
+        ...((local.settings as Partial<Settings> | undefined) ?? {}),
+        theme: ((local.settings as Partial<Settings> | undefined)?.theme === 'light' ? 'light' : 'dark'),
+      };
       session = { ...emptySession(), ...((stored.session as Session | undefined) ?? {}) };
       results = (stored.results as Results | undefined) ?? emptyResults();
     })();

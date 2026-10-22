@@ -107,6 +107,7 @@ export type Session = {
 export type Settings = {
   screenshots: boolean;
   model: string;
+  theme: 'dark' | 'light';
 };
 
 export type Snapshot = Session & {

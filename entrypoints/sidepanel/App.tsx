@@ -41,6 +41,11 @@ export function App() {
     return response;
   };
 
+  useEffect(() => {
+    const theme = snap?.settings?.theme === 'light' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+  }, [snap?.settings?.theme]);
+
   if (!snap) return <main className="loading">Loading…</main>;
   if (!snap.results || !snap.settings) {
     return (
@@ -58,8 +63,26 @@ export function App() {
   return (
     <main>
       <header>
-        <h1 className="brand">Ghostclick</h1>
-        <p className="tagline">Show it once. Ask it again.</p>
+        <div className="header-row">
+          <div>
+            <h1 className="brand">Ghostclick</h1>
+            <p className="tagline">Show it once. Ask it again.</p>
+          </div>
+          <button
+            type="button"
+            className="ghost theme-toggle"
+            aria-label={snap.settings.theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+            title={snap.settings.theme === 'light' ? 'Dark theme' : 'Light theme'}
+            onClick={() =>
+              void command({
+                type: 'SET_SETTINGS',
+                settings: { theme: snap.settings.theme === 'light' ? 'dark' : 'light' },
+              })
+            }
+          >
+            {snap.settings.theme === 'light' ? 'Dark' : 'Light'}
+          </button>
+        </div>
         {snap.statusText ? <p className="status">{snap.statusText}</p> : null}
       </header>
 
