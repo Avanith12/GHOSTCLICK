@@ -45,8 +45,8 @@ export function App() {
   if (!snap.results || !snap.settings) {
     return (
       <main>
-        <p className="mark">Ghostclick</p>
-        <h1>Reload Ghostclick to finish updating</h1>
+        <h1 className="brand">Ghostclick</h1>
+        <p className="tagline">Reload to finish updating</p>
         <p>
           The panel is newer than the background script still running in Chrome. Open chrome://extensions, click the reload
           icon on the Ghostclick card, then reopen this panel.
@@ -58,8 +58,8 @@ export function App() {
   return (
     <main>
       <header>
-        <p className="mark">Ghostclick</p>
-        <h1>Show it once. Ask it again.</h1>
+        <h1 className="brand">Ghostclick</h1>
+        <p className="tagline">Show it once. Ask it again.</p>
         {snap.statusText ? <p className="status">{snap.statusText}</p> : null}
       </header>
 
