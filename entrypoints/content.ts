@@ -10,9 +10,12 @@ import {
   fieldTarget,
   findBySelector,
   findStepElement,
+  pressEnter,
   readValue,
   setNativeValue,
 } from '@/features/workflows/elementSelectors';
+import { observePage, performAction } from '@/features/agent/observePage';
+import type { ActResult, AgentAction } from '@/features/agent/types';
 import type { Candidate, Row, SessionMode, WorkflowStep } from '@/shared/types';
 
 type Job = {
@@ -27,6 +30,8 @@ type LightState = {
   mode: SessionMode;
   replayIndex: number;
   replayTotal: number;
+  /** What the agent is doing in this tab, if it is working here. */
+  agent?: string;
 };
 
 export default defineContentScript({
@@ -55,6 +60,7 @@ export default defineContentScript({
     let replaying = false;
     let pending: { selector: string; step: WorkflowStep; timer: number } | null = null;
     let mismatch: { index: number; since: number } | null = null;
+    let agentText = '';
 
     const ui = buildUi(top);
 
@@ -68,6 +74,22 @@ export default defineContentScript({
       if (message?.type === 'PICK_DONE') endPick();
       if (message?.type === 'PAGE_MARKDOWN' && top) {
         sendResponse({ ok: true, ...pageMarkdown(), url: location.href });
+      }
+      if (message?.type === 'AGENT_OBSERVE' && top) {
+        sendResponse(observePage(String(message.goal ?? '')));
+        return undefined;
+      }
+      if (message?.type === 'AGENT_ACT' && top) {
+        const action = message.action as AgentAction;
+        if (action?.action === 'EXTRACT') {
+          void agentExtract().then(sendResponse);
+          return true;
+        }
+        const { result, later } = performAction(action);
+        sendResponse(result);
+        // Run clicks and submits after replying, because they may unload this page.
+        if (later) window.setTimeout(later, 30);
+        return undefined;
       }
       if (message?.type === 'AUTO_EXTRACT' && top) {
         void loadAll(() => document.links.length).then(() => {
@@ -86,7 +108,8 @@ export default defineContentScript({
     document.addEventListener('mouseover', onHover, true);
     document.addEventListener('keydown', onKey, true);
     ui.stop?.addEventListener('click', () => {
-      if (mode === 'recording') void send({ type: 'STOP_RECORDING' });
+      if (agentText) void send({ type: 'AGENT_STOP' });
+      else if (mode === 'recording') void send({ type: 'STOP_RECORDING' });
       else if (mode === 'picking') void send({ type: 'CANCEL_PICK' });
       else void send({ type: 'STOP_REPLAY', reason: 'You stopped the replay.' });
     });
@@ -99,6 +122,7 @@ export default defineContentScript({
       if (!state) return;
       if (mode === 'picking' && state.mode !== 'picking') endPick();
       mode = state.mode;
+      agentText = state.agent ?? '';
       ui.show(state);
       if (mode === 'replaying') void replayLoop();
     }
@@ -219,7 +243,15 @@ export default defineContentScript({
           if (!job || job.mode !== 'replaying' || !job.step) return;
           const step = job.step;
           if (step.kind === 'navigate') {
+            // The opening page is handled by the background; later navigate steps (saved from agent
+            // runs) open their page here.
+            if (!top) return;
+            const here = pageMatches(step.url, location.href);
             await advance(job.index);
+            if (!here) {
+              location.assign(step.url);
+              return;
+            }
             continue;
           }
           if (!pageMatches(step.url, location.href)) {
@@ -259,6 +291,11 @@ export default defineContentScript({
               const cleared = await askForCaptcha(step);
               if (!cleared) return;
             }
+            // Mark the step done before clicking on purpose: a click that triggers a
+            // navigation tears down this content script, so the next step must already be
+            // the active one when the new page's script starts. The trade-off is that a
+            // click which silently does nothing still counts as done — recorded page checks
+            // (assert steps) are the backstop, so prefer one after a submit.
             await advance(job.index);
             element.scrollIntoView({ block: 'center', inline: 'nearest' });
             flash(element);
@@ -279,6 +316,7 @@ export default defineContentScript({
           }
           flash(element);
           await advance(job.index);
+          if (step.pressEnter) pressEnter(element);
           await sleep(160);
         }
       } finally {
@@ -390,10 +428,11 @@ function buildUi(top: boolean) {
   return {
     stop,
     show(state: LightState) {
-      hud.style.display = state.mode === 'idle' ? 'none' : 'flex';
+      hud.style.display = state.mode === 'idle' && !state.agent ? 'none' : 'flex';
       if (!text) return;
-      text.textContent =
-        state.mode === 'recording'
+      text.textContent = state.agent
+        ? `Ghostclick agent · ${state.agent}`
+        : state.mode === 'recording'
           ? 'Recording this page'
           : state.mode === 'picking'
             ? 'Click an item in the list to scrape. Esc cancels.'
@@ -456,6 +495,27 @@ function markCandidates(candidates: Candidate[]) {
   });
   document.documentElement.append(layer);
   return () => layer.remove();
+}
+
+/** The agent's EXTRACT: load a lazily loaded list, then copy the page's main list or table. */
+async function agentExtract(): Promise<ActResult> {
+  await loadAll(() => document.links.length, 6000);
+  const found = autoExtract();
+  if (!found?.rows.length) return { ok: false, message: 'No repeated list or table was found on this page.' };
+  return {
+    ok: true,
+    message: `Extracted ${found.rows.length} rows.`,
+    rows: found.rows.slice(0, 500),
+    step: {
+      id: crypto.randomUUID(),
+      kind: 'extract',
+      url: location.href,
+      selector: found.spec.itemSelector,
+      fallbacks: [],
+      label: `list on ${document.title || location.hostname}`.slice(0, 80),
+      extract: found.spec,
+    },
+  };
 }
 
 function mergeLists(lists: Row[][]) {

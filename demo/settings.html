@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings · Northwind Works</title>
+    <link rel="stylesheet" href="assets/app.css" />
+    <script>try { const s = JSON.parse(localStorage.getItem('northwind-demo-v1')); if (s?.settings?.theme === 'dark') document.documentElement.dataset.theme = 'dark'; } catch {}</script>
+  </head>
+  <body>
+    <main>
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Administration</p>
+          <h1>Settings</h1>
+          <p>Changes apply after you choose Save changes.</p>
+        </div>
+      </div>
+
+      <div class="settings-layout">
+        <nav class="settings-nav card" aria-label="Settings sections">
+          <button type="button" data-panel="profile">Profile</button>
+          <button type="button" data-panel="appearance">Appearance</button>
+          <button type="button" data-panel="notifications">Notifications</button>
+          <button type="button" data-panel="advanced" aria-expanded="false" aria-controls="advanced-subnav">Advanced</button>
+          <div class="subnav" id="advanced-subnav" hidden>
+            <button type="button" data-panel="privacy">Data &amp; privacy</button>
+            <button type="button" data-panel="admin">Administration</button>
+          </div>
+        </nav>
+
+        <form id="settings" class="grid" novalidate>
+          <section class="card" data-panel-id="profile" aria-labelledby="profile-title">
+            <h2 id="profile-title">Profile</h2>
+            <div class="form-grid" style="margin-top: 12px">
+              <label class="field">Display name <input name="displayName" required /></label>
+              <label class="field">Work email <input name="email" type="email" required /></label>
+              <label class="field">
+                Language
+                <select name="language">
+                  <option>English (US)</option>
+                  <option>English (UK)</option>
+                  <option>Español</option>
+                  <option>Français</option>
+                  <option>Deutsch</option>
+                </select>
+              </label>
+              <label class="field">
+                Time zone
+                <select name="timezone">
+                  <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
+                  <option value="America/Chicago">Central (Chicago)</option>
+                  <option value="America/New_York">Eastern (New York)</option>
+                  <option value="Europe/London">London</option>
+                  <option value="Asia/Tokyo">Tokyo</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="card" data-panel-id="appearance" aria-labelledby="appearance-title" hidden>
+            <h2 id="appearance-title">Appearance</h2>
+            <fieldset style="margin-top: 12px">
+              <legend>Theme</legend>
+              <div class="choice-row">
+                <label><input type="radio" name="theme" value="light" /> Light mode</label>
+                <label><input type="radio" name="theme" value="dark" /> Dark mode</label>
+              </div>
+            </fieldset>
+            <div class="field" style="margin-top: 14px">
+              <span id="density-label">Display density</span>
+              <div class="combo" id="density">
+                <button type="button" class="combo-button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="density-label density-value">
+                  <span id="density-value">Comfortable</span><span aria-hidden="true">▾</span>
+                </button>
+                <ul role="listbox" aria-labelledby="density-label" tabindex="-1" hidden>
+                  <li role="option" data-value="Comfortable">Comfortable</li>
+                  <li role="option" data-value="Compact">Compact</li>
+                  <li role="option" data-value="Spacious">Spacious</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="card" data-panel-id="notifications" aria-labelledby="notifications-title" hidden>
+            <h2 id="notifications-title">Notifications</h2>
+            <div class="switch-row">
+              <div><strong id="sw-email">Email notifications</strong><p>Get an email when someone mentions you or a request needs approval.</p></div>
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="sw-email" data-switch="notifications.email"></button>
+            </div>
+            <div class="switch-row">
+              <div><strong id="sw-push">Browser notifications</strong><p>Show alerts in this browser while Northwind Works is open.</p></div>
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="sw-push" data-switch="notifications.push"></button>
+            </div>
+            <div class="switch-row">
+              <div><strong id="sw-weekly">Weekly summary</strong><p>A Monday digest of team activity and reports.</p></div>
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="sw-weekly" data-switch="notifications.weekly"></button>
+            </div>
+          </section>
+
+          <section class="card" data-panel-id="advanced" aria-labelledby="advanced-title" hidden>
+            <h2 id="advanced-title">Advanced</h2>
+            <p class="muted">Choose Data &amp; privacy or Administration under Advanced in the menu.</p>
+          </section>
+
+          <section class="card" data-panel-id="privacy" aria-labelledby="privacy-title" hidden>
+            <h2 id="privacy-title">Data &amp; privacy</h2>
+            <div class="switch-row">
+              <div><strong id="sw-analytics">Usage analytics</strong><p>Share anonymous usage data to improve the dashboard.</p></div>
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="sw-analytics" data-switch="privacy.analytics"></button>
+            </div>
+            <div class="switch-row">
+              <div><strong id="sw-directory">Show me in other teams' directories</strong><p>Let partner companies find your profile.</p></div>
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="sw-directory" data-switch="privacy.shareDirectory"></button>
+            </div>
+          </section>
+
+          <section class="card" data-panel-id="admin" aria-labelledby="admin-title" hidden>
+            <h2 id="admin-title">Administration</h2>
+            <p>Reset all demo data (cart, orders, applications, settings, and challenge progress) to the starting state.</p>
+            <button type="button" class="button danger" id="reset-demo">Reset demo data</button>
+          </section>
+
+          <div class="save-bar">
+            <span class="muted" id="dirty" aria-live="polite">All changes saved.</span>
+            <span class="toolbar">
+              <button type="button" class="button ghost" id="defaults">Reset to defaults</button>
+              <button type="button" class="button ghost" id="discard">Discard changes</button>
+              <button type="submit" class="button primary">Save changes</button>
+            </span>
+          </div>
+        </form>
+      </div>
+    </main>
+    <script type="module" src="assets/pages/settings.js"></script>
+  </body>
+</html>

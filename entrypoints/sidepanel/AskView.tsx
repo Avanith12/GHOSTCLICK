@@ -136,7 +136,6 @@ export function AskView({
         // Recording belongs in Workflows, not Ask.
         setPlan(null);
         openTab('workflows');
-        setReply('Recording lives in Workflows. Open it from the settings cog, show the task once, and Ghostclick will remember it.');
       } else if (next.action === 'run') {
         setPlan(next);
         const workflow = snap.workflows.find((item) => item.id === next?.workflowId);
@@ -219,7 +218,6 @@ export function AskView({
       } else if (current.action === 'record') {
         setPlan(null);
         openTab('workflows');
-        setReply('Recording lives in Workflows. Open it from the settings cog, show the task once, and Ghostclick will remember it.');
       }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : 'That did not work.');

@@ -36,12 +36,32 @@ const emptyResults = (): Results => ({ columns: [], rows: [], source: '' });
 let session = emptySession();
 let workflows: Workflow[] = [];
 let results = emptyResults();
-let settings: Settings = { screenshots: false, model: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', theme: 'dark' };
+let settings: Settings = {
+  screenshots: false,
+  model: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
+  theme: 'dark',
+  agentMaxSteps: 25,
+  agentAllowed: '',
+  agentBlocked: '',
+  agentReadAny: false,
+};
+// What the side panel's agent is doing, shown in that tab's on-page bar. Not persisted: a run ends
+// when the side panel closes.
+let agent = { tabId: null as number | null, text: '', stop: false };
 let ready: Promise<void> | null = null;
 let writing: Promise<void> = Promise.resolve();
 
 export default defineBackground(() => {
   void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => undefined);
+
+  // The agent lives in the side panel. When the panel closes, its run ends, so clear the on-page bar;
+  // the panel offers to resume the task from its last checkpoint when it opens again.
+  chrome.runtime.onConnect.addListener((port) => {
+    if (port.name !== 'sidepanel') return;
+    port.onDisconnect.addListener(() => {
+      agent = { tabId: null, text: '', stop: false };
+    });
+  });
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     void handle(message, sender)
@@ -124,7 +144,35 @@ async function handle(message: { type?: string; [key: string]: unknown }, sender
         mode: sender.tab?.id === session.tabId ? session.mode : 'idle',
         replayIndex: session.replayIndex,
         replayTotal: currentWorkflow()?.steps.length ?? 0,
+        agent: sender.tab?.id !== undefined && sender.tab.id === agent.tabId ? agent.text : '',
       };
+    case 'AGENT_STATUS':
+      agent = { ...agent, tabId: typeof message.tabId === 'number' ? message.tabId : null, text: String(message.text ?? '').slice(0, 120) };
+      if (agent.tabId === null) agent.stop = false;
+      return { ok: true };
+    case 'AGENT_STOP':
+      agent = { ...agent, stop: true, text: 'Stopping…' };
+      return { ok: true };
+    case 'AGENT_STOP_REQUESTED': {
+      const stop = agent.stop;
+      agent.stop = false;
+      return { ok: true, stop };
+    }
+    case 'ALLOW_SITE': {
+      const host = String(message.host ?? '').trim().toLowerCase();
+      const current = settings.agentAllowed.split(/\s+/).filter(Boolean);
+      if (host && !current.includes(host)) settings = { ...settings, agentAllowed: [...current, host].join('\n') };
+      await persist();
+      return { ok: true };
+    }
+    case 'APPEND_RESULTS':
+      mergeResults(((message.rows as Row[]) ?? []).slice(0, MAX_ROWS), String(message.source ?? ''));
+      await persist();
+      return { ok: true, snapshot: snapshot() };
+    case 'SAVE_WORKFLOW':
+      return saveWorkflow(String(message.name ?? ''), String(message.goal ?? ''), (message.steps as WorkflowStep[]) ?? []);
+    case 'DELETE_STEP':
+      return deleteStep(String(message.workflowId), String(message.stepId));
     case 'START_RECORDING':
       return startRecording(String(message.name ?? ''), String(message.goal ?? ''));
     case 'APPEND_STEP':
@@ -319,6 +367,50 @@ async function stopRecording() {
   session.statusText = `Saved “${draft.name}”.`;
   await persist();
   return { ok: true, snapshot: snapshot(), id: draft.id };
+}
+
+/** Save steps from an agent run as an ordinary workflow, so replay and CSV batches work on it. */
+async function saveWorkflow(name: string, goal: string, steps: WorkflowStep[]) {
+  const kinds = new Set(['navigate', 'fill', 'click', 'check', 'extract', 'assert']);
+  const valid = steps.filter((step) => step && kinds.has(step.kind) && typeof step.url === 'string').slice(0, 200);
+  if (!valid.some((step) => step.kind !== 'navigate')) {
+    session.statusText = 'That task has no page actions to save.';
+    await persist();
+    return { ok: false, snapshot: snapshot(), error: session.statusText };
+  }
+  const used = new Set<string>();
+  const cleaned = valid.map((step) => {
+    const copy = { ...step, id: crypto.randomUUID(), fallbacks: Array.isArray(step.fallbacks) ? step.fallbacks : [] };
+    if (copy.variableKey) {
+      let key = copy.variableKey;
+      for (let count = 2; used.has(key); count += 1) key = `${copy.variableKey}-${count}`;
+      copy.variableKey = key;
+      used.add(key);
+    }
+    return copy;
+  });
+  const workflow: Workflow = {
+    id: crypto.randomUUID(),
+    name: (name.trim() || goal.trim() || 'Agent task').slice(0, 80),
+    goal: goal.trim().slice(0, 300),
+    createdAt: Date.now(),
+    steps: cleaned,
+  };
+  workflows = [workflow, ...workflows].slice(0, 50);
+  session.statusText = `Saved “${workflow.name}”.`;
+  await persist();
+  return { ok: true, snapshot: snapshot(), id: workflow.id };
+}
+
+async function deleteStep(workflowId: string, stepId: string) {
+  const workflow = workflows.find((item) => item.id === workflowId);
+  if (!workflow || session.mode !== 'idle') return { ok: false, snapshot: snapshot() };
+  const step = workflow.steps.find((item) => item.id === stepId);
+  if (!step || workflow.steps.length <= 1) return { ok: false, snapshot: snapshot() };
+  if (step.screenshot) await chrome.storage.local.remove(step.screenshot);
+  workflow.steps = workflow.steps.filter((item) => item.id !== stepId);
+  await persist();
+  return { ok: true, snapshot: snapshot() };
 }
 
 async function updateWorkflow(id: string, name?: string, goal?: string) {

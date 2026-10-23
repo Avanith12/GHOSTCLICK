@@ -50,6 +50,13 @@ describe('rulesPlan', () => {
     expect(rulesPlan('who is this person?', [hold], false)).toMatchObject({ action: 'ask_page' });
   });
 
+  it('answers ranking questions from scraped rows when there are some', () => {
+    expect(rulesPlan('Which three are cheapest?', [hold], true).action).toBe('ask_data');
+    expect(rulesPlan('show me the most expensive one', [hold], true).action).toBe('ask_data');
+    expect(rulesPlan('Which three are cheapest?', [hold], false).action).toBe('ask_page');
+    expect(rulesPlan('what is this page about?', [hold], true).action).toBe('ask_page');
+  });
+
   it('ignores filler words when matching workflows', () => {
     const wiki = { ...hold, id: 'wiki', name: 'Test https://en.wikipedia.org/wiki/Main_Page', goal: '' };
     expect(rulesPlan('open the page about dentists', [wiki], false).action).toBe('ask_page');

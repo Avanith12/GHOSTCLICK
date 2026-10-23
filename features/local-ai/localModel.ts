@@ -1,5 +1,6 @@
 import type { MLCEngine } from '@mlc-ai/web-llm';
-import { bestKeywordMatches, keywordFilter, rowText, rowWords } from '@/features/ask/keywordSearch';
+import { bestKeywordMatches, keywordFilter, rowWords } from '@/features/ask/keywordSearch';
+import { parseMatches, selectPassages } from '@/features/local-ai/relevance';
 import { parseModelChoice, parseNumberChoice } from '@/features/workflows/selfRepair';
 import type { HumanPrompt, Row } from '@/shared/types';
 
@@ -98,18 +99,42 @@ async function withEngine<T>(task: (current: MLCEngine) => Promise<T>) {
   }
 }
 
-async function chat(system: string, user: string, maxTokens: number) {
+async function chat(system: string, user: string, maxTokens: number, schema?: object, temperature = 0) {
   const reply = await withEngine((current) =>
     current.chat.completions.create({
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-      temperature: 0,
+      temperature,
       max_tokens: maxTokens,
+      // Grammar-constrained decoding: the reply must be one JSON object matching the schema, so the
+      // model cannot invent action names, add prose, or run on into a second action.
+      ...(schema ? { response_format: { type: 'json_object' as const, schema: JSON.stringify(schema) } } : {}),
     }),
   );
   return reply.choices[0]?.message?.content ?? '';
+}
+
+/** Stop the reply being generated right now, if any. */
+export function interruptModel() {
+  engine?.interruptGenerate();
+}
+
+/** One model call that gives up (and stops generating) after `timeoutMs`. Used by the agent loop. */
+export async function chatWithTimeout(system: string, user: string, maxTokens: number, schema?: object, temperature = 0, timeoutMs = 90_000) {
+  let timer = 0;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = window.setTimeout(() => {
+      interruptModel();
+      reject(new Error(`The local model took longer than ${Math.round(timeoutMs / 1000)} s to choose an action. Try a smaller model or a simpler request.`));
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([chat(system, user, maxTokens, schema, temperature), timeout]);
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 export function parseJson(text: string) {
@@ -247,35 +272,27 @@ If nothing matches, reply {"rows":[]}.`,
     });
 }
 
-async function yesScore(topic: string, item: string) {
-  const reply = await withEngine((current) =>
-    current.chat.completions.create({
-      messages: [
-        { role: 'system', content: 'You decide if an item is mainly about a topic. Answer with one word: yes or no.' },
-        { role: 'user', content: 'Topic: cooking\nItem: Easy weeknight pasta recipes with five ingredients' },
-        { role: 'assistant', content: 'yes' },
-        { role: 'user', content: 'Topic: cooking\nItem: A kitchen-themed puzzle game for iPhone' },
-        { role: 'assistant', content: 'no' },
-        { role: 'user', content: `Topic: ${topic}\nItem: ${item}` },
-      ],
-      temperature: 1,
-      top_p: 1,
-      max_tokens: 1,
-      logprobs: true,
-      top_logprobs: 5,
-    }),
+// Decide which of several items are mainly about a topic in a single model call, and
+// return a verdict per item in order. Scoring a whole batch at once is what keeps a
+// "find X" over a long list down to seconds instead of one inference per row.
+async function matchesTopic(topic: string, items: string[]): Promise<boolean[]> {
+  if (items.length === 0) return [];
+  const list = items
+    .map((item, index) => `${index + 1}. ${item.replace(/\s+/g, ' ').slice(0, 200)}`)
+    .join('\n');
+  const text = await chat(
+    `You decide which listed items are mainly about a topic.
+Reply with JSON only: {"matches":[<the numbers of the items that are about the topic>]}.
+Include a number only when that item is clearly about the topic. If none are, reply {"matches":[]}.`,
+    `Topic: ${topic}\n\nItems:\n${list}`,
+    200,
   );
-  let yes = 0;
-  let no = 0;
-  for (const { token, logprob } of reply.choices[0]?.logprobs?.content?.[0]?.top_logprobs ?? []) {
-    const word = token.trim().toLowerCase();
-    if (word.startsWith('yes')) yes += Math.exp(logprob);
-    else if (word.startsWith('no')) no += Math.exp(logprob);
-  }
-  return yes + no > 0 ? yes / (yes + no) : 0;
+  const hits = parseMatches(text, items.length);
+  return items.map((_, index) => hits.has(index + 1));
 }
 
 const MAX_SCORED = 150;
+const SCORE_BATCH = 12;
 
 export async function filterRows(filter: string, rows: Row[], onProgress?: (done: number, total: number) => void) {
   const mentioned = keywordFilter(filter, rows);
@@ -283,18 +300,25 @@ export async function filterRows(filter: string, rows: Row[], onProgress?: (done
   const order = [...mentioned, ...rows.map((_, index) => index).filter((index) => !first.has(index))].slice(0, MAX_SCORED);
   const literal = new Set(keywordFilter(filter, rows, true));
   const kept = new Set(literal);
-  for (const [done, index] of order.entries()) {
-    if ((await yesScore(filter, rowWords(rows[index]!))) >= 0.5) kept.add(index);
-    onProgress?.(done + 1, order.length);
+  for (let start = 0; start < order.length; start += SCORE_BATCH) {
+    const slice = order.slice(start, start + SCORE_BATCH);
+    const verdicts = await matchesTopic(filter, slice.map((index) => rowWords(rows[index]!)));
+    slice.forEach((index, position) => {
+      if (verdicts[position]) kept.add(index);
+    });
+    onProgress?.(Math.min(start + slice.length, order.length), order.length);
   }
   if (kept.size === 0) return bestKeywordMatches(filter, rows);
   return [...kept].sort((left, right) => left - right);
 }
 
 export async function answer(question: string, context: string, maxChars = ANSWER_CHARS) {
-  const clipped = context.trim().slice(0, Math.max(ANSWER_CHARS, maxChars));
+  const budget = Math.max(ANSWER_CHARS, maxChars);
+  // Pick the passages that actually bear on the question before trimming to the budget,
+  // so a long page or PDF is not answered from only its opening characters.
+  const clipped = selectPassages(question, context, budget);
   if (!clipped) {
-    return 'No text was available to answer from. For PDFs, use Data → PDF → Read / Open a PDF file first (scanned image PDFs cannot be read yet).';
+    return 'No text was available to answer from. For PDFs, use Data → PDF → Read / Open a PDF file first.';
   }
   return chat(
     'Answer using only the provided content. Prefer concrete facts (names, dates, numbers, section titles). Quote short phrases when helpful. If the content is incomplete for the question, say what is missing instead of guessing.',

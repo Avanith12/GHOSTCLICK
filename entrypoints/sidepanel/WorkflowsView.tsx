@@ -168,18 +168,28 @@ function WorkflowDetail({ workflow, command, back }: { workflow: Workflow; comma
       ) : null}
 
       <h2>Steps</h2>
-      <StepList steps={workflow.steps} />
+      <StepList
+        steps={workflow.steps}
+        onRemove={(step) => void command({ type: 'DELETE_STEP', workflowId: workflow.id, stepId: step.id })}
+      />
     </section>
   );
 }
 
-export function StepList({ steps }: { steps: WorkflowStep[] }) {
+export function StepList({ steps, onRemove }: { steps: WorkflowStep[]; onRemove?: (step: WorkflowStep) => void }) {
   if (steps.length === 0) return <p>No steps yet.</p>;
   return (
     <ol className="steps">
-      {steps.map((step) => (
+      {steps.map((step, index) => (
         <li key={step.id}>
-          <span>{stepSummary(step)}</span>
+          <span className="step-line">
+            {stepSummary(step)}
+            {onRemove && index > 0 ? (
+              <button type="button" className="ghost step-remove" aria-label={`Remove step: ${stepSummary(step)}`} onClick={() => onRemove(step)}>
+                Remove
+              </button>
+            ) : null}
+          </span>
           {step.screenshot ? <Thumb storageKey={step.screenshot} /> : null}
         </li>
       ))}

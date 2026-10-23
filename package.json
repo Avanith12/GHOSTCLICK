@@ -11,7 +11,10 @@
     "test": "vitest run",
     "check:panel": "node browser-tests/inspect-panel.mjs",
     "test:live": "node browser-tests/live-test.mjs",
-    "prepare:ext": "wxt prepare"
+    "test:demo": "node browser-tests/demo-test.mjs",
+    "test:agent": "node browser-tests/agent-test.mjs",
+    "prepare:ext": "wxt prepare",
+    "postinstall": "wxt prepare"
   },
   "dependencies": {
     "@mlc-ai/web-llm": "^0.2.85",

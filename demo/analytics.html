@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analytics &amp; Reports · Northwind Works</title>
+    <link rel="stylesheet" href="assets/app.css" />
+    <script>try { const s = JSON.parse(localStorage.getItem('northwind-demo-v1')); if (s?.settings?.theme === 'dark') document.documentElement.dataset.theme = 'dark'; } catch {}</script>
+  </head>
+  <body>
+    <main>
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Insights</p>
+          <h1>Analytics &amp; Reports</h1>
+          <p>Department performance up to 1 October 2026. Performance score = revenue relative to the best department in the period (100 = best).</p>
+        </div>
+      </div>
+
+      <section class="card" aria-label="Date range">
+        <form class="toolbar" id="range-form">
+          <label class="field">
+            Date range
+            <select id="range">
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="custom">Custom range</option>
+            </select>
+          </label>
+          <label class="field" data-custom hidden>From <input id="from" type="date" min="2026-07-04" max="2026-10-01" /></label>
+          <label class="field" data-custom hidden>To <input id="to" type="date" min="2026-07-04" max="2026-10-01" /></label>
+          <button type="submit" class="button primary">Apply</button>
+        </form>
+        <p class="muted" id="window" aria-live="polite"></p>
+      </section>
+
+      <section class="grid kpis" id="kpis" aria-label="Totals for the range"></section>
+
+      <section class="card" aria-labelledby="trend-title">
+        <div class="card-head"><h2 id="trend-title">Daily revenue, all departments</h2></div>
+        <div id="trend"></div>
+      </section>
+
+      <section class="card" aria-labelledby="dept-title">
+        <div class="card-head">
+          <h2 id="dept-title">Department performance</h2>
+          <button type="button" class="button primary" id="generate">Generate report</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <caption class="visually-hidden">Department performance for the selected range</caption>
+            <thead>
+              <tr>
+                <th scope="col"><button type="button" class="sort" data-sort="department">Department</button></th>
+                <th scope="col"><button type="button" class="sort" data-sort="revenue">Revenue</button></th>
+                <th scope="col"><button type="button" class="sort" data-sort="deals">Deals</button></th>
+                <th scope="col"><button type="button" class="sort" data-sort="satisfaction">Satisfaction</button></th>
+                <th scope="col"><button type="button" class="sort" data-sort="score">Performance score</button></th>
+              </tr>
+            </thead>
+            <tbody id="departments"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" id="report" hidden aria-labelledby="report-title" aria-live="polite"></section>
+
+      <section aria-labelledby="breakdown-title">
+        <h2 id="breakdown-title" style="margin-bottom: 10px">Department details</h2>
+        <div id="breakdown"></div>
+      </section>
+
+      <section class="card" aria-labelledby="ledger-title">
+        <div class="card-head"><h2 id="ledger-title">Daily ledger</h2><span class="muted" id="ledger-count"></span></div>
+        <div class="table-wrap" style="max-height: 360px">
+          <table>
+            <caption class="visually-hidden">Daily figures by department</caption>
+            <thead><tr><th scope="col">Date</th><th scope="col">Department</th><th scope="col">Revenue</th><th scope="col">Deals</th><th scope="col">Satisfaction</th></tr></thead>
+            <tbody id="ledger"></tbody>
+          </table>
+        </div>
+        <nav class="pagination" aria-label="Ledger pages" id="ledger-pages"></nav>
+      </section>
+    </main>
+    <script type="module" src="assets/pages/analytics.js"></script>
+  </body>
+</html>

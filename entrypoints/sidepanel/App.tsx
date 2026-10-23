@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { Candidate, Snapshot } from '@/shared/types';
 import type { Command } from './api';
+import { agent } from '@/features/agent/chromeBrowser';
+import { AgentView } from './AgentView';
 import { AskView } from './AskView';
 import { DataView } from './DataView';
 import { modelReady, suggestRepair, visionReady } from '@/features/local-ai/localModel';
@@ -18,6 +20,11 @@ export function App() {
   const [cogOpen, setCogOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [autoReadPdf, setAutoReadPdf] = useState(false);
+  const [askMode, setAskMode] = useState<'agent' | 'quick'>('agent');
+  const agentState = useSyncExternalStore(
+    (listener) => agent.subscribe(listener),
+    () => agent.state,
+  );
   const wakeTimer = useRef(0);
   const model = useModel();
 
@@ -167,6 +174,18 @@ export function App() {
       />
 
       {snap.statusText && !cogOpen && !showHome ? <p className="status">{snap.statusText}</p> : null}
+      {agentState.phase !== 'idle' && agent.running && !(showAsk && askMode === 'agent') ? (
+        <button
+          type="button"
+          className="ghost agent-banner"
+          onClick={() => {
+            openPanel('ask');
+            setAskMode('agent');
+          }}
+        >
+          {agentState.pending ? 'The agent needs you. Open the task' : `Agent working: ${agentState.current || 'step ' + agentState.step}`}
+        </button>
+      ) : null}
 
       {!cogOpen && snap.mode === 'recording' && snap.draft ? <RecordView snap={snap} command={command} /> : null}
       {!cogOpen && snap.mode === 'picking' ? <PickView command={command} /> : null}
@@ -196,17 +215,29 @@ export function App() {
 
       {showAsk ? (
         <>
+          <div className="mode-toggle" role="tablist" aria-label="Ask mode">
+            <button type="button" role="tab" aria-selected={askMode === 'agent'} className={askMode === 'agent' ? '' : 'ghost'} onClick={() => setAskMode('agent')}>
+              Do anything
+            </button>
+            <button type="button" role="tab" aria-selected={askMode === 'quick'} className={askMode === 'quick' ? '' : 'ghost'} onClick={() => setAskMode('quick')}>
+              Quick ask
+            </button>
+          </div>
           <LastRun snap={snap} command={command} />
-          <AskView
-            snap={snap}
-            model={model}
-            command={command}
-            openTab={(next, workflowId, readPdf) => {
-              setPanel(next);
-              setSelectedId(workflowId ?? null);
-              if (readPdf) setAutoReadPdf(true);
-            }}
-          />
+          {askMode === 'agent' ? (
+            <AgentView snap={snap} model={model} command={command} openData={() => setPanel('data')} />
+          ) : (
+            <AskView
+              snap={snap}
+              model={model}
+              command={command}
+              openTab={(next, workflowId, readPdf) => {
+                setPanel(next);
+                setSelectedId(workflowId ?? null);
+                if (readPdf) setAutoReadPdf(true);
+              }}
+            />
+          )}
         </>
       ) : null}
 
