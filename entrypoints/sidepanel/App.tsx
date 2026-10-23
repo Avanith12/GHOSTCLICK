@@ -16,6 +16,7 @@ export function App() {
   const [panel, setPanel] = useState<Panel>('home');
   const [waking, setWaking] = useState(false);
   const [cogOpen, setCogOpen] = useState(false);
+  const [askMode, setAskMode] = useState<'voice' | 'type'>('voice');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [autoReadPdf, setAutoReadPdf] = useState(false);
   const wakeTimer = useRef(0);
@@ -69,30 +70,30 @@ export function App() {
     setPanel('home');
   }
 
-  function wakeGhost() {
+  function openAsk(mode: 'voice' | 'type') {
     if (cogOpen) return;
     window.clearTimeout(wakeTimer.current);
+    setAskMode(mode);
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (reduce) {
+    if (reduce || mode === 'type') {
       setWaking(false);
       setPanel('ask');
       return;
     }
-
     setWaking(true);
     wakeTimer.current = window.setTimeout(() => {
       setWaking(false);
       setPanel('ask');
-    }, 600);
+    }, 550);
   }
 
-  /** Top Ghostclick mark — home from anywhere. */
+  /** Home from anywhere. */
   function goHome() {
     window.clearTimeout(wakeTimer.current);
     setWaking(false);
     setPanel('home');
     setCogOpen(false);
+    setAskMode('voice');
   }
 
   function toggleCog() {
@@ -134,27 +135,57 @@ export function App() {
   const showData = idle && !cogOpen && panel === 'data';
 
   return (
-    <main className={showHome ? 'main-home' : ''}>
-      <header className="top-bar">
-        <button type="button" className="wordmark" onClick={goHome} aria-label="Ghostclick home">
-          <span className="wordmark-banners" data-theme-banner={snap.settings.theme === 'light' ? 'light' : 'dark'}>
-            <img className="wordmark-banner banner-light" src={bannerLight} alt="Ghostclick" draggable={false} />
-            <img className="wordmark-banner banner-dark" src={bannerDark} alt="" draggable={false} />
-          </span>
-        </button>
-        <button
-          type="button"
-          className={`ghost cog-btn${cogOpen ? ' active' : ''}`}
-          aria-label="Settings"
-          aria-expanded={cogOpen}
-          title="Settings"
-          onClick={toggleCog}
-        >
-          <span className="cog-glyph" aria-hidden="true">
-            ⚙
-          </span>
-        </button>
-      </header>
+    <main className={showHome ? 'main-home agent-shell' : ''}>
+      {!showHome ? (
+        <header className="top-bar">
+          <button type="button" className="wordmark" onClick={goHome} aria-label="Ghostclick home">
+            <span className="wordmark-banners" data-theme-banner={snap.settings.theme === 'light' ? 'light' : 'dark'}>
+              <img className="wordmark-banner banner-light" src={bannerLight} alt="Ghostclick" draggable={false} />
+              <img className="wordmark-banner banner-dark" src={bannerDark} alt="" draggable={false} />
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`ghost cog-btn${cogOpen ? ' active' : ''}`}
+            aria-label="Settings"
+            aria-expanded={cogOpen}
+            title="Settings"
+            onClick={toggleCog}
+          >
+            <span className="cog-glyph" aria-hidden="true">
+              ⚙
+            </span>
+          </button>
+        </header>
+      ) : null}
+
+      {showHome ? (
+        <div className="agent-rail">
+          <button
+            type="button"
+            className={`ghost cog-btn${cogOpen ? ' active' : ''}`}
+            aria-label="Settings"
+            aria-expanded={cogOpen}
+            title="Settings"
+            onClick={toggleCog}
+          >
+            <span className="cog-glyph" aria-hidden="true">
+              ⚙
+            </span>
+          </button>
+          <button
+            type="button"
+            className="ghost key-btn"
+            aria-label="Type instead"
+            title="Keyboard"
+            onClick={() => openAsk('type')}
+          >
+            <span className="key-glyph" aria-hidden="true">
+              ⌨
+            </span>
+          </button>
+        </div>
+      ) : null}
 
       <SettingsCog
         open={cogOpen}
@@ -175,22 +206,29 @@ export function App() {
       ) : null}
 
       {showHome ? (
-        <section className={`ghost-home${waking ? ' waking' : ''}`}>
+        <section className={`ghost-home agent-home${waking ? ' waking' : ''}`}>
           <div className="ghost-mist" aria-hidden="true" />
           <button
             type="button"
-            className="ghost-wake"
-            aria-label="Wake Ghostclick"
+            className="ghost-wake ghost-wake-xl"
+            aria-label="Talk to Ghostclick"
             disabled={waking}
-            onClick={wakeGhost}
+            onClick={() => openAsk('voice')}
           >
             <span className="ghost-ring" aria-hidden="true" />
             <span className="ghost-ring delay" aria-hidden="true" />
             <span className="ghost-ring delay2" aria-hidden="true" />
-            <img src={heroIcon} alt="" width={96} height={96} />
+            <img src={heroIcon} alt="" width={168} height={168} />
           </button>
-          <h1 className="ghost-title">Ghostclick</h1>
-          <p className="ghost-hint">{waking ? 'Waking…' : 'Click to ASK :)'}</p>
+          <p className="ghost-hint">{waking ? 'Listening…' : 'Click to ASK :)'}</p>
+
+          <button type="button" className="voice-strip" onClick={() => openAsk('voice')} disabled={waking}>
+            <span className="voice-dot" aria-hidden="true" />
+            <span className="voice-wave" aria-hidden="true">
+              <i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i />
+            </span>
+            <span className="voice-label">{waking ? 'Waking…' : 'Voice'}</span>
+          </button>
         </section>
       ) : null}
 
@@ -198,9 +236,12 @@ export function App() {
         <>
           <LastRun snap={snap} command={command} />
           <AskView
+            key={askMode}
             snap={snap}
             model={model}
             command={command}
+            autoVoice={askMode === 'voice'}
+            focusType={askMode === 'type'}
             openTab={(next, workflowId, readPdf) => {
               setPanel(next);
               setSelectedId(workflowId ?? null);

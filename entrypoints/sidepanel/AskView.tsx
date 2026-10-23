@@ -14,11 +14,15 @@ export function AskView({
   model,
   command,
   openTab,
+  autoVoice = false,
+  focusType = false,
 }: {
   snap: Snapshot;
   model: ModelState;
   command: Command;
   openTab: (tab: 'data' | 'workflows', workflowId?: string, readPdf?: boolean) => void;
+  autoVoice?: boolean;
+  focusType?: boolean;
 }) {
   const [request, setRequest] = useState('');
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -32,6 +36,19 @@ export function AskView({
   const [listening, setListening] = useState(false);
   const [voiceNote, setVoiceNote] = useState('');
   const voiceWindowId = useRef<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const startedVoice = useRef(false);
+
+  useEffect(() => {
+    if (focusType) textareaRef.current?.focus();
+  }, [focusType]);
+
+  useEffect(() => {
+    if (!autoVoice || startedVoice.current) return;
+    startedVoice.current = true;
+    void beginListen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoVoice]);
 
   useEffect(() => {
     const onMessage = (message: { type?: string; text?: string; final?: boolean }) => {
@@ -243,6 +260,7 @@ export function AskView({
       <label>
         Tell Ghostclick what to do
         <textarea
+          ref={textareaRef}
           value={request}
           rows={4}
           placeholder={listening ? 'Listening…' : 'Speak or type, then press Enter'}
