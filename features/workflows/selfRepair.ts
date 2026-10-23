@@ -30,9 +30,10 @@ export const DESTRUCTIVE =
 export const FORWARD =
   /\b(continue|next|submit|save|confirm|proceed|done|send|apply|finish|create|add|sign ?in|log ?in|ok|yes|accept|update|post)\b/i;
 
-const CHROME_LINK = /^(←|→|->|<-|home|back to|skip to|close dialog|×|✕)/i;
+const CHROME_LINK = /^(←|→|->|<-|back to|skip to|close dialog|×|✕)/i;
+/** Whole-label nav chrome only — do not match a real button that merely contains “home” or “settings”. */
 const NAV_PAGE =
-  /\b(challenges?|portal|dashboard|directory|settings|home|about|help|docs|automation challenges|northwind)\b/i;
+  /^(automation challenges|northwind works.*|←.*portal|home|about|help|docs|dashboard|directory|settings|challenges?)$/i;
 
 function isForward(label: string) {
   return FORWARD.test(normalize(label));

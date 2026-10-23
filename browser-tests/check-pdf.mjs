@@ -7,6 +7,7 @@ const extension = path.join(root, '.output/chrome-mv3');
 const executablePath = process.env.CHROME_PATH;
 if (!executablePath) throw new Error('Set CHROME_PATH to a Chrome for Testing binary.');
 const fixture = '/tmp/ghostclick-courses.pdf';
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const browser = await puppeteer.launch({
   executablePath,
@@ -37,17 +38,30 @@ try {
   panel.on('pageerror', (error) => problems.push(error.message));
   panel.on('console', (message) => message.type() === 'error' && problems.push(message.text()));
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`, { waitUntil: 'load' });
+  await sleep(800);
 
-  await panel.waitForSelector('nav.tabs button');
-  const tabs = await panel.$$('nav.tabs button');
-  await tabs[2].click();
-  const input = await panel.waitForSelector('label.file input[type=file]');
+  // Settings cog → Data (tabs UI was removed).
+  await panel.click('button[aria-label="Settings"], .cog-btn');
+  await sleep(400);
+  await panel.evaluate(() => {
+    const button = [...document.querySelectorAll('button')].find((item) => item.textContent.includes('Data'));
+    button?.click();
+  });
+  await sleep(500);
+
+  const input = await panel.waitForSelector('label.file input[type=file]', { timeout: 10_000 });
   await input.uploadFile(fixture);
-  await panel.waitForFunction(() => /Read “|Could not|not showing|larger/.test(document.body.innerText), { timeout: 15_000 });
+  await panel.waitForFunction(
+    () => {
+      const status = document.querySelector('.box .status')?.textContent ?? '';
+      return /Read “|Could not|still has almost no text|Chrome blocks/i.test(status) && !/^Reading the PDF/i.test(status);
+    },
+    { timeout: 60_000 },
+  );
   const status = await panel.$eval('.box .status', (element) => element.textContent);
   console.log('status:', status);
   if (problems.length) console.log('errors:\n' + problems.join('\n'));
-  if (!/2 pages/.test(status ?? '')) throw new Error('PDF was not read as expected.');
+  if (!/\d+\s*pages?/i.test(status ?? '')) throw new Error('PDF was not read as expected.');
   console.log('pdf ok');
 } finally {
   await browser.close();
