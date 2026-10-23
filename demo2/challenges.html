@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Automation Challenges · Northwind Works</title>
+    <link rel="stylesheet" href="assets/app.css" />
+    <script>try { const s = JSON.parse(localStorage.getItem('northwind-demo-v1')); if (s?.settings?.theme === 'dark') document.documentElement.dataset.theme = 'dark'; } catch {}</script>
+  </head>
+  <body>
+    <main>
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Ghostclick test bench</p>
+          <h1>Automation Challenges</h1>
+          <p>
+            Give any instruction below to Ghostclick (or do it yourself). Each challenge is graded from what actually happened in the
+            demo, such as the cart, saved settings, exports, and submitted forms, never from an agent saying it is done.
+          </p>
+        </div>
+        <div class="toolbar">
+          <button type="button" class="button" id="recheck">Check again</button>
+          <button type="button" class="button danger" id="reset">Reset demo data</button>
+        </div>
+      </div>
+
+      <section class="grid kpis" aria-label="Score">
+        <article class="card kpi"><p>Passed</p><strong id="score">0 / 0</strong></article>
+        <article class="card kpi"><p>Data</p><strong style="font-size: 16px">Seeded and identical on every reset</strong></article>
+        <article class="card kpi"><p>Last checked</p><strong id="checked" style="font-size: 16px">—</strong></article>
+      </section>
+
+      <div class="chips" role="group" aria-label="Show challenges" id="filters">
+        <button type="button" class="chip" aria-pressed="true" data-filter="">All</button>
+        <button type="button" class="chip" aria-pressed="false" data-filter="Easy">Easy</button>
+        <button type="button" class="chip" aria-pressed="false" data-filter="Medium">Medium</button>
+        <button type="button" class="chip" aria-pressed="false" data-filter="Hard">Hard</button>
+        <button type="button" class="chip" aria-pressed="false" data-filter="Expert">Expert</button>
+      </div>
+
+      <section class="grid" id="list" aria-label="Challenges" aria-live="polite"></section>
+    </main>
+    <script type="module" src="assets/pages/challenges.js"></script>
+  </body>
+</html>

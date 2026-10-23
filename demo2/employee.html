@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee profile · Northwind Works</title>
+    <link rel="stylesheet" href="assets/app.css" />
+    <script>try { const s = JSON.parse(localStorage.getItem('northwind-demo-v1')); if (s?.settings?.theme === 'dark') document.documentElement.dataset.theme = 'dark'; } catch {}</script>
+  </head>
+  <body>
+    <main>
+      <p><a href="directory.html">← Back to the directory</a></p>
+      <div id="profile"><p class="loading"><span class="spinner" aria-hidden="true"></span> Loading profile…</p></div>
+    </main>
+    <script type="module" src="assets/pages/employee.js"></script>
+  </body>
+</html>

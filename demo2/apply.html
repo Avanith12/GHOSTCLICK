@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Job Applications · Northwind Works</title>
+    <link rel="stylesheet" href="assets/app.css" />
+    <script>try { const s = JSON.parse(localStorage.getItem('northwind-demo-v1')); if (s?.settings?.theme === 'dark') document.documentElement.dataset.theme = 'dark'; } catch {}</script>
+  </head>
+  <body>
+    <main>
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Careers</p>
+          <h1>Job Application Portal</h1>
+          <p>Apply for an open role in four short steps. Your progress is saved in this browser. This is a mock form: nothing is sent anywhere.</p>
+        </div>
+      </div>
+
+      <section class="card" id="wizard" aria-labelledby="step-title">
+        <ol class="stepper" aria-label="Application progress">
+          <li data-step="1">Personal details</li>
+          <li data-step="2">Role</li>
+          <li data-step="3">Experience</li>
+          <li data-step="4">Review</li>
+        </ol>
+        <div class="progress" aria-hidden="true" style="margin: 14px 0"><span id="progress-bar"></span></div>
+        <div role="alert" id="error-summary" class="field-error"></div>
+
+        <form id="application" novalidate>
+          <fieldset data-step="1" class="grid">
+            <legend id="step-title">Step 1 of 4 · Personal details</legend>
+            <div class="form-grid">
+              <label class="field">First name <input name="firstName" autocomplete="given-name" required /></label>
+              <label class="field">Last name <input name="lastName" autocomplete="family-name" required /></label>
+              <label class="field">Email <input name="email" type="email" autocomplete="email" required /></label>
+              <label class="field">Phone <small>Format 555-010-1234</small><input name="phone" type="tel" autocomplete="tel" required pattern="\d{3}-\d{3}-\d{4}" /></label>
+              <label class="field">Location <select name="location" required></select></label>
+            </div>
+          </fieldset>
+
+          <fieldset data-step="2" class="grid" hidden>
+            <legend>Step 2 of 4 · Role</legend>
+            <div class="form-grid">
+              <label class="field">Position <select name="position" required></select></label>
+              <label class="field">Earliest start date <input name="startDate" type="date" min="2026-10-01" required /></label>
+            </div>
+            <fieldset>
+              <legend>Employment type</legend>
+              <div class="choice-row">
+                <label><input type="radio" name="employmentType" value="Full-time" required /> Full-time</label>
+                <label><input type="radio" name="employmentType" value="Part-time" /> Part-time</label>
+                <label><input type="radio" name="employmentType" value="Contract" /> Contract</label>
+              </div>
+            </fieldset>
+            <label class="field" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="relocate" /> I am willing to relocate</label>
+          </fieldset>
+
+          <fieldset data-step="3" class="grid" hidden>
+            <legend>Step 3 of 4 · Experience</legend>
+            <div class="form-grid">
+              <label class="field">Years of experience <input name="years" type="number" min="0" max="50" required /></label>
+              <label class="field">Portfolio or LinkedIn URL <small>Optional</small><input name="portfolio" type="url" placeholder="https://" /></label>
+            </div>
+            <fieldset>
+              <legend>Skills (choose at least one)</legend>
+              <div class="choice-row" id="skills"></div>
+            </fieldset>
+            <label class="field">Why Northwind? <small>Optional</small><textarea name="note" rows="3"></textarea></label>
+          </fieldset>
+
+          <fieldset data-step="4" class="grid" hidden>
+            <legend>Step 4 of 4 · Review</legend>
+            <p class="muted">Check everything before you submit. Use Edit to change a section.</p>
+            <div id="review"></div>
+            <label class="field" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="consent" required /> I confirm these details are accurate</label>
+          </fieldset>
+
+          <div class="toolbar" style="justify-content: space-between; margin-top: 16px">
+            <button type="button" class="button ghost" id="back">Back</button>
+            <span class="toolbar">
+              <button type="button" class="button ghost" id="discard">Discard draft</button>
+              <button type="submit" class="button primary" id="next">Next</button>
+            </span>
+          </div>
+        </form>
+      </section>
+
+      <section class="card" id="done" hidden aria-live="polite"></section>
+    </main>
+    <script type="module" src="assets/pages/apply.js"></script>
+  </body>
+</html>
