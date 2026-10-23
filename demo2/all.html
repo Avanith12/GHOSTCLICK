@@ -1,0 +1,2461 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Northwind Works</title>
+    <style>
+/* Northwind Works demo: one stylesheet for every page. */
+:root {
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --ink: #142033;
+  --muted: #5b6b80;
+  --line: #e1e7ef;
+  --line-strong: #c9d3e0;
+  --brand: #3b5bdb;
+  --brand-ink: #ffffff;
+  --brand-soft: #e8edff;
+  --ok: #1f9d6b;
+  --ok-soft: #e3f6ee;
+  --warn: #b7791f;
+  --warn-soft: #fff4e0;
+  --danger: #d6455d;
+  --danger-soft: #fdecef;
+  --shadow: 0 1px 2px rgba(20, 32, 51, 0.06), 0 8px 24px rgba(20, 32, 51, 0.06);
+  --radius: 12px;
+  --radius-small: 8px;
+  --pad: 20px;
+  --sidebar: 248px;
+  --font: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0d1220;
+  --surface: #151c2e;
+  --surface-2: #1b2338;
+  --ink: #e6ebf5;
+  --muted: #94a3bb;
+  --line: #26304a;
+  --line-strong: #34405f;
+  --brand: #7b93ff;
+  --brand-ink: #0d1220;
+  --brand-soft: #222c4c;
+  --ok-soft: #13342a;
+  --warn-soft: #3a2c12;
+  --danger-soft: #3d1a22;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  color-scheme: dark;
+}
+
+:root[data-density='compact'] { --pad: 14px; }
+:root[data-density='spacious'] { --pad: 28px; }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14.5px/1.5 var(--font);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+a { color: var(--brand); }
+h1, h2, h3 { margin: 0; letter-spacing: -0.02em; }
+h1 { font-size: 26px; }
+h2 { font-size: 17px; }
+h3 { font-size: 15px; }
+[hidden] { display: none !important; }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+.skip { position: absolute; left: -999px; top: 8px; z-index: 50; }
+.skip:focus { left: 8px; background: var(--surface); padding: 8px 12px; border-radius: var(--radius-small); }
+
+/* ---------- Shell ---------- */
+.shell { display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); min-height: 100vh; }
+
+.sidebar {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 18px;
+  padding: 20px 14px; background: var(--surface); border-right: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-size: 16px; padding: 0 8px; }
+.brand-mark {
+  display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--brand), #9c6bff); color: #fff; font-weight: 800;
+}
+.sidebar ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.sidebar nav a {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-small);
+  color: var(--muted); text-decoration: none; font-weight: 550; transition: background 0.15s, color 0.15s;
+}
+.sidebar nav a:hover { background: var(--surface-2); color: var(--ink); }
+.sidebar nav a[aria-current='page'] { background: var(--brand-soft); color: var(--brand); }
+.nav-icon { width: 18px; text-align: center; }
+.sidebar-note { margin-top: auto; font-size: 12px; color: var(--muted); padding: 0 8px; }
+
+.workspace { min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 12px; padding: 12px 24px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.global-search { flex: 1; max-width: 420px; }
+.global-search input { width: 100%; }
+.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.menu-toggle { display: none; }
+
+main { padding: 24px; display: grid; gap: 20px; align-content: start; outline: none; }
+.page-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+.page-head p { margin: 4px 0 0; color: var(--muted); }
+.eyebrow { margin: 0 0 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand); }
+
+/* ---------- Controls ---------- */
+input, select, textarea {
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-small); padding: 8px 11px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible {
+  outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 25%, transparent);
+}
+input[aria-invalid='true'], select[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--danger); }
+
+.button, button.button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid transparent; border-radius: var(--radius-small); padding: 8px 14px;
+  font: inherit; font-weight: 600; cursor: pointer; text-decoration: none;
+  background: var(--surface-2); color: var(--ink); border-color: var(--line-strong);
+  transition: transform 0.1s, background 0.15s, border-color 0.15s;
+}
+.button:hover { border-color: var(--brand); }
+.button:active { transform: translateY(1px); }
+.button.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+.button.ghost { background: transparent; }
+.button.danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+.button.small { padding: 4px 10px; font-size: 13px; }
+.button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.icon-button, .cart-button, .avatar-button {
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+  border-radius: var(--radius-small); padding: 7px 10px; font: inherit; cursor: pointer;
+}
+.avatar-button { border-radius: 50%; width: 36px; height: 36px; padding: 0; font-weight: 700; background: var(--brand-soft); color: var(--brand); }
+.badge {
+  display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px;
+  border-radius: 999px; background: var(--brand); color: var(--brand-ink); font-size: 12px; font-weight: 700;
+}
+
+.menu { position: relative; }
+.menu-list {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 210px;
+  display: grid; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+  animation: pop 0.14s ease-out;
+}
+.menu-list a, .menu-list button {
+  padding: 8px 10px; border-radius: var(--radius-small); color: var(--ink); text-decoration: none;
+  background: none; border: 0; font: inherit; text-align: left; cursor: pointer;
+}
+.menu-list a:hover, .menu-list button:hover { background: var(--surface-2); }
+
+.field { display: grid; gap: 5px; font-weight: 600; font-size: 13.5px; }
+.field small { font-weight: 400; color: var(--muted); }
+.field-error { color: var(--danger); font-weight: 500; font-size: 13px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.toolbar .field { min-width: 150px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+  padding: 5px 12px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer;
+}
+.chip[aria-pressed='true'] { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+
+/* ---------- Cards and layout ---------- */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: var(--pad); }
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.grid { display: grid; gap: 16px; }
+.grid.kpis { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.grid.two { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.kpi p { margin: 0; color: var(--muted); font-size: 13px; }
+.kpi strong { display: block; font-size: 26px; margin-top: 4px; letter-spacing: -0.02em; }
+.trend { font-size: 12.5px; font-weight: 600; }
+.trend.up { color: var(--ok); }
+.trend.down { color: var(--danger); }
+.muted { color: var(--muted); }
+.empty { color: var(--muted); padding: 20px; text-align: center; }
+
+.status-pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 650; background: var(--ok-soft); color: var(--ok); }
+.status-pill.warn { background: var(--warn-soft); color: var(--warn); }
+.status-pill.danger { background: var(--danger-soft); color: var(--danger); }
+
+/* ---------- Tables ---------- */
+.table-wrap { overflow: auto; max-height: 520px; border: 1px solid var(--line); border-radius: var(--radius); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); font-size: 12.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+tbody tr { transition: background 0.12s; }
+tbody tr:hover { background: var(--surface-2); }
+th button.sort { all: unset; cursor: pointer; display: inline-flex; gap: 4px; }
+th button.sort:focus-visible { outline: 2px solid var(--brand); }
+td.actions { display: flex; gap: 6px; }
+.person { display: flex; align-items: center; gap: 10px; }
+.initials {
+  display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--brand-soft); color: var(--brand); font-weight: 700; font-size: 12.5px; flex: none;
+}
+.pagination { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: space-between; margin-top: 12px; }
+.pagination .pages { display: flex; gap: 4px; }
+.pagination button[aria-current='page'] { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+
+/* ---------- Products ---------- */
+.products { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.product {
+  display: flex; flex-direction: column; gap: 8px; transition: transform 0.15s, box-shadow 0.15s;
+}
+.product:hover { transform: translateY(-2px); }
+.product .art {
+  height: 110px; border-radius: var(--radius-small); display: grid; place-items: center; font-size: 34px;
+  background: linear-gradient(135deg, var(--brand-soft), var(--surface-2));
+}
+.product .price { font-size: 20px; font-weight: 750; }
+.product .meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; }
+.product .buttons { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+.sentinel { height: 1px; }
+.loading { display: flex; justify-content: center; padding: 16px; color: var(--muted); gap: 8px; align-items: center; }
+.spinner {
+  width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-strong); border-top-color: var(--brand);
+  animation: spin 0.7s linear infinite;
+}
+
+/* ---------- Tabs, toggles, collapsibles ---------- */
+.tabs [role='tablist'] { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; flex-wrap: wrap; }
+.tabs [role='tab'] {
+  background: none; border: 0; border-bottom: 2px solid transparent; padding: 9px 12px; font: inherit; font-weight: 600;
+  color: var(--muted); cursor: pointer;
+}
+.tabs [role='tab'][aria-selected='true'] { color: var(--brand); border-bottom-color: var(--brand); }
+
+.switch-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.switch-row:last-child { border-bottom: 0; }
+.switch-row p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.switch {
+  position: relative; width: 46px; height: 26px; border-radius: 999px; border: 0; cursor: pointer; flex: none;
+  background: var(--line-strong); transition: background 0.2s;
+}
+.switch::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.2s;
+}
+.switch[aria-checked='true'] { background: var(--brand); }
+.switch[aria-checked='true']::after { transform: translateX(20px); }
+
+details.collapse { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+details.collapse + details.collapse { margin-top: 8px; }
+details.collapse summary { cursor: pointer; padding: 12px 14px; font-weight: 650; display: flex; justify-content: space-between; gap: 10px; }
+details.collapse[open] summary { border-bottom: 1px solid var(--line); }
+details.collapse .collapse-body { padding: 12px 14px; }
+
+/* Custom listbox dropdown */
+.combo { position: relative; }
+.combo-button {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 210px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-small); background: var(--surface); color: var(--ink);
+  padding: 8px 11px; font: inherit; cursor: pointer;
+}
+.combo [role='listbox'] {
+  position: absolute; z-index: 15; top: calc(100% + 4px); left: 0; right: 0; margin: 0; padding: 4px; list-style: none;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-small); box-shadow: var(--shadow);
+  animation: pop 0.12s ease-out;
+}
+.combo [role='option'] { padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+.combo [role='option']:hover, .combo [role='option'].active { background: var(--surface-2); }
+.combo [role='option'][aria-selected='true'] { color: var(--brand); font-weight: 650; }
+
+.settings-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 20px; align-items: start; }
+.settings-nav { position: sticky; top: 76px; display: grid; gap: 2px; }
+.settings-nav button, .settings-nav .subnav button {
+  text-align: left; background: none; border: 0; padding: 8px 10px; border-radius: var(--radius-small);
+  color: var(--muted); font: inherit; font-weight: 600; cursor: pointer;
+}
+.settings-nav button[aria-current='true'] { background: var(--brand-soft); color: var(--brand); }
+.settings-nav .subnav { display: grid; padding-left: 14px; }
+.settings-nav .subnav button { font-weight: 500; font-size: 13.5px; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.save-bar {
+  position: sticky; bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+
+/* ---------- Stepper ---------- */
+.stepper { list-style: none; display: flex; gap: 8px; padding: 0; margin: 0; counter-reset: step; flex-wrap: wrap; }
+.stepper li {
+  counter-increment: step; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px;
+  border-radius: 999px; background: var(--surface-2); color: var(--muted); font-weight: 600; font-size: 13px;
+}
+.stepper li::before {
+  content: counter(step); display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--line-strong); color: var(--surface);
+}
+.stepper li[aria-current='step'] { background: var(--brand-soft); color: var(--brand); }
+.stepper li[aria-current='step']::before, .stepper li.done::before { background: var(--brand); color: var(--brand-ink); }
+.progress { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.progress span { display: block; height: 100%; background: var(--brand); transition: width 0.3s ease; }
+fieldset { border: 1px solid var(--line); border-radius: var(--radius-small); padding: 10px 14px; margin: 0; }
+legend { font-weight: 650; padding: 0 4px; }
+.choice-row { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.choice-row label { display: inline-flex; gap: 6px; align-items: center; font-weight: 500; }
+dl.review { display: grid; grid-template-columns: 180px 1fr; gap: 8px 14px; margin: 0; }
+dl.review dt { color: var(--muted); }
+dl.review dd { margin: 0; font-weight: 600; }
+
+/* ---------- Charts ---------- */
+.chart { width: 100%; height: auto; display: block; }
+.chart .bar { fill: var(--brand); transition: opacity 0.15s; }
+.chart .bar:hover { opacity: 0.75; }
+.chart .line { fill: none; stroke: var(--brand); stroke-width: 2.5; }
+.chart .area { fill: color-mix(in srgb, var(--brand) 14%, transparent); }
+.chart text { fill: var(--muted); font-size: 11px; }
+.chart .grid-line { stroke: var(--line); }
+
+.activity { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.activity li { display: flex; gap: 10px; align-items: start; }
+.activity .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--brand); margin-top: 6px; flex: none; }
+.activity small { display: block; color: var(--muted); }
+
+/* ---------- Challenges ---------- */
+.challenge { display: grid; gap: 10px; }
+.challenge header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+.difficulty { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); }
+.difficulty.easy { color: var(--ok); }
+.difficulty.medium { color: var(--warn); }
+.difficulty.hard, .difficulty.expert { color: var(--danger); }
+.instruction { margin: 0; padding: 10px 12px; border-left: 3px solid var(--brand); background: var(--surface-2); border-radius: 6px; font-weight: 550; }
+.challenge dl { display: grid; grid-template-columns: 140px 1fr; gap: 4px 10px; margin: 0; font-size: 13.5px; }
+.challenge dt { color: var(--muted); }
+.challenge dd { margin: 0; }
+.verdict { font-weight: 700; }
+.verdict.pass { color: var(--ok); }
+.verdict.fail { color: var(--muted); }
+.criteria { margin: 0; padding-left: 18px; font-size: 13.5px; }
+.criteria li.met { color: var(--ok); }
+.criteria li.met::marker { content: '✓ '; }
+.criteria li.unmet::marker { content: '○ '; }
+
+/* ---------- Modal and toasts ---------- */
+.overlay {
+  position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px;
+  background: rgba(10, 16, 30, 0); transition: background 0.2s;
+}
+.overlay.open { background: rgba(10, 16, 30, 0.5); }
+.modal {
+  width: min(520px, 100%); max-height: calc(100vh - 32px); overflow: auto;
+  background: var(--surface); border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  transform: translateY(12px) scale(0.98); opacity: 0; transition: transform 0.2s, opacity 0.2s;
+}
+.modal.wide { width: min(760px, 100%); }
+.overlay.open .modal { transform: none; opacity: 1; }
+.modal-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.modal-body { padding: 16px 20px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--line); }
+.cart-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cart-lines li { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.cart-lines small { display: block; color: var(--muted); }
+.cart-total { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 10px; }
+
+.toasts { position: fixed; right: 20px; bottom: 20px; z-index: 60; display: grid; gap: 8px; }
+.toast {
+  padding: 11px 16px; border-radius: var(--radius-small); background: var(--ink); color: var(--bg); box-shadow: var(--shadow);
+  font-weight: 600; animation: slide-in 0.25s ease-out; transition: opacity 0.3s, transform 0.3s;
+}
+.toast-error { background: var(--danger); color: #fff; }
+.toast.leaving { opacity: 0; transform: translateY(8px); }
+
+@keyframes pop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes slide-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 960px) {
+  .grid.two, .settings-layout { grid-template-columns: 1fr; }
+  .settings-nav { position: static; display: flex; flex-wrap: wrap; }
+}
+@media (max-width: 760px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar {
+    position: fixed; z-index: 35; left: 0; width: var(--sidebar); transform: translateX(-100%);
+    transition: transform 0.2s ease; box-shadow: var(--shadow);
+  }
+  .sidebar.open { transform: none; }
+  .menu-toggle { display: inline-block; }
+  main { padding: 16px; }
+  .topbar { padding: 10px 16px; }
+  dl.review, .challenge dl { grid-template-columns: 1fr; }
+}
+
+    </style>
+    <script>try { const s = JSON.parse(localStorage.getItem('northwind-demo-v1')); if (s?.settings?.theme === 'dark') document.documentElement.dataset.theme = 'dark'; } catch {}</script>
+  </head>
+  <body>
+    <script>
+"use strict";
+(() => {
+  // .pack-staging/assets/data.js
+  function seeded(seed) {
+    let value = seed >>> 0;
+    return () => {
+      value = value + 1831565813 >>> 0;
+      let t = value;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  var TODAY = "2026-10-01";
+  var DEPARTMENTS = ["Engineering", "Sales", "Marketing", "Finance", "Operations", "Support", "People"];
+  var LOCATIONS = ["Seattle", "Austin", "Toronto", "London", "Remote"];
+  var TITLES = {
+    Engineering: ["Software Engineer", "Senior Software Engineer", "Staff Engineer", "Engineering Manager", "QA Engineer"],
+    Sales: ["Account Executive", "Sales Manager", "Sales Development Rep", "Solutions Consultant"],
+    Marketing: ["Content Strategist", "Marketing Manager", "Brand Designer", "Growth Analyst"],
+    Finance: ["Financial Analyst", "Controller", "Accountant", "Payroll Specialist"],
+    Operations: ["Operations Manager", "Logistics Coordinator", "Program Manager", "Facilities Lead"],
+    Support: ["Support Specialist", "Support Team Lead", "Customer Success Manager"],
+    People: ["Recruiter", "People Partner", "HR Generalist"]
+  };
+  var FIXED = [
+    ["Jordan", "Lee", "Operations", "Operations Manager", "Austin"],
+    ["Jordan", "Leigh", "Sales", "Account Executive", "London"],
+    ["Jordana", "Lewis", "Marketing", "Brand Designer", "Toronto"],
+    ["Grace", "Hopper", "Engineering", "Staff Engineer", "Seattle"],
+    ["Ada", "Lovelace", "Engineering", "Engineering Manager", "London"],
+    ["Alan", "Turing", "Engineering", "Senior Software Engineer", "Remote"],
+    ["Katherine", "Johnson", "Finance", "Controller", "Austin"],
+    ["Margaret", "Hamilton", "Engineering", "QA Engineer", "Seattle"]
+  ];
+  var FIRST = ["Avery", "Blake", "Casey", "Dana", "Elliot", "Frankie", "Harper", "Indigo", "Jamie", "Kai", "Logan", "Morgan", "Noor", "Oakley", "Parker", "Quinn", "Riley", "Sasha", "Taylor", "Uma", "Val", "Wren", "Yuri", "Zion", "Priya", "Mateo", "Hana", "Kofi", "Lucia", "Ravi"];
+  var LAST = ["Adams", "Bennett", "Chen", "Diaz", "Evans", "Fischer", "Garcia", "Huang", "Ibrahim", "Jensen", "Khan", "Larsen", "Moreno", "Nakamura", "Okafor", "Patel", "Quintero", "Rossi", "Silva", "Tanaka", "Usman", "Vargas", "Wagner", "Xu", "Yilmaz", "Zhang"];
+  function pad(number, size) {
+    return String(number).padStart(size, "0");
+  }
+  function dateFrom(days) {
+    const date = /* @__PURE__ */ new Date(`${TODAY}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() - days);
+    return date.toISOString().slice(0, 10);
+  }
+  function buildEmployees() {
+    const random = seeded(2026);
+    const people = FIXED.map(([first, last, department, title, location2]) => ({ first, last, department, title, location: location2 }));
+    const used = new Set(people.map((person2) => `${person2.first} ${person2.last}`));
+    while (people.length < 64) {
+      const first = FIRST[Math.floor(random() * FIRST.length)];
+      const last = LAST[Math.floor(random() * LAST.length)];
+      if (used.has(`${first} ${last}`)) continue;
+      used.add(`${first} ${last}`);
+      const department = DEPARTMENTS[Math.floor(random() * DEPARTMENTS.length)];
+      const titles = TITLES[department];
+      people.push({ first, last, department, title: titles[Math.floor(random() * titles.length)], location: LOCATIONS[Math.floor(random() * LOCATIONS.length)] });
+    }
+    return people.map((person2, index) => {
+      const id = `E${1001 + index}`;
+      const handle = `${person2.first}.${person2.last}`.toLowerCase();
+      return {
+        id,
+        firstName: person2.first,
+        lastName: person2.last,
+        name: `${person2.first} ${person2.last}`,
+        department: person2.department,
+        title: person2.title,
+        location: person2.location,
+        email: `${handle}@northwind.example`,
+        phone: `555-01${pad(10 + index, 2)}-${pad(Math.floor(random() * 9e3) + 1e3, 4)}`,
+        startDate: dateFrom(200 + Math.floor(random() * 2400)),
+        status: random() < 0.08 ? "On leave" : "Active",
+        projects: Math.floor(random() * 6) + 1
+      };
+    });
+  }
+  var EMPLOYEES = buildEmployees();
+  for (const employee of EMPLOYEES) {
+    const lead = EMPLOYEES.find((other) => other.department === employee.department);
+    employee.manager = lead && lead.id !== employee.id ? lead.id : "";
+  }
+  var CATEGORIES = ["Laptops", "Monitors", "Phones", "Audio", "Accessories"];
+  var HAND = [
+    ["Nimbus 13", "Laptops", 899, 7, "13-inch ultralight, 16 GB RAM, 512 GB SSD"],
+    ["Lumen Air", "Laptops", 1049, 11, "14-inch, 16 GB RAM, all-day battery"],
+    ["Aurora 14", "Laptops", 1149, 5, "14-inch OLED, 32 GB RAM, 1 TB SSD"],
+    ["Vector 15 Pro", "Laptops", 1499, 9, "15-inch, discrete graphics, 32 GB RAM"],
+    ["Atlas 16 Studio", "Laptops", 1899, 3, "16-inch creator laptop, 64 GB RAM"],
+    ["Pico Book 11", "Laptops", 649, 0, "11-inch classroom laptop (sold out)"],
+    ["Strata 14 Business", "Laptops", 1199, 14, "14-inch, vPro, 3-year warranty"],
+    ["Clarity 24", "Monitors", 189, 6, "24-inch 1080p IPS monitor"],
+    ["Clarity 27 QHD", "Monitors", 219, 18, "27-inch 1440p IPS monitor"],
+    ["Horizon 34 Ultrawide", "Monitors", 549, 4, "34-inch curved ultrawide"],
+    ["Prism 32 4K", "Monitors", 699, 8, "32-inch 4K HDR monitor"],
+    ["Pulse X", "Phones", 399, 0, "6.1-inch, 128 GB (sold out)"],
+    ["Pulse X Plus", "Phones", 529, 12, "6.7-inch, 256 GB"],
+    ["Orbit Mini", "Phones", 449, 9, "5.8-inch, 128 GB"],
+    ["Orbit Pro Max", "Phones", 1099, 5, "6.9-inch, 512 GB, titanium"]
+  ];
+  var AUDIO = ["Echo Buds", "Echo Buds Pro", "Studio Cans", "Room Speaker", "Desk Mic", "Travel Speaker"];
+  var ACCESSORIES = ["USB-C Dock", "Wireless Mouse", "Mechanical Keyboard", "Laptop Stand", "Webcam HD", "Cable Kit", "Privacy Screen", "Charging Brick", "Desk Mat", "Headset Hook"];
+  function buildProducts() {
+    const random = seeded(77);
+    const rows = HAND.map(([name, category, price, stock, summary]) => ({ name, category, price, stock, summary }));
+    for (const name of AUDIO) rows.push({ name, category: "Audio", price: 39 + Math.round(random() * 320), stock: Math.floor(random() * 30), summary: "Wireless audio gear for focus and calls" });
+    for (const name of ACCESSORIES) rows.push({ name, category: "Accessories", price: 12 + Math.round(random() * 180), stock: Math.floor(random() * 60), summary: "Workspace accessory" });
+    return rows.map((row, index) => ({
+      id: `P${pad(index + 1, 3)}`,
+      sku: `NW-${row.category.slice(0, 3).toUpperCase()}-${pad(index * 37 + 101, 4)}`,
+      rating: Math.round((3.4 + random() * 1.6) * 10) / 10,
+      ...row
+    }));
+  }
+  var PRODUCTS = buildProducts();
+  var PERFORMANCE = {
+    Engineering: [140, -0.6],
+    Sales: [70, 0.5],
+    Marketing: [58, 0.1],
+    Finance: [46, 0],
+    Operations: [62, 0.15],
+    Support: [44, 0.2],
+    People: [30, 0.05]
+  };
+  function buildDaily() {
+    const random = seeded(31);
+    const rows = [];
+    for (let day = 89; day >= 0; day -= 1) {
+      const position = (89 - day) / 89;
+      for (const department of DEPARTMENTS) {
+        const [base, trend] = PERFORMANCE[department];
+        const noise = 0.9 + random() * 0.2;
+        rows.push({
+          date: dateFrom(day),
+          department,
+          revenue: Math.round(base * (1 + trend * position) * noise * 100),
+          deals: Math.max(0, Math.round(base / 14 * (1 + trend * position) * noise)),
+          satisfaction: Math.round((80 + random() * 18) * 10) / 10
+        });
+      }
+    }
+    return rows;
+  }
+  var DAILY = buildDaily();
+  var OPEN_ROLES = [
+    { id: "R-201", title: "Frontend Engineer", department: "Engineering" },
+    { id: "R-202", title: "Data Analyst", department: "Finance" },
+    { id: "R-203", title: "Account Executive", department: "Sales" },
+    { id: "R-204", title: "Support Specialist", department: "Support" },
+    { id: "R-205", title: "Logistics Coordinator", department: "Operations" }
+  ];
+  var SKILLS = ["SQL", "Python", "JavaScript", "Excel", "Tableau", "Salesforce", "Customer service", "Project management"];
+  function daysBefore(days) {
+    return dateFrom(days);
+  }
+
+  // .pack-staging/assets/app.js
+  var STORE_KEY = "northwind-demo-v1";
+  var DEFAULT_SETTINGS = {
+    displayName: "Demo Admin",
+    email: "admin@northwind.example",
+    theme: "light",
+    density: "Comfortable",
+    language: "English (US)",
+    timezone: "America/Chicago",
+    notifications: { email: false, push: true, weekly: false },
+    privacy: { analytics: true, shareDirectory: false }
+  };
+  function seedState() {
+    return {
+      version: 1,
+      cart: [],
+      orders: [],
+      applications: [],
+      applyDraft: null,
+      settings: structuredClone(DEFAULT_SETTINGS),
+      events: []
+    };
+  }
+  function loadState() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(STORE_KEY) ?? "null");
+      if (!parsed || parsed.version !== 1) return seedState();
+      const seed = seedState();
+      return { ...seed, ...parsed, settings: { ...seed.settings, ...parsed.settings, notifications: { ...seed.settings.notifications, ...parsed.settings?.notifications }, privacy: { ...seed.settings.privacy, ...parsed.settings?.privacy } } };
+    } catch {
+      return seedState();
+    }
+  }
+  function saveState(state) {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    window.dispatchEvent(new CustomEvent("demo-state"));
+  }
+  function update(change) {
+    const state = loadState();
+    change(state);
+    saveState(state);
+    return state;
+  }
+  function record(type, data = {}) {
+    update((state) => {
+      state.events.push({ type, data, at: Date.now(), page: (new URLSearchParams(location.search).get("page") || "index") + ".html" });
+      if (state.events.length > 400) state.events.splice(0, state.events.length - 400);
+    });
+  }
+  function resetDemo() {
+    localStorage.removeItem(STORE_KEY);
+    sessionStorage.removeItem("ghostclick-demo-break");
+    saveState(seedState());
+  }
+  var money = (value) => value.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+  }
+  function volatileId(prefix) {
+    return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+  function cartCount(state = loadState()) {
+    return state.cart.reduce((total, item) => total + item.qty, 0);
+  }
+  function available(product2, state = loadState()) {
+    const held = state.cart.find((item) => item.id === product2.id)?.qty ?? 0;
+    return Math.max(0, product2.stock - held);
+  }
+  function addToCart(productId, qty = 1) {
+    const product2 = PRODUCTS.find((item) => item.id === productId);
+    if (!product2) return false;
+    if (available(product2) < qty) {
+      toast(`${product2.name} is out of stock.`, "error");
+      return false;
+    }
+    update((state) => {
+      const line = state.cart.find((item) => item.id === productId);
+      if (line) line.qty += qty;
+      else state.cart.push({ id: productId, qty });
+    });
+    record("cart-add", { id: productId, name: product2.name, qty });
+    toast(`Added ${product2.name} to the cart.`);
+    renderCartBadge();
+    return true;
+  }
+  function toast(message, tone = "ok") {
+    let stack = document.querySelector(".toasts");
+    if (!stack) {
+      stack = document.createElement("div");
+      stack.className = "toasts";
+      stack.setAttribute("role", "status");
+      stack.setAttribute("aria-live", "polite");
+      document.body.append(stack);
+    }
+    const item = document.createElement("div");
+    item.className = `toast toast-${tone}`;
+    item.textContent = message;
+    stack.append(item);
+    setTimeout(() => item.classList.add("leaving"), 3200);
+    setTimeout(() => item.remove(), 3600);
+  }
+  var lastFocus = null;
+  function openModal({ title, body, actions = "", wide = false, onClose }) {
+    closeModal();
+    lastFocus = document.activeElement;
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.innerHTML = `
+    <section class="modal${wide ? " wide" : ""}" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <header class="modal-head">
+        <h2 id="modal-title">${escapeHtml(title)}</h2>
+        <button type="button" class="icon-button" data-close aria-label="Close dialog">\u2715</button>
+      </header>
+      <div class="modal-body">${body}</div>
+      ${actions ? `<footer class="modal-actions">${actions}</footer>` : ""}
+    </section>`;
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay || event.target.closest("[data-close]")) {
+        closeModal();
+        onClose?.();
+      }
+    });
+    document.body.append(overlay);
+    requestAnimationFrame(() => overlay.classList.add("open"));
+    overlay.querySelector("[data-close]").focus();
+    return overlay.querySelector(".modal");
+  }
+  function closeModal() {
+    document.querySelector(".overlay")?.remove();
+    if (lastFocus instanceof HTMLElement) lastFocus.focus();
+    lastFocus = null;
+  }
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && document.querySelector(".overlay")) closeModal();
+  });
+  function toCsv(rows, columns) {
+    const cell = (value) => {
+      const text = String(value ?? "");
+      return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    };
+    return [columns.map(cell).join(","), ...rows.map((row) => columns.map((column) => cell(row[column])).join(","))].join("\n");
+  }
+  function exportRows({ name, format, rows, columns, details }) {
+    const text = format === "json" ? JSON.stringify(rows, null, 2) : toCsv(rows, columns);
+    const blob = new Blob([text], { type: format === "json" ? "application/json" : "text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${name}.${format}`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1e4);
+    record("export", { name, format, rows: rows.length, ...details });
+    toast(`Exported ${rows.length} rows as ${format.toUpperCase()}.`);
+  }
+  var NAV = [
+    ["index", "Dashboard", "\u25A6"],
+    ["directory", "Employee Directory", "\u263A"],
+    ["apply", "Job Applications", "\u270E"],
+    ["inventory", "Product Inventory", "\u25A4"],
+    ["analytics", "Analytics & Reports", "\u2197"],
+    ["settings", "Settings", "\u2699"],
+    ["challenges", "Automation Challenges", "\u2605"],
+    ["advising", "Advising form (classic)", "\u2709"]
+  ];
+  function pageHref(name) {
+    return "?page=" + String(name).replace(/\.html$/, "");
+  }
+  function applyTheme(state = loadState()) {
+    document.documentElement.dataset.theme = state.settings.theme === "dark" ? "dark" : "light";
+    document.documentElement.dataset.density = state.settings.density.toLowerCase();
+  }
+  function renderCartBadge() {
+    const badge = document.querySelector("[data-cart-count]");
+    if (badge) {
+      const count = cartCount();
+      badge.textContent = String(count);
+      badge.hidden = count === 0;
+    }
+  }
+  function mountShell(activePage) {
+    const active = String(activePage || "").replace(/\.html$/, "");
+    applyTheme();
+    const main = document.querySelector("main");
+    const shell = document.createElement("div");
+    shell.className = "shell";
+    shell.innerHTML = `
+    <a class="skip" href="#main">Skip to content</a>
+    <aside class="sidebar" aria-label="Sections">
+      <a class="brand" href="?page=index"><span class="brand-mark" aria-hidden="true">N</span><span>Northwind <b>Works</b></span></a>
+      <nav aria-label="Main">
+        <ul>
+          ${NAV.map(
+      ([name, label, icon]) => `<li><a href="${pageHref(name)}"${name === active ? ' aria-current="page"' : ""}><span class="nav-icon" aria-hidden="true">${icon}</span>${label}</a></li>`
+    ).join("")}
+        </ul>
+      </nav>
+      <p class="sidebar-note">Demo data only. Nothing you enter leaves this browser.</p>
+    </aside>
+    <div class="workspace">
+      <header class="topbar">
+        <button type="button" class="icon-button menu-toggle" aria-label="Open navigation" aria-expanded="false">\u2630</button>
+        <form class="global-search" role="search" action="?page=directory">
+          <label class="visually-hidden" for="global-search">Search people</label>
+          <input id="global-search" name="q" type="search" placeholder="Search people\u2026" autocomplete="off" />
+        </form>
+        <div class="topbar-actions">
+          <button type="button" class="icon-button theme-toggle" aria-label="Switch to dark mode">\u25D0</button>
+          <button type="button" class="cart-button" aria-label="Open cart">Cart <span class="badge" data-cart-count hidden>0</span></button>
+          <div class="menu">
+            <button type="button" class="avatar-button" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">DA</button>
+            <div class="menu-list" role="menu" hidden>
+              <a role="menuitem" href="?page=settings">Profile settings</a>
+              <a role="menuitem" href="?page=challenges">Automation Challenges</a>
+              <button type="button" role="menuitem" data-reset>Reset demo data</button>
+            </div>
+          </div>
+        </div>
+      </header>
+    </div>`;
+    main.id = "main";
+    main.tabIndex = -1;
+    main.before(shell);
+    shell.querySelector(".workspace").append(main);
+    const sidebar = shell.querySelector(".sidebar");
+    const menuToggle = shell.querySelector(".menu-toggle");
+    menuToggle.addEventListener("click", () => {
+      const open = sidebar.classList.toggle("open");
+      menuToggle.setAttribute("aria-expanded", String(open));
+    });
+    const themeButton = shell.querySelector(".theme-toggle");
+    const syncThemeButton = () => {
+      const dark = loadState().settings.theme === "dark";
+      themeButton.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+    };
+    themeButton.addEventListener("click", () => {
+      const state = update((draft) => {
+        draft.settings.theme = draft.settings.theme === "dark" ? "light" : "dark";
+      });
+      record("theme-toggle", { theme: state.settings.theme });
+      applyTheme(state);
+      syncThemeButton();
+    });
+    syncThemeButton();
+    const avatar = shell.querySelector(".avatar-button");
+    const list = shell.querySelector(".menu-list");
+    const setMenu = (open) => {
+      list.hidden = !open;
+      avatar.setAttribute("aria-expanded", String(open));
+    };
+    avatar.addEventListener("click", () => setMenu(list.hidden));
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".menu")) setMenu(false);
+    });
+    shell.querySelector("[data-reset]").addEventListener("click", () => {
+      setMenu(false);
+      confirmReset();
+    });
+    shell.querySelector(".global-search")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const q = shell.querySelector("#global-search")?.value?.trim() ?? "";
+      const params = new URLSearchParams({ page: "directory" });
+      if (q) params.set("q", q);
+      location.search = "?" + params.toString();
+    });
+    shell.querySelector(".cart-button").addEventListener("click", openCart);
+    renderCartBadge();
+    window.addEventListener("storage", (event) => {
+      if (event.key === STORE_KEY) {
+        renderCartBadge();
+        applyTheme();
+      }
+    });
+  }
+  function confirmReset() {
+    const dialog = openModal({
+      title: "Reset demo data?",
+      body: "<p>This empties the cart, removes applications and orders, restores default settings, and clears challenge progress.</p>",
+      actions: '<button type="button" class="button ghost" data-close>Keep my data</button><button type="button" class="button danger" data-confirm-reset>Reset everything</button>'
+    });
+    dialog.querySelector("[data-confirm-reset]").addEventListener("click", () => {
+      resetDemo();
+      closeModal();
+      toast("Demo data reset to the starting state.");
+      setTimeout(() => {
+        location.search = "?page=" + (new URLSearchParams(location.search).get("page") || "index");
+      }, 500);
+    });
+  }
+  function openCart() {
+    const state = loadState();
+    const lines = state.cart.map((item) => ({ ...item, product: PRODUCTS.find((product2) => product2.id === item.id) })).filter((line) => line.product);
+    const total = lines.reduce((sum, line) => sum + line.product.price * line.qty, 0);
+    const body = lines.length ? `<ul class="cart-lines">${lines.map(
+      (line) => `<li>
+            <span><strong>${escapeHtml(line.product.name)}</strong><small>${line.qty} \xD7 ${money(line.product.price)}</small></span>
+            <button type="button" class="button ghost small" data-remove="${line.id}" aria-label="Remove ${escapeHtml(line.product.name)} from the cart">Remove</button>
+          </li>`
+    ).join("")}</ul><p class="cart-total">Total <strong>${money(total)}</strong></p>` : '<p class="empty">The cart is empty. Add products from Product Inventory.</p>';
+    const dialog = openModal({
+      title: `Cart (${cartCount(state)})`,
+      body,
+      actions: lines.length ? '<button type="button" class="button primary" data-checkout>Checkout</button>' : ""
+    });
+    dialog.querySelectorAll("[data-remove]").forEach(
+      (button) => button.addEventListener("click", () => {
+        update((draft) => {
+          draft.cart = draft.cart.filter((item) => item.id !== button.dataset.remove);
+        });
+        record("cart-remove", { id: button.dataset.remove });
+        renderCartBadge();
+        openCart();
+      })
+    );
+    dialog.querySelector("[data-checkout]")?.addEventListener("click", () => checkout(lines, total));
+  }
+  function checkout(lines, total) {
+    const dialog = openModal({
+      title: "Review order",
+      body: `<p>This is a demo. Placing the order only records it in this browser; nothing is charged or sent.</p>
+      <ul class="cart-lines">${lines.map((line) => `<li><span>${escapeHtml(line.product.name)}</span><span>${line.qty} \xD7 ${money(line.product.price)}</span></li>`).join("")}</ul>
+      <p class="cart-total">Total <strong>${money(total)}</strong></p>`,
+      actions: '<button type="button" class="button ghost" data-close>Back</button><button type="button" class="button primary" data-place>Place order</button>'
+    });
+    dialog.querySelector("[data-place]").addEventListener("click", () => {
+      const reference = `NW-${String(Date.now()).slice(-6)}`;
+      update((state) => {
+        state.orders.push({ reference, items: state.cart, total, at: Date.now() });
+        state.cart = [];
+      });
+      record("order-placed", { reference, items: lines.map((line) => ({ id: line.id, qty: line.qty })), total });
+      renderCartBadge();
+      openModal({ title: "Order placed", body: `<p>Order <strong>${reference}</strong> was recorded. (Demo only.)</p>` });
+    });
+  }
+  function readQuery(defaults) {
+    const params = new URLSearchParams(location.search);
+    return Object.fromEntries(Object.entries(defaults).map(([key, value]) => [key, params.get(key) ?? value]));
+  }
+  function writeQuery(values, defaults) {
+    const params = new URLSearchParams();
+    const page = new URLSearchParams(location.search).get("page") || "index";
+    params.set("page", page);
+    for (const [key, value] of Object.entries(values)) if (value !== "" && value !== defaults[key]) params.set(key, value);
+    history.replaceState(null, "", `?${params.toString()}${location.hash}`);
+  }
+
+  // .pack-staging/assets/charts.js
+  function barChart(items, { label, format = String, height = 220 } = {}) {
+    const width = 640;
+    const pad2 = { top: 16, right: 12, bottom: 34, left: 56 };
+    const max = Math.max(...items.map((item) => item.value), 1);
+    const slot = (width - pad2.left - pad2.right) / items.length;
+    const scale = (value) => (height - pad2.top - pad2.bottom) * value / max;
+    const ticks = [0, 0.5, 1].map((step) => {
+      const y = height - pad2.bottom - (height - pad2.top - pad2.bottom) * step;
+      return `<line class="grid-line" x1="${pad2.left}" x2="${width - pad2.right}" y1="${y}" y2="${y}" /><text x="${pad2.left - 8}" y="${y + 4}" text-anchor="end">${escapeHtml(format(max * step))}</text>`;
+    });
+    const bars = items.map((item, index) => {
+      const barHeight = scale(item.value);
+      const x = pad2.left + index * slot + slot * 0.18;
+      const y = height - pad2.bottom - barHeight;
+      return `<g><rect class="bar" x="${x}" y="${y}" width="${slot * 0.64}" height="${barHeight}" rx="4"><title>${escapeHtml(item.label)}: ${escapeHtml(format(item.value))}</title></rect>
+      <text x="${x + slot * 0.32}" y="${height - pad2.bottom + 16}" text-anchor="middle">${escapeHtml(item.label)}</text></g>`;
+    });
+    return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(label ?? "Bar chart")}">${ticks.join("")}${bars.join("")}</svg>`;
+  }
+  function lineChart(points, { label, format = String, height = 220 } = {}) {
+    const width = 640;
+    const pad2 = { top: 16, right: 12, bottom: 30, left: 56 };
+    const max = Math.max(...points.map((point) => point.value), 1);
+    const x = (index) => pad2.left + (width - pad2.left - pad2.right) * index / Math.max(1, points.length - 1);
+    const y = (value) => height - pad2.bottom - (height - pad2.top - pad2.bottom) * value / max;
+    const path = points.map((point, index) => `${index ? "L" : "M"}${x(index).toFixed(1)},${y(point.value).toFixed(1)}`).join(" ");
+    const area = `${path} L${x(points.length - 1)},${height - pad2.bottom} L${x(0)},${height - pad2.bottom} Z`;
+    const every = Math.max(1, Math.ceil(points.length / 6));
+    const labels = points.map((point, index) => index % every === 0 ? `<text x="${x(index)}" y="${height - 10}" text-anchor="middle">${escapeHtml(point.label)}</text>` : "").join("");
+    const ticks = [0, 0.5, 1].map((step) => {
+      const value = max * step;
+      return `<line class="grid-line" x1="${pad2.left}" x2="${width - pad2.right}" y1="${y(value)}" y2="${y(value)}" /><text x="${pad2.left - 8}" y="${y(value) + 4}" text-anchor="end">${escapeHtml(format(value))}</text>`;
+    }).join("");
+    return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(label ?? "Line chart")}">${ticks}<path class="area" d="${area}" /><path class="line" d="${path}" />${labels}</svg>`;
+  }
+
+  // .pack-staging/assets/metrics.js
+  var RANGES = { "7": "Last 7 days", "30": "Last 30 days", "90": "Last 90 days" };
+  function rangeDates(range, from = "", to = "") {
+    if (range === "custom") return { from: from || daysBefore(89), to: to || TODAY };
+    return { from: daysBefore(Number(range) - 1), to: TODAY };
+  }
+  function departmentMetrics(range = "30", from = "", to = "") {
+    const window2 = rangeDates(range, from, to);
+    const rows = DAILY.filter((row) => row.date >= window2.from && row.date <= window2.to);
+    const totals = DEPARTMENTS.map((department) => {
+      const mine = rows.filter((row) => row.department === department);
+      const revenue = mine.reduce((sum, row) => sum + row.revenue, 0);
+      const deals = mine.reduce((sum, row) => sum + row.deals, 0);
+      const satisfaction = mine.length ? mine.reduce((sum, row) => sum + row.satisfaction, 0) / mine.length : 0;
+      return { department, revenue, deals, satisfaction: Math.round(satisfaction * 10) / 10 };
+    });
+    const best = Math.max(...totals.map((row) => row.revenue), 1);
+    for (const row of totals) row.score = Math.round(row.revenue / best * 100);
+    return { window: window2, rows, totals };
+  }
+  function topDepartment(range = "30") {
+    return [...departmentMetrics(range).totals].sort((left, right) => right.score - left.score)[0].department;
+  }
+  function dailyTotals(rows) {
+    const byDate = /* @__PURE__ */ new Map();
+    for (const row of rows) byDate.set(row.date, (byDate.get(row.date) ?? 0) + row.revenue);
+    return [...byDate.entries()].map(([date, value]) => ({ label: date.slice(5), value }));
+  }
+
+  // .pack-staging/assets/pages/dashboard.js
+  function init() {
+    mountShell("index.html");
+    const now = departmentMetrics("30");
+    const before = departmentMetrics("custom", "2026-07-04", "2026-08-01");
+    const revenue = now.totals.reduce((sum, row) => sum + row.revenue, 0);
+    const previous = before.totals.reduce((sum, row) => sum + row.revenue, 0);
+    const change = Math.round((revenue - previous) / previous * 100);
+    const kpis = [
+      ["Active employees", EMPLOYEES.filter((person2) => person2.status === "Active").length, `${EMPLOYEES.length} on the payroll`],
+      ["Open roles", OPEN_ROLES.length, "Hiring across 5 teams"],
+      ["Inventory value", money(PRODUCTS.reduce((sum, product2) => sum + product2.price * product2.stock, 0)), `${PRODUCTS.length} products`],
+      ["Revenue \xB7 30 days", money(revenue / 100), `<span class="trend ${change >= 0 ? "up" : "down"}">${change >= 0 ? "\u25B2" : "\u25BC"} ${Math.abs(change)}% vs. prior 30 days</span>`]
+    ];
+    document.querySelector("#kpis").innerHTML = kpis.map(([label, value, note]) => `<article class="card kpi"><p>${label}</p><strong>${value}</strong><small class="muted">${note}</small></article>`).join("");
+    document.querySelector("#dept-chart").innerHTML = barChart(
+      now.totals.map((row) => ({ label: row.department.slice(0, 9), value: row.revenue / 100 })),
+      { label: "Revenue by department for the last 30 days", format: (value) => `$${Math.round(value / 1e3)}k` }
+    );
+    const SEEDED = [
+      ["Grace Hopper shipped the billing service migration", "Engineering \xB7 2 hours ago"],
+      ["Q4 inventory count finished for Monitors", "Operations \xB7 yesterday"],
+      ["Jordan Leigh closed the Lakeside account", "Sales \xB7 2 days ago"],
+      ["New role posted: Data Analyst", "People \xB7 3 days ago"],
+      ["Support satisfaction hit 96% for the week", "Support \xB7 4 days ago"],
+      ["Brand refresh moved to design review", "Marketing \xB7 5 days ago"]
+    ];
+    const describeEvent = {
+      "cart-add": (data) => `Added ${data.name} to the cart`,
+      "order-placed": (data) => `Placed demo order ${data.reference}`,
+      "application-submitted": (data) => `Application sent for ${data.position}`,
+      "settings-saved": () => "Saved settings",
+      export: (data) => `Exported ${data.rows} rows (${data.name})`
+    };
+    let shown = 4;
+    function renderActivity() {
+      const mine = loadState().events.filter((event) => describeEvent[event.type]).slice(-4).reverse().map((event) => [describeEvent[event.type](event.data), `You \xB7 ${new Date(event.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`]);
+      document.querySelector("#activity").innerHTML = [...mine, ...SEEDED].slice(0, shown).map(([text, meta]) => `<li><span class="dot" aria-hidden="true"></span><span>${escapeHtml(text)}<small>${escapeHtml(meta)}</small></span></li>`).join("");
+    }
+    document.querySelector("#refresh-activity").addEventListener("click", (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      document.querySelector("#activity").innerHTML = '<li class="loading"><span class="spinner" aria-hidden="true"></span> Loading\u2026</li>';
+      setTimeout(() => {
+        shown = Math.min(shown + 3, 10);
+        renderActivity();
+        button.disabled = false;
+      }, 600);
+    });
+    renderActivity();
+  }
+
+  // .pack-staging/assets/pages/directory.js
+  function init2() {
+    mountShell("directory.html");
+    const PAGE_SIZE = 10;
+    const DEFAULTS = { q: "", dept: "", location: "", sort: "lastName", dir: "asc", page: "1" };
+    const state = readQuery(DEFAULTS);
+    const byId = (id) => document.getElementById(id);
+    byId("department").innerHTML = `<option value="">All departments</option>${DEPARTMENTS.map((name) => `<option>${name}</option>`).join("")}`;
+    byId("location").innerHTML = `<option value="">All locations</option>${LOCATIONS.map((name) => `<option>${name}</option>`).join("")}`;
+    function filtered() {
+      const needle = state.q.trim().toLowerCase();
+      const rows = EMPLOYEES.filter(
+        (person2) => (!state.dept || person2.department === state.dept) && (!state.location || person2.location === state.location) && (!needle || `${person2.name} ${person2.title} ${person2.email} ${person2.department}`.toLowerCase().includes(needle))
+      );
+      const key = state.sort;
+      rows.sort((left, right) => {
+        const primary = String(left[key]).localeCompare(String(right[key]));
+        return (primary || left.lastName.localeCompare(right.lastName) || left.firstName.localeCompare(right.firstName)) * (state.dir === "desc" ? -1 : 1);
+      });
+      return rows;
+    }
+    function syncControls() {
+      byId("search").value = state.q;
+      byId("department").value = state.dept;
+      byId("location").value = state.location;
+      byId("sort").value = state.sort;
+      byId("dir").value = state.dir;
+      document.querySelectorAll("th button.sort").forEach((button) => {
+        const th = button.closest("th");
+        if (button.dataset.sort === state.sort) th.setAttribute("aria-sort", state.dir === "desc" ? "descending" : "ascending");
+        else th.removeAttribute("aria-sort");
+        button.textContent = `${button.textContent.replace(/ [▲▼]$/, "")}${button.dataset.sort === state.sort ? state.dir === "desc" ? " \u25BC" : " \u25B2" : ""}`;
+      });
+    }
+    function render() {
+      const rows = filtered();
+      const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+      const page = Math.min(pages, Math.max(1, Number(state.page) || 1));
+      state.page = String(page);
+      writeQuery(state, DEFAULTS);
+      syncControls();
+      const shown = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+      byId("count").textContent = rows.length ? `Showing ${(page - 1) * PAGE_SIZE + 1}\u2013${(page - 1) * PAGE_SIZE + shown.length} of ${rows.length} employees` : "No employees match these filters.";
+      byId("rows").innerHTML = shown.map(
+        (person2) => `<tr id="${volatileId("row")}">
+        <td><div class="person"><span class="initials" aria-hidden="true">${person2.firstName[0]}${person2.lastName[0]}</span>
+          <span><a href="?page=employee&id=${person2.id}">${escapeHtml(person2.name)}</a><br /><small class="muted">${escapeHtml(person2.email)}</small></span></div></td>
+        <td>${escapeHtml(person2.title)}</td>
+        <td>${escapeHtml(person2.department)}</td>
+        <td>${escapeHtml(person2.location)}</td>
+        <td>${person2.startDate}</td>
+        <td><span class="status-pill${person2.status === "Active" ? "" : " warn"}">${person2.status}</span></td>
+        <td class="actions">
+          <button type="button" class="button small" data-view="${person2.id}" aria-label="View details for ${escapeHtml(person2.name)}">View</button>
+          <a class="button small ghost" href="?page=employee&id=${person2.id}" target="_blank" rel="noopener" aria-label="Open ${escapeHtml(person2.name)}'s profile in a new tab">New tab</a>
+        </td>
+      </tr>`
+      ).join("");
+      byId("pagination").innerHTML = `
+    <span class="muted">Page ${page} of ${pages}</span>
+    <span class="pages">
+      <button type="button" class="button small" data-page="${page - 1}" ${page === 1 ? "disabled" : ""} aria-label="Previous page">Previous</button>
+      ${Array.from({ length: pages }, (_, index) => `<button type="button" class="button small" data-page="${index + 1}" aria-label="Page ${index + 1}"${index + 1 === page ? ' aria-current="page"' : ""}>${index + 1}</button>`).join("")}
+      <button type="button" class="button small" data-page="${page + 1}" ${page === pages ? "disabled" : ""} aria-label="Next page">Next</button>
+    </span>`;
+    }
+    function showPerson(id) {
+      const person2 = EMPLOYEES.find((item) => item.id === id);
+      if (!person2) return;
+      const manager = EMPLOYEES.find((item) => item.id === person2.manager);
+      record("view-employee", { id: person2.id, name: person2.name, department: person2.department, via: "modal" });
+      openModal({
+        title: person2.name,
+        body: `<dl class="review">
+        <dt>Title</dt><dd>${escapeHtml(person2.title)}</dd>
+        <dt>Department</dt><dd>${escapeHtml(person2.department)}</dd>
+        <dt>Location</dt><dd>${escapeHtml(person2.location)}</dd>
+        <dt>Email</dt><dd>${escapeHtml(person2.email)}</dd>
+        <dt>Phone</dt><dd>${escapeHtml(person2.phone)}</dd>
+        <dt>Manager</dt><dd>${manager ? escapeHtml(manager.name) : "\u2014"}</dd>
+        <dt>Started</dt><dd>${person2.startDate}</dd>
+      </dl>`,
+        actions: `<a class="button" href="?page=employee&id=${person2.id}" target="_blank" rel="noopener">Open in new tab</a><a class="button primary" href="?page=employee&id=${person2.id}">Open full profile</a>`
+      });
+    }
+    let typing = 0;
+    byId("search").addEventListener("input", (event) => {
+      clearTimeout(typing);
+      typing = setTimeout(() => {
+        Object.assign(state, { q: event.target.value, page: "1" });
+        render();
+      }, 200);
+    });
+    byId("filters").addEventListener("submit", (event) => event.preventDefault());
+    for (const [id, key] of [["department", "dept"], ["location", "location"], ["sort", "sort"], ["dir", "dir"]]) {
+      byId(id).addEventListener("change", (event) => {
+        Object.assign(state, { [key]: event.target.value, page: "1" });
+        render();
+      });
+    }
+    byId("clear").addEventListener("click", () => {
+      Object.assign(state, DEFAULTS);
+      render();
+    });
+    document.querySelectorAll("th button.sort").forEach(
+      (button) => button.addEventListener("click", () => {
+        state.dir = state.sort === button.dataset.sort && state.dir === "asc" ? "desc" : "asc";
+        state.sort = button.dataset.sort;
+        state.page = "1";
+        render();
+      })
+    );
+    byId("rows").addEventListener("click", (event) => {
+      const view = event.target.closest("[data-view]");
+      if (view) showPerson(view.dataset.view);
+    });
+    byId("pagination").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-page]");
+      if (!button || button.disabled) return;
+      state.page = button.dataset.page;
+      render();
+      byId("count").scrollIntoView({ block: "nearest" });
+    });
+    for (const format of ["csv", "json"]) {
+      byId(`export-${format}`).addEventListener(
+        "click",
+        () => exportRows({
+          name: `employees${state.dept ? `-${state.dept.toLowerCase()}` : ""}`,
+          format,
+          rows: filtered().map(({ id, firstName, lastName, title, department, location: location2, email, phone, startDate, status }) => ({ id, firstName, lastName, title, department, location: location2, email, phone, startDate, status })),
+          columns: ["id", "firstName", "lastName", "title", "department", "location", "email", "phone", "startDate", "status"],
+          details: { page: "directory", department: state.dept, location: state.location, query: state.q, sort: state.sort, dir: state.dir }
+        })
+      );
+    }
+    render();
+  }
+
+  // .pack-staging/assets/pages/employee.js
+  function init3() {
+    mountShell("directory.html");
+    const id = new URLSearchParams(location.search).get("id");
+    const person2 = EMPLOYEES.find((item) => item.id === id);
+    const root = document.querySelector("#profile");
+    setTimeout(() => {
+      if (!person2) {
+        document.title = "Profile not found \xB7 Northwind Works";
+        root.innerHTML = '<section class="card"><h1>Profile not found</h1><p>No employee has that id. Search the directory instead.</p></section>';
+        return;
+      }
+      document.title = `${person2.name} \xB7 Northwind Works`;
+      record("view-employee", { id: person2.id, name: person2.name, department: person2.department, via: "profile" });
+      const manager = EMPLOYEES.find((item) => item.id === person2.manager);
+      const team = EMPLOYEES.filter((item) => item.manager === person2.id || item.department === person2.department && item.id !== person2.id).slice(0, 8);
+      const projects = ["Billing revamp", "Q4 planning", "Customer portal", "Data warehouse", "Hiring sprint", "Office move"].slice(0, person2.projects);
+      root.innerHTML = `
+    <section class="card">
+      <div class="page-head">
+        <div class="person">
+          <span class="initials" style="width:56px;height:56px;font-size:18px" aria-hidden="true">${person2.firstName[0]}${person2.lastName[0]}</span>
+          <div>
+            <h1>${escapeHtml(person2.name)}</h1>
+            <p>${escapeHtml(person2.title)} \xB7 <strong data-field="department">${escapeHtml(person2.department)}</strong> \xB7 ${escapeHtml(person2.location)}</p>
+          </div>
+        </div>
+        <div class="toolbar">
+          <a class="button" href="mailto:${escapeHtml(person2.email)}">Email</a>
+          <a class="button primary" href="?page=analytics&range=30&amp;dept=${encodeURIComponent(person2.department)}">${escapeHtml(person2.department)} performance</a>
+        </div>
+      </div>
+    </section>
+    <section class="card tabs">
+      <div role="tablist" aria-label="Profile sections">
+        <button type="button" role="tab" id="tab-overview" aria-controls="panel-overview" aria-selected="true">Overview</button>
+        <button type="button" role="tab" id="tab-projects" aria-controls="panel-projects" aria-selected="false" tabindex="-1">Projects (${projects.length})</button>
+        <button type="button" role="tab" id="tab-team" aria-controls="panel-team" aria-selected="false" tabindex="-1">Team</button>
+      </div>
+      <div role="tabpanel" id="panel-overview" aria-labelledby="tab-overview">
+        <dl class="review">
+          <dt>Employee ID</dt><dd>${person2.id}</dd>
+          <dt>Department</dt><dd>${escapeHtml(person2.department)}</dd>
+          <dt>Email</dt><dd>${escapeHtml(person2.email)}</dd>
+          <dt>Phone</dt><dd>${escapeHtml(person2.phone)}</dd>
+          <dt>Manager</dt><dd>${manager ? `<a href="?page=employee&id=${manager.id}">${escapeHtml(manager.name)}</a>` : "Department lead"}</dd>
+          <dt>Start date</dt><dd>${person2.startDate}</dd>
+          <dt>Status</dt><dd>${person2.status}</dd>
+        </dl>
+      </div>
+      <div role="tabpanel" id="panel-projects" aria-labelledby="tab-projects" hidden>
+        <ul>${projects.map((project) => `<li>${project}</li>`).join("")}</ul>
+      </div>
+      <div role="tabpanel" id="panel-team" aria-labelledby="tab-team" hidden>
+        <ul>${team.map((member) => `<li><a href="?page=employee&id=${member.id}">${escapeHtml(member.name)}</a> \xB7 ${escapeHtml(member.title)}</li>`).join("")}</ul>
+      </div>
+    </section>`;
+      const tabs = [...root.querySelectorAll('[role="tab"]')];
+      const select = (tab) => {
+        for (const other of tabs) {
+          const selected = other === tab;
+          other.setAttribute("aria-selected", String(selected));
+          other.tabIndex = selected ? 0 : -1;
+          document.getElementById(other.getAttribute("aria-controls")).hidden = !selected;
+        }
+      };
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => select(tab));
+        tab.addEventListener("keydown", (event) => {
+          const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+          if (!step) return;
+          const next = tabs[(index + step + tabs.length) % tabs.length];
+          select(next);
+          next.focus();
+        });
+      });
+    }, 350);
+  }
+
+  // .pack-staging/assets/pages/apply.js
+  function init4() {
+    mountShell("apply.html");
+    const form = document.querySelector("#application");
+    const steps = [...form.querySelectorAll(":scope > fieldset[data-step]")];
+    const summary = document.querySelector("#error-summary");
+    const next = document.querySelector("#next");
+    const back = document.querySelector("#back");
+    form.location.innerHTML = `<option value="">Choose a location</option>${LOCATIONS.map((name) => `<option>${name}</option>`).join("")}`;
+    form.position.innerHTML = `<option value="">Choose a position</option>${OPEN_ROLES.map((role) => `<option value="${role.title}">${role.title} \xB7 ${role.department}</option>`).join("")}`;
+    document.querySelector("#skills").innerHTML = SKILLS.map((skill) => `<label><input type="checkbox" name="skills" value="${skill}" /> ${skill}</label>`).join("");
+    const SECTIONS = [
+      ["Personal details", 1, [["firstName", "First name"], ["lastName", "Last name"], ["email", "Email"], ["phone", "Phone"], ["location", "Location"]]],
+      ["Role", 2, [["position", "Position"], ["startDate", "Start date"], ["employmentType", "Employment type"], ["relocate", "Willing to relocate"]]],
+      ["Experience", 3, [["years", "Years of experience"], ["skills", "Skills"], ["portfolio", "Portfolio"], ["note", "Why Northwind?"]]]
+    ];
+    function values() {
+      const data = new FormData(form);
+      return {
+        firstName: String(data.get("firstName") ?? "").trim(),
+        lastName: String(data.get("lastName") ?? "").trim(),
+        email: String(data.get("email") ?? "").trim(),
+        phone: String(data.get("phone") ?? "").trim(),
+        location: String(data.get("location") ?? ""),
+        position: String(data.get("position") ?? ""),
+        startDate: String(data.get("startDate") ?? ""),
+        employmentType: String(data.get("employmentType") ?? ""),
+        relocate: data.get("relocate") === "on",
+        years: String(data.get("years") ?? ""),
+        skills: data.getAll("skills").map(String),
+        portfolio: String(data.get("portfolio") ?? "").trim(),
+        note: String(data.get("note") ?? "").trim()
+      };
+    }
+    function fill(draft2) {
+      for (const [key, value] of Object.entries(draft2 ?? {})) {
+        if (key === "skills") form.querySelectorAll('input[name="skills"]').forEach((box) => box.checked = value.includes(box.value));
+        else if (key === "relocate") form.relocate.checked = Boolean(value);
+        else if (key === "employmentType") form.querySelectorAll('input[name="employmentType"]').forEach((radio) => radio.checked = radio.value === value);
+        else if (form.elements[key] && key !== "step") form.elements[key].value = value;
+      }
+    }
+    function saveDraft(step) {
+      update((state) => {
+        state.applyDraft = { ...values(), step };
+      });
+    }
+    let current = 1;
+    function show(step) {
+      current = step;
+      steps.forEach((fieldset) => fieldset.hidden = Number(fieldset.dataset.step) !== step);
+      document.querySelectorAll(".stepper li").forEach((item) => {
+        const number = Number(item.dataset.step);
+        item.classList.toggle("done", number < step);
+        if (number === step) item.setAttribute("aria-current", "step");
+        else item.removeAttribute("aria-current");
+      });
+      document.querySelector("#progress-bar").style.width = `${step / 4 * 100}%`;
+      back.disabled = step === 1;
+      next.textContent = step === 4 ? "Submit application" : "Next";
+      summary.textContent = "";
+      if (step === 4) renderReview();
+      history.replaceState(null, "", `#step-${step}`);
+    }
+    function renderReview() {
+      const data = values();
+      const shown = (key) => {
+        const value = data[key];
+        if (key === "relocate") return value ? "Yes" : "No";
+        if (Array.isArray(value)) return value.join(", ") || "\u2014";
+        return value || "\u2014";
+      };
+      document.querySelector("#review").innerHTML = SECTIONS.map(
+        ([title, step, fields]) => `<details class="collapse" open>
+      <summary>${title} <button type="button" class="button small ghost" data-edit="${step}" aria-label="Edit ${title.toLowerCase()}">Edit</button></summary>
+      <div class="collapse-body"><dl class="review">${fields.map(([key, label]) => `<dt>${label}</dt><dd data-review="${key}">${escapeHtml(shown(key))}</dd>`).join("")}</dl></div>
+    </details>`
+      ).join("");
+    }
+    function clearErrors(fieldset) {
+      fieldset.querySelectorAll("[aria-invalid]").forEach((input) => input.removeAttribute("aria-invalid"));
+      fieldset.querySelectorAll(".field-error[data-for]").forEach((message) => message.remove());
+    }
+    function flag(input, message) {
+      input.setAttribute("aria-invalid", "true");
+      const note = document.createElement("span");
+      note.className = "field-error";
+      note.dataset.for = input.name;
+      note.id = `error-${input.name}`;
+      note.textContent = message;
+      input.setAttribute("aria-describedby", note.id);
+      (input.closest("label") ?? input.closest("fieldset")).append(note);
+    }
+    function validate(step) {
+      const fieldset = steps[step - 1];
+      clearErrors(fieldset);
+      const problems = [];
+      for (const input of fieldset.querySelectorAll("input, select, textarea")) {
+        if (input.type === "radio" || input.type === "checkbox") continue;
+        if (!input.checkValidity()) {
+          const label = input.closest("label")?.childNodes[0]?.textContent.trim() ?? input.name;
+          const message = input.validity.valueMissing ? `${label} is required.` : input.validity.patternMismatch ? `${label} must look like 555-010-1234.` : input.validity.typeMismatch ? `${label} is not valid.` : input.validationMessage;
+          flag(input, message);
+          problems.push(message);
+        }
+      }
+      if (step === 2 && !form.querySelector('input[name="employmentType"]:checked')) {
+        const first = form.querySelector('input[name="employmentType"]');
+        flag(first, "Choose an employment type.");
+        problems.push("Choose an employment type.");
+      }
+      if (step === 3 && !form.querySelector('input[name="skills"]:checked')) {
+        flag(form.querySelector('input[name="skills"]'), "Choose at least one skill.");
+        problems.push("Choose at least one skill.");
+      }
+      if (step === 4 && !form.consent.checked) {
+        flag(form.consent, "Confirm that the details are accurate.");
+        problems.push("Confirm that the details are accurate.");
+      }
+      summary.textContent = problems.length ? `Please fix ${problems.length} problem${problems.length > 1 ? "s" : ""}: ${problems.join(" ")}` : "";
+      fieldset.querySelector('[aria-invalid="true"]')?.focus();
+      return problems.length === 0;
+    }
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!validate(current)) return;
+      if (current < 4) {
+        saveDraft(current + 1);
+        show(current + 1);
+        return;
+      }
+      const application = { ...values(), reference: `APP-${String(Date.now()).slice(-5)}`, at: Date.now() };
+      update((state) => {
+        state.applications.push(application);
+        state.applyDraft = null;
+      });
+      record("application-submitted", application);
+      form.closest("section").hidden = true;
+      const done = document.querySelector("#done");
+      done.hidden = false;
+      done.innerHTML = `<p class="eyebrow">Submitted</p><h2>Application received</h2>
+    <p>Thanks, ${escapeHtml(application.firstName)}. Your application for <strong>${escapeHtml(application.position)}</strong> has reference <strong>${application.reference}</strong>. (Demo only: nothing was sent.)</p>
+    <p><a class="button" href="?page=apply">Start another application</a> <a class="button ghost" href="?page=challenges">Check the challenges</a></p>`;
+      toast("Application submitted (demo).");
+    });
+    back.addEventListener("click", () => {
+      if (current > 1) {
+        saveDraft(current - 1);
+        show(current - 1);
+      }
+    });
+    document.querySelector("#discard").addEventListener("click", () => {
+      update((state) => {
+        state.applyDraft = null;
+      });
+      form.reset();
+      show(1);
+      toast("Draft discarded.");
+    });
+    form.addEventListener("change", () => saveDraft(current));
+    form.addEventListener("click", (event) => {
+      const edit = event.target.closest("[data-edit]");
+      if (edit) {
+        event.preventDefault();
+        show(Number(edit.dataset.edit));
+      }
+    });
+    const draft = loadState().applyDraft;
+    fill(draft);
+    const fromHash = Number(location.hash.match(/step-(\d)/)?.[1] ?? 0);
+    show(Math.min(draft?.step ?? 1, fromHash || draft?.step || 1));
+  }
+
+  // .pack-staging/assets/pages/inventory.js
+  function init5() {
+    mountShell("inventory.html");
+    const ICONS = { Laptops: "\u{1F4BB}", Monitors: "\u{1F5A5}\uFE0F", Phones: "\u{1F4F1}", Audio: "\u{1F3A7}", Accessories: "\u{1F50C}" };
+    const BATCH = 8;
+    const DEFAULTS = { q: "", category: "", max: "", sort: "featured", instock: "" };
+    const state = readQuery(DEFAULTS);
+    let limit = BATCH;
+    const byId = (id) => document.getElementById(id);
+    byId("categories").innerHTML = ["", ...CATEGORIES].map((category) => `<button type="button" class="chip" data-category="${category}">${category || "All categories"}</button>`).join("");
+    function matching() {
+      const needle = state.q.trim().toLowerCase();
+      const max = Number(state.max);
+      const rows = PRODUCTS.filter(
+        (product2) => (!state.category || product2.category === state.category) && (!state.max || product2.price <= max) && (!state.instock || available(product2) > 0) && (!needle || `${product2.name} ${product2.sku}`.toLowerCase().includes(needle))
+      );
+      const sorts = {
+        featured: (left, right) => right.rating - left.rating,
+        "price-asc": (left, right) => left.price - right.price,
+        "price-desc": (left, right) => right.price - left.price,
+        "stock-asc": (left, right) => available(left) - available(right),
+        "stock-desc": (left, right) => available(right) - available(left),
+        name: (left, right) => left.name.localeCompare(right.name)
+      };
+      return rows.sort(sorts[state.sort] ?? sorts.featured);
+    }
+    function card(product2) {
+      const left = available(product2);
+      return `<article class="card product" id="${volatileId("product")}" aria-labelledby="${product2.id}-name">
+    <div class="art" aria-hidden="true">${ICONS[product2.category]}</div>
+    <h3 id="${product2.id}-name"><a href="?page=product&id=${product2.id}">${escapeHtml(product2.name)}</a></h3>
+    <p class="muted" style="margin:0">${escapeHtml(product2.summary)}</p>
+    <div class="price">${money(product2.price)}</div>
+    <div class="meta"><span>${product2.category}</span><span data-stock="${product2.id}">${left ? `${left} in stock` : "Out of stock"}</span></div>
+    <div class="buttons">
+      <button type="button" class="button primary small" data-add="${product2.id}" ${left ? "" : "disabled"} aria-label="Add ${escapeHtml(product2.name)} to cart">Add to cart</button>
+      <a class="button small" href="?page=product&id=${product2.id}" aria-label="Details for ${escapeHtml(product2.name)}">Details</a>
+      <a class="button small ghost" href="?page=product&id=${product2.id}" target="_blank" rel="noopener" aria-label="Open ${escapeHtml(product2.name)} in a new tab">New tab</a>
+    </div>
+  </article>`;
+    }
+    function render() {
+      writeQuery(state, DEFAULTS);
+      byId("search").value = state.q;
+      byId("max").value = state.max;
+      byId("sort").value = state.sort;
+      byId("instock").checked = Boolean(state.instock);
+      document.querySelectorAll("[data-category]").forEach((chip) => chip.setAttribute("aria-pressed", String(chip.dataset.category === state.category)));
+      const rows = matching();
+      const shown = rows.slice(0, limit);
+      byId("count").textContent = rows.length ? `Showing ${shown.length} of ${rows.length} products` : "No products match these filters.";
+      byId("products").innerHTML = shown.map(card).join("");
+      byId("more").hidden = shown.length >= rows.length;
+    }
+    function reset() {
+      limit = BATCH;
+      render();
+    }
+    let loadingMore = false;
+    function loadMore() {
+      if (loadingMore || byId("more").hidden) return;
+      loadingMore = true;
+      byId("loading").hidden = false;
+      setTimeout(() => {
+        limit += BATCH;
+        loadingMore = false;
+        byId("loading").hidden = true;
+        render();
+      }, 450);
+    }
+    new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) loadMore();
+    }).observe(byId("sentinel"));
+    byId("more").addEventListener("click", loadMore);
+    let typing = 0;
+    byId("search").addEventListener("input", (event) => {
+      clearTimeout(typing);
+      typing = setTimeout(() => {
+        state.q = event.target.value;
+        reset();
+      }, 200);
+    });
+    byId("max").addEventListener("change", (event) => {
+      state.max = event.target.value;
+      reset();
+    });
+    byId("sort").addEventListener("change", (event) => {
+      state.sort = event.target.value;
+      reset();
+    });
+    byId("instock").addEventListener("change", (event) => {
+      state.instock = event.target.checked ? "1" : "";
+      reset();
+    });
+    byId("filters").addEventListener("submit", (event) => event.preventDefault());
+    byId("categories").addEventListener("click", (event) => {
+      const chip = event.target.closest("[data-category]");
+      if (!chip) return;
+      state.category = chip.dataset.category;
+      reset();
+    });
+    byId("products").addEventListener("click", (event) => {
+      const add = event.target.closest("[data-add]");
+      if (add && addToCart(add.dataset.add)) render();
+    });
+    window.addEventListener("demo-state", () => render());
+    render();
+  }
+
+  // .pack-staging/assets/pages/product.js
+  function init6() {
+    mountShell("inventory.html");
+    const ICONS = { Laptops: "\u{1F4BB}", Monitors: "\u{1F5A5}\uFE0F", Phones: "\u{1F4F1}", Audio: "\u{1F3A7}", Accessories: "\u{1F50C}" };
+    const product2 = PRODUCTS.find((item) => item.id === new URLSearchParams(location.search).get("id"));
+    const root = document.querySelector("#product");
+    function render() {
+      const left = available(product2);
+      root.innerHTML = `
+    <section class="card grid two">
+      <div class="product">
+        <div class="art" style="height:220px;font-size:72px" aria-hidden="true">${ICONS[product2.category]}</div>
+      </div>
+      <div class="grid" style="align-content:start">
+        <p class="eyebrow">${product2.category}</p>
+        <h1>${escapeHtml(product2.name)}</h1>
+        <p class="muted">${escapeHtml(product2.summary)}</p>
+        <p style="font-size:28px;font-weight:750;margin:0" data-field="price">${money(product2.price)}</p>
+        <p style="margin:0"><span class="status-pill${left ? "" : " danger"}" data-field="stock">${left ? `${left} in stock` : "Out of stock"}</span></p>
+        <form class="toolbar" id="add-form">
+          <label class="field">Quantity <input id="qty" type="number" min="1" max="${Math.max(1, left)}" value="1" ${left ? "" : "disabled"} /></label>
+          <button type="submit" class="button primary" ${left ? "" : "disabled"}>Add to cart</button>
+        </form>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Specifications</h2>
+      <table style="margin-top:10px">
+        <tbody>
+          <tr><th scope="row">SKU</th><td>${product2.sku}</td></tr>
+          <tr><th scope="row">Category</th><td>${product2.category}</td></tr>
+          <tr><th scope="row">Price</th><td>${money(product2.price)}</td></tr>
+          <tr><th scope="row">Units in stock</th><td>${left}</td></tr>
+          <tr><th scope="row">Customer rating</th><td>${product2.rating} / 5</td></tr>
+        </tbody>
+      </table>
+    </section>`;
+      root.querySelector("#add-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const qty = Math.max(1, Number(root.querySelector("#qty").value) || 1);
+        if (addToCart(product2.id, qty)) render();
+      });
+    }
+    setTimeout(() => {
+      if (!product2) {
+        root.innerHTML = '<section class="card"><h1>Product not found</h1><p><a href="?page=inventory">Browse the inventory</a> instead.</p></section>';
+        return;
+      }
+      document.title = `${product2.name} \xB7 Northwind Works`;
+      record("view-product", { id: product2.id, name: product2.name, category: product2.category, price: product2.price, stock: available(product2), freshTab: history.length === 1 });
+      render();
+    }, 300);
+  }
+
+  // .pack-staging/assets/pages/analytics.js
+  function init7() {
+    mountShell("analytics.html");
+    const DEFAULTS = { range: "30", from: "", to: "", dept: "", sort: "score", dir: "desc" };
+    const state = readQuery(DEFAULTS);
+    const LEDGER_PAGE = 15;
+    let ledgerPage = 1;
+    let metrics = departmentMetrics(state.range, state.from, state.to);
+    const byId = (id) => document.getElementById(id);
+    const dollars = (cents) => money(cents / 100);
+    function rangeLabel() {
+      return state.range === "custom" ? `${metrics.window.from} to ${metrics.window.to}` : RANGES[state.range];
+    }
+    function sortedTotals() {
+      const rows = [...metrics.totals];
+      rows.sort((left, right) => {
+        const a = left[state.sort];
+        const b = right[state.sort];
+        const order = typeof a === "string" ? a.localeCompare(b) : a - b;
+        return state.dir === "desc" ? -order : order;
+      });
+      return rows;
+    }
+    function render() {
+      metrics = departmentMetrics(state.range, state.from, state.to);
+      writeQuery(state, DEFAULTS);
+      byId("range").value = state.range;
+      byId("from").value = metrics.window.from;
+      byId("to").value = metrics.window.to;
+      document.querySelectorAll("[data-custom]").forEach((field) => field.hidden = state.range !== "custom");
+      byId("window").textContent = `Showing ${rangeLabel()} (${metrics.window.from} to ${metrics.window.to}).`;
+      const revenue = metrics.totals.reduce((sum, row) => sum + row.revenue, 0);
+      const deals = metrics.totals.reduce((sum, row) => sum + row.deals, 0);
+      const satisfaction = metrics.totals.reduce((sum, row) => sum + row.satisfaction, 0) / metrics.totals.length;
+      byId("kpis").innerHTML = [
+        ["Revenue", dollars(revenue)],
+        ["Deals closed", deals.toLocaleString()],
+        ["Average satisfaction", `${satisfaction.toFixed(1)}%`],
+        ["Departments", metrics.totals.length]
+      ].map(([label, value]) => `<article class="card kpi"><p>${label}</p><strong>${value}</strong></article>`).join("");
+      byId("trend").innerHTML = lineChart(dailyTotals(metrics.rows), {
+        label: `Daily revenue for ${rangeLabel()}`,
+        format: (value) => `$${Math.round(value / 1e5)}k`
+      });
+      document.querySelectorAll("th button.sort").forEach((button) => {
+        const th = button.closest("th");
+        if (button.dataset.sort === state.sort) th.setAttribute("aria-sort", state.dir === "desc" ? "descending" : "ascending");
+        else th.removeAttribute("aria-sort");
+      });
+      byId("departments").innerHTML = sortedTotals().map(
+        (row) => `<tr>
+        <th scope="row"><a href="#dept-${row.department}">${row.department}</a></th>
+        <td>${dollars(row.revenue)}</td>
+        <td>${row.deals}</td>
+        <td>${row.satisfaction}%</td>
+        <td><strong>${row.score}</strong></td>
+      </tr>`
+      ).join("");
+      renderBreakdown();
+      renderLedger();
+      byId("report").hidden = true;
+    }
+    function renderBreakdown() {
+      const open = state.dept;
+      byId("breakdown").innerHTML = metrics.totals.map((row) => {
+        const mine = metrics.rows.filter((item) => item.department === row.department);
+        const weeks = [];
+        for (let index = 0; index < mine.length; index += 7) {
+          const slice = mine.slice(index, index + 7);
+          weeks.push({ from: slice[0].date, to: slice.at(-1).date, revenue: slice.reduce((sum, item) => sum + item.revenue, 0), deals: slice.reduce((sum, item) => sum + item.deals, 0) });
+        }
+        return `<details class="collapse" id="dept-${row.department}" data-department="${row.department}"${row.department === open ? " open" : ""}>
+        <summary><span>${row.department}</span><span class="muted">Score ${row.score} \xB7 ${dollars(row.revenue)}</span></summary>
+        <div class="collapse-body">
+          <dl class="review">
+            <dt>Performance score</dt><dd data-metric="score">${row.score}</dd>
+            <dt>Revenue</dt><dd data-metric="revenue">${dollars(row.revenue)}</dd>
+            <dt>Deals closed</dt><dd data-metric="deals">${row.deals}</dd>
+            <dt>Average satisfaction</dt><dd data-metric="satisfaction">${row.satisfaction}%</dd>
+          </dl>
+          <table style="margin-top: 10px">
+            <thead><tr><th scope="col">Week</th><th scope="col">Revenue</th><th scope="col">Deals</th></tr></thead>
+            <tbody>${weeks.map((week) => `<tr><td>${week.from} \u2013 ${week.to}</td><td>${dollars(week.revenue)}</td><td>${week.deals}</td></tr>`).join("")}</tbody>
+          </table>
+        </div>
+      </details>`;
+      }).join("");
+      if (open) {
+        const section = document.getElementById(`dept-${open}`);
+        if (section) {
+          record("expand-department", { department: open, range: state.range, via: "link" });
+          setTimeout(() => section.scrollIntoView({ block: "start" }), 50);
+        }
+      }
+    }
+    function renderLedger() {
+      const rows = [...metrics.rows].reverse();
+      const pages = Math.max(1, Math.ceil(rows.length / LEDGER_PAGE));
+      ledgerPage = Math.min(ledgerPage, pages);
+      byId("ledger-count").textContent = `${rows.length} rows`;
+      byId("ledger").innerHTML = rows.slice((ledgerPage - 1) * LEDGER_PAGE, ledgerPage * LEDGER_PAGE).map((row) => `<tr><td>${row.date}</td><td>${row.department}</td><td>${dollars(row.revenue)}</td><td>${row.deals}</td><td>${row.satisfaction}%</td></tr>`).join("");
+      byId("ledger-pages").innerHTML = `<span class="muted">Page ${ledgerPage} of ${pages}</span>
+    <span class="pages">
+      <button type="button" class="button small" data-ledger="${ledgerPage - 1}" ${ledgerPage === 1 ? "disabled" : ""}>Previous</button>
+      <button type="button" class="button small" data-ledger="${ledgerPage + 1}" ${ledgerPage === pages ? "disabled" : ""}>Next</button>
+    </span>`;
+    }
+    function reportRows() {
+      return sortedTotals().map((row) => ({ department: row.department, revenue: (row.revenue / 100).toFixed(2), deals: row.deals, satisfaction: row.satisfaction, score: row.score }));
+    }
+    function generate() {
+      const best = [...metrics.totals].sort((left, right) => right.score - left.score)[0];
+      const report = byId("report");
+      report.hidden = false;
+      report.innerHTML = `<div class="card-head">
+      <h2 id="report-title">Performance report \xB7 ${escapeHtml(rangeLabel())}</h2>
+      <span class="toolbar">
+        <button type="button" class="button" data-export="csv">Export report as CSV</button>
+        <button type="button" class="button" data-export="json">Export report as JSON</button>
+      </span>
+    </div>
+    <p>Top department: <strong data-field="top-department">${best.department}</strong> with ${dollars(best.revenue)} revenue and ${best.deals} deals.</p>
+    <p class="muted">Covers ${metrics.window.from} to ${metrics.window.to} across ${metrics.totals.length} departments.</p>`;
+      record("report-generated", { range: state.range, from: metrics.window.from, to: metrics.window.to, top: best.department });
+      report.scrollIntoView({ block: "nearest" });
+    }
+    byId("range").addEventListener("change", (event) => {
+      state.range = event.target.value;
+      if (state.range !== "custom") {
+        state.from = "";
+        state.to = "";
+        render();
+      } else {
+        document.querySelectorAll("[data-custom]").forEach((field) => field.hidden = false);
+      }
+    });
+    byId("range-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      state.range = byId("range").value;
+      if (state.range === "custom") {
+        state.from = byId("from").value;
+        state.to = byId("to").value;
+      }
+      render();
+    });
+    document.querySelectorAll("th button.sort").forEach(
+      (button) => button.addEventListener("click", () => {
+        state.dir = state.sort === button.dataset.sort && state.dir === "desc" ? "asc" : "desc";
+        state.sort = button.dataset.sort;
+        render();
+      })
+    );
+    byId("generate").addEventListener("click", generate);
+    byId("report").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-export]");
+      if (!button) return;
+      exportRows({
+        name: `performance-report-${state.range === "custom" ? "custom" : `${state.range}d`}`,
+        format: button.dataset.export,
+        rows: reportRows(),
+        columns: ["department", "revenue", "deals", "satisfaction", "score"],
+        details: { page: "analytics", range: state.range, from: metrics.window.from, to: metrics.window.to }
+      });
+    });
+    byId("breakdown").addEventListener(
+      "toggle",
+      (event) => {
+        const section = event.target;
+        if (!section.dataset?.department) return;
+        if (!section.open) {
+          if (section.dataset.department === state.dept) {
+            state.dept = "";
+            writeQuery(state, DEFAULTS);
+          }
+          return;
+        }
+        if (section.dataset.department !== state.dept) {
+          state.dept = section.dataset.department;
+          writeQuery(state, DEFAULTS);
+          record("expand-department", { department: section.dataset.department, range: state.range, via: "click" });
+        }
+      },
+      true
+    );
+    byId("ledger-pages").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-ledger]");
+      if (!button || button.disabled) return;
+      ledgerPage = Number(button.dataset.ledger);
+      renderLedger();
+    });
+    render();
+  }
+
+  // .pack-staging/assets/pages/settings.js
+  function init8() {
+    mountShell("settings.html");
+    const form = document.querySelector("#settings");
+    let draft = structuredClone(loadState().settings);
+    const PANELS = ["profile", "appearance", "notifications", "advanced", "privacy", "admin"];
+    function get(path) {
+      return path.split(".").reduce((value, key) => value?.[key], draft);
+    }
+    function set(path, value) {
+      const keys = path.split(".");
+      const last = keys.pop();
+      keys.reduce((value2, key) => value2[key], draft)[last] = value;
+    }
+    function dirty() {
+      return JSON.stringify(draft) !== JSON.stringify(loadState().settings);
+    }
+    function showDirty() {
+      document.querySelector("#dirty").textContent = dirty() ? "You have unsaved changes." : "All changes saved.";
+    }
+    function fill() {
+      form.displayName.value = draft.displayName;
+      form.email.value = draft.email;
+      form.language.value = draft.language;
+      form.timezone.value = draft.timezone;
+      form.querySelectorAll('input[name="theme"]').forEach((radio) => radio.checked = radio.value === draft.theme);
+      document.querySelector("#density-value").textContent = draft.density;
+      document.querySelectorAll('#density [role="option"]').forEach((option) => option.setAttribute("aria-selected", String(option.dataset.value === draft.density)));
+      document.querySelectorAll("[data-switch]").forEach((button) => button.setAttribute("aria-checked", String(Boolean(get(button.dataset.switch)))));
+      showDirty();
+    }
+    function showPanel(name) {
+      const panel = PANELS.includes(name) ? name : "profile";
+      document.querySelectorAll("[data-panel-id]").forEach((section) => section.hidden = section.dataset.panelId !== panel);
+      document.querySelectorAll("[data-panel]").forEach((button) => {
+        if (button.dataset.panel === panel) button.setAttribute("aria-current", "true");
+        else button.removeAttribute("aria-current");
+      });
+      const advanced = ["advanced", "privacy", "admin"].includes(panel);
+      document.querySelector("#advanced-subnav").hidden = !advanced;
+      document.querySelector('[data-panel="advanced"]').setAttribute("aria-expanded", String(advanced));
+      history.replaceState(null, "", `#${panel}`);
+    }
+    document.querySelector(".settings-nav").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-panel]");
+      if (button) showPanel(button.dataset.panel);
+    });
+    form.addEventListener("input", (event) => {
+      const target = event.target;
+      if (target.name === "theme") draft.theme = target.value;
+      else if (["displayName", "email", "language", "timezone"].includes(target.name)) draft[target.name] = target.value;
+      showDirty();
+    });
+    form.addEventListener("change", (event) => {
+      if (event.target.name === "theme") {
+        draft.theme = event.target.value;
+        showDirty();
+      }
+    });
+    document.querySelectorAll("[data-switch]").forEach(
+      (button) => button.addEventListener("click", () => {
+        const next = button.getAttribute("aria-checked") !== "true";
+        button.setAttribute("aria-checked", String(next));
+        set(button.dataset.switch, next);
+        showDirty();
+      })
+    );
+    const combo = document.querySelector("#density");
+    const comboButton = combo.querySelector(".combo-button");
+    const listbox = combo.querySelector('[role="listbox"]');
+    const options = [...listbox.querySelectorAll('[role="option"]')];
+    let active = 0;
+    function setOpen(open) {
+      listbox.hidden = !open;
+      comboButton.setAttribute("aria-expanded", String(open));
+      if (open) {
+        active = Math.max(0, options.findIndex((option) => option.dataset.value === draft.density));
+        highlight();
+        listbox.focus();
+      }
+    }
+    function highlight() {
+      var _a;
+      options.forEach((option, index) => option.classList.toggle("active", index === active));
+      listbox.setAttribute("aria-activedescendant", (_a = options[active]).id || (_a.id = `density-${options[active].dataset.value}`));
+    }
+    function choose(option) {
+      draft.density = option.dataset.value;
+      setOpen(false);
+      fill();
+      comboButton.focus();
+    }
+    comboButton.addEventListener("click", () => setOpen(listbox.hidden));
+    options.forEach((option) => option.addEventListener("click", () => choose(option)));
+    listbox.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        active = (active + (event.key === "ArrowDown" ? 1 : options.length - 1)) % options.length;
+        highlight();
+      } else if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        choose(options[active]);
+      } else if (event.key === "Escape") {
+        setOpen(false);
+        comboButton.focus();
+      }
+    });
+    document.addEventListener("click", (event) => {
+      if (!combo.contains(event.target)) setOpen(false);
+    });
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!form.email.checkValidity() || !form.displayName.value.trim()) {
+        showPanel("profile");
+        form.email.setAttribute("aria-invalid", String(!form.email.checkValidity()));
+        toast("Fix the profile fields before saving.", "error");
+        return;
+      }
+      form.email.removeAttribute("aria-invalid");
+      const saved = structuredClone(draft);
+      const state = update((store) => {
+        store.settings = saved;
+      });
+      record("settings-saved", saved);
+      applyTheme(state);
+      showDirty();
+      toast("Settings saved.");
+    });
+    document.querySelector("#discard").addEventListener("click", () => {
+      draft = structuredClone(loadState().settings);
+      fill();
+      toast("Changes discarded.");
+    });
+    document.querySelector("#defaults").addEventListener("click", () => {
+      draft = structuredClone(DEFAULT_SETTINGS);
+      fill();
+      toast("Defaults restored. Save to keep them.");
+    });
+    document.querySelector("#reset-demo").addEventListener("click", confirmReset);
+    fill();
+    showPanel(location.hash.slice(1));
+  }
+
+  // .pack-staging/assets/challenges.js
+  var person = (name) => EMPLOYEES.find((item) => item.name === name);
+  var product = (name) => PRODUCTS.find((item) => item.name === name);
+  var events = (state, type) => state.events.filter((event) => event.type === type);
+  var inCart = (state, item) => state.cart.some((line) => line.id === item.id);
+  var viewed = (state, item) => events(state, "view-product").some((event) => event.data.id === item.id);
+  var lastApplication = (state, match) => [...state.applications].reverse().find(match);
+  var jordan = person("Jordan Lee");
+  var grace = person("Grace Hopper");
+  var laptops = PRODUCTS.filter((item) => item.category === "Laptops" && item.price < 1200).sort((left, right) => left.price - right.price);
+  var cheapestLaptop = laptops.find((item) => item.stock > 0);
+  var monitors = PRODUCTS.filter((item) => item.category === "Monitors").sort((left, right) => left.price - right.price).slice(0, 2);
+  var roomierMonitor = [...monitors].sort((left, right) => right.stock - left.stock)[0];
+  var cheapestPhone = PRODUCTS.filter((item) => item.category === "Phones" && item.stock > 0).sort((left, right) => left.price - right.price)[0];
+  var best30 = topDepartment("30");
+  var CHALLENGES = [
+    {
+      id: "find-person",
+      title: "Find a colleague",
+      difficulty: "Easy",
+      instruction: "Open the Employee Directory, find Jordan Lee, and open their profile. What department are they in?",
+      outcome: `Jordan Lee's profile or details are open. Answer: ${jordan.department}.`,
+      pages: ["Employee Directory", "Employee profile"],
+      actions: 3,
+      features: "Search, look-alike names (Jordan Leigh, Jordana Lewis), dynamic results",
+      check: (state) => [["Jordan Lee (not a look-alike) was opened", events(state, "view-employee").some((event) => event.data.id === jordan.id)]]
+    },
+    {
+      id: "dark-mode",
+      title: "Turn on dark mode",
+      difficulty: "Easy",
+      instruction: "Go to Settings, switch the theme to dark mode, and save.",
+      outcome: "The saved theme is dark and the whole demo turns dark.",
+      pages: ["Settings"],
+      actions: 4,
+      features: "Nested settings navigation, radio buttons, save bar",
+      check: (state) => [
+        ["The saved theme is dark", state.settings.theme === "dark"],
+        ["Settings were saved with dark mode", events(state, "settings-saved").some((event) => event.data.theme === "dark")]
+      ]
+    },
+    {
+      id: "add-laptop",
+      title: "Add a product to the cart",
+      difficulty: "Easy",
+      instruction: "In Product Inventory, add one Lumen Air laptop to the cart.",
+      outcome: "The cart holds a Lumen Air.",
+      pages: ["Product Inventory"],
+      actions: 3,
+      features: 'Category chips, many similar "Add to cart" buttons',
+      check: (state) => [["A Lumen Air is in the cart", inCart(state, product("Lumen Air"))]]
+    },
+    {
+      id: "engineering-export",
+      title: "Export a filtered list",
+      difficulty: "Medium",
+      instruction: "Go to the Employee Directory, show only employees in Engineering, sort them by last name, and export their information as CSV.",
+      outcome: "A CSV of every Engineering employee, A to Z by last name, is downloaded.",
+      pages: ["Employee Directory"],
+      actions: 4,
+      features: "Dropdown filters, sorting, export",
+      check: (state) => {
+        const exports = events(state, "export").filter((event) => event.data.page === "directory");
+        const good = exports.find((event) => event.data.department === "Engineering" && event.data.sort === "lastName" && event.data.dir === "asc" && !event.data.query && !event.data.location);
+        return [
+          ["The directory was exported", exports.length > 0],
+          ["Only Engineering, sorted by last name A to Z, without other filters", Boolean(good)],
+          ["The export was a CSV file", Boolean(good && good.data.format === "csv")]
+        ];
+      }
+    },
+    {
+      id: "settings-automation",
+      title: "Change several settings",
+      difficulty: "Medium",
+      instruction: "Switch the dashboard to dark mode, enable email notifications, change the display density to Compact, and save the settings.",
+      outcome: "Saved settings: dark theme, email notifications on, Compact density.",
+      pages: ["Settings"],
+      actions: 8,
+      features: "Toggle switches, a custom dropdown whose options are hidden until opened, multiple panels",
+      check: (state) => [
+        ["Theme saved as dark", state.settings.theme === "dark"],
+        ["Email notifications saved as on", state.settings.notifications.email === true],
+        ["Display density saved as Compact", state.settings.density === "Compact"]
+      ]
+    },
+    {
+      id: "cheap-laptop",
+      title: "Shop for the cheapest laptop",
+      difficulty: "Medium",
+      instruction: "Find laptops under $1,200, sort them by price from low to high, open the details of the three cheapest, and add the cheapest one that is in stock to the cart.",
+      outcome: `${laptops.slice(0, 3).map((item) => item.name).join(", ")} were inspected; ${cheapestLaptop.name} is in the cart (${laptops[0].name} is sold out).`,
+      pages: ["Product Inventory", "Product details"],
+      actions: 9,
+      features: "Price filter, sorting, cards that move after filtering, out-of-stock handling",
+      check: (state) => [
+        ...laptops.slice(0, 3).map((item) => [`Opened the details of ${item.name}`, viewed(state, item)]),
+        [`${cheapestLaptop.name} is in the cart`, inCart(state, cheapestLaptop)],
+        ["No pricier laptop was added instead", !laptops.slice(1).filter((item) => item !== cheapestLaptop).some((item) => inCart(state, item))]
+      ]
+    },
+    {
+      id: "application",
+      title: "Complete a job application",
+      difficulty: "Medium",
+      instruction: "Open the Job Application Portal and apply for the Data Analyst role as Avery Quinn (avery.quinn@example.com, phone 555-010-4477, located Remote), full-time, starting 2026-11-02, with 4 years of experience in SQL and Python. Review everything, then submit.",
+      outcome: "An application from Avery Quinn for Data Analyst with exactly these details is submitted.",
+      pages: ["Job Applications"],
+      actions: 18,
+      features: "Multi-step form, radios, checkboxes, date input, validation, review step",
+      check: (state) => {
+        const app = lastApplication(state, (item) => item.lastName.toLowerCase() === "quinn");
+        return [
+          ["Application from Avery Quinn submitted", Boolean(app && app.firstName.toLowerCase() === "avery")],
+          ["Email and phone are correct", Boolean(app && app.email.toLowerCase() === "avery.quinn@example.com" && app.phone === "555-010-4477")],
+          ["Data Analyst, Remote, full-time, starting 2026-11-02", Boolean(app && app.position === "Data Analyst" && app.location === "Remote" && app.employmentType === "Full-time" && app.startDate === "2026-11-02")],
+          ["4 years with SQL and Python", Boolean(app && Number(app.years) === 4 && app.skills.includes("SQL") && app.skills.includes("Python"))]
+        ];
+      }
+    },
+    {
+      id: "analytics-report",
+      title: "Analyze and export a report",
+      difficulty: "Hard",
+      instruction: "Navigate to Analytics, select the last 30 days, find the highest-performing department, generate the report, and export it as CSV.",
+      outcome: `The 30-day report is exported. Answer: ${best30} (over 90 days a different department leads, so the range matters).`,
+      pages: ["Analytics & Reports"],
+      actions: 5,
+      features: "Date filters, sortable tables, report generation, export",
+      check: (state) => [
+        ["A report was generated for the last 30 days", events(state, "report-generated").some((event) => event.data.range === "30")],
+        ["The 30-day report was exported as CSV", events(state, "export").some((event) => event.data.page === "analytics" && event.data.range === "30" && event.data.format === "csv")]
+      ]
+    },
+    {
+      id: "cross-page",
+      title: "Connect two pages",
+      difficulty: "Hard",
+      instruction: "Find the employee named Jordan Lee, open their profile, identify their department, then go to Analytics and open that department's details for the last 30 days.",
+      outcome: `${jordan.department} details are open in Analytics for the last 30 days, after viewing Jordan Lee.`,
+      pages: ["Employee Directory", "Employee profile", "Analytics & Reports"],
+      actions: 6,
+      features: "Multi-page workflow, carrying information between pages, collapsible sections",
+      check: (state) => {
+        const seen = state.events.findIndex((event) => event.type === "view-employee" && event.data.id === jordan.id);
+        const opened = state.events.findIndex((event, index) => index > seen && event.type === "expand-department" && event.data.department === jordan.department && event.data.range === "30");
+        return [
+          ["Jordan Lee's profile was viewed", seen >= 0],
+          [`Afterwards, ${jordan.department} details were opened in Analytics for the last 30 days`, seen >= 0 && opened > seen]
+        ];
+      }
+    },
+    {
+      id: "two-tabs",
+      title: "Compare in new tabs",
+      difficulty: "Hard",
+      instruction: "In Product Inventory, open the two cheapest monitors in new tabs, compare how many units each has in stock, and add the one with more units in stock to the cart.",
+      outcome: `${monitors.map((item) => item.name).join(" and ")} opened in their own tabs; ${roomierMonitor.name} is in the cart.`,
+      pages: ["Product Inventory", "Product details (two tabs)"],
+      actions: 7,
+      features: "Multiple tabs, switching tabs, comparing data across pages",
+      check: (state) => {
+        const fresh = (item) => events(state, "view-product").some((event) => event.data.id === item.id && event.data.freshTab);
+        return [
+          ...monitors.map((item) => [`${item.name} was opened in its own tab`, fresh(item)]),
+          [`${roomierMonitor.name} (more stock) is in the cart`, inCart(state, roomierMonitor)],
+          ["The other monitor was not added", !monitors.filter((item) => item !== roomierMonitor).some((item) => inCart(state, item))]
+        ];
+      }
+    },
+    {
+      id: "self-healing",
+      title: "Replay after a redesign",
+      difficulty: "Hard",
+      instruction: 'Record the classic advising form once (Workflows \u2192 Record this page). Then choose "Simulate a redesigned button" and replay the workflow for Grace Hopper, ID 55667788, grace.hopper@northwind.example.',
+      outcome: "The request is submitted for Grace Hopper even though Continue was renamed to Next and a Cancel button appeared.",
+      pages: ["Advising form (classic)"],
+      actions: 7,
+      features: "Recording, replay with new values, self-repair, avoiding Cancel",
+      check: (state) => {
+        const sent = events(state, "advising-submitted").filter((event) => /grace hopper/i.test(event.data.studentName));
+        return [
+          ["A request was submitted for Grace Hopper", sent.length > 0],
+          ["It went through on the redesigned page", sent.some((event) => event.data.redesigned)]
+        ];
+      }
+    },
+    {
+      id: "checkout",
+      title: "Buy with approval",
+      difficulty: "Expert",
+      instruction: "Add the cheapest phone that is in stock to the cart, then check out and place the demo order. Ask me before placing it.",
+      outcome: `An order containing ${cheapestPhone.name} is placed (Pulse X is cheaper but sold out). The agent asks before Place order.`,
+      pages: ["Product Inventory", "Cart"],
+      actions: 6,
+      features: "Conditional choice, modal dialogs, approval before a consequential action",
+      check: (state) => [
+        [`An order containing ${cheapestPhone.name} was placed`, events(state, "order-placed").some((event) => event.data.items.some((item) => item.id === cheapestPhone.id))],
+        ["No other phone was ordered", !events(state, "order-placed").some((event) => event.data.items.some((item) => item.id !== cheapestPhone.id && PRODUCTS.find((p) => p.id === item.id)?.category === "Phones"))]
+      ]
+    },
+    {
+      id: "validation",
+      title: "Recover from a form error",
+      difficulty: "Expert",
+      instruction: "Apply for the Support Specialist role as Sam Rivera, sam.rivera@example.com, phone 5550107788, located in Toronto, contract, starting 2026-12-01, 2 years of experience in Customer service. If the form rejects a value, fix it and continue.",
+      outcome: "The phone is rejected until it is written as 555-010-7788; the application is then submitted.",
+      pages: ["Job Applications"],
+      actions: 18,
+      features: "Validation errors, reading error messages, retrying with corrected input",
+      check: (state) => {
+        const app = lastApplication(state, (item) => item.lastName.toLowerCase() === "rivera");
+        return [
+          ["Application from Sam Rivera submitted", Boolean(app && app.firstName.toLowerCase() === "sam")],
+          ["Phone corrected to 555-010-7788", app?.phone === "555-010-7788"],
+          ["Support Specialist, Toronto, contract", Boolean(app && app.position === "Support Specialist" && app.location === "Toronto" && app.employmentType === "Contract")]
+        ];
+      }
+    }
+  ];
+  function grade(state) {
+    return CHALLENGES.map((challenge) => {
+      const criteria = challenge.check(state).map(([text, met]) => ({ text, met: Boolean(met) }));
+      return { id: challenge.id, pass: criteria.every((item) => item.met), criteria };
+    });
+  }
+  var EXPECTED = { jordanDepartment: jordan.department, best30, cheapestLaptop: cheapestLaptop.name, roomierMonitor: roomierMonitor.name, cheapestPhone: cheapestPhone.name, grace: grace.name };
+
+  // .pack-staging/assets/pages/challenges.js
+  function init9() {
+    mountShell("challenges.html");
+    let filter = "";
+    function render() {
+      const results = grade(loadState());
+      const passed = results.filter((result) => result.pass).length;
+      document.querySelector("#score").textContent = `${passed} / ${results.length}`;
+      document.querySelector("#checked").textContent = (/* @__PURE__ */ new Date()).toLocaleTimeString();
+      document.querySelector("#list").innerHTML = CHALLENGES.map((challenge, index) => ({ challenge, result: results[index], index })).filter(({ challenge }) => !filter || challenge.difficulty === filter).map(
+        ({ challenge, result, index }) => `<article class="card challenge" id="challenge-${challenge.id}" aria-labelledby="title-${challenge.id}">
+        <header>
+          <div>
+            <p class="eyebrow">Challenge ${index + 1}</p>
+            <h2 id="title-${challenge.id}">${escapeHtml(challenge.title)}</h2>
+          </div>
+          <span class="difficulty ${challenge.difficulty.toLowerCase()}">${challenge.difficulty}</span>
+        </header>
+        <p class="instruction">${escapeHtml(challenge.instruction)}</p>
+        <dl>
+          <dt>Expected outcome</dt><dd>${escapeHtml(challenge.outcome)}</dd>
+          <dt>Pages</dt><dd>${escapeHtml(challenge.pages.join(" \u2192 "))}</dd>
+          <dt>Expected actions</dt><dd>About ${challenge.actions}</dd>
+          <dt>Shows</dt><dd>${escapeHtml(challenge.features)}</dd>
+        </dl>
+        <div>
+          <p class="verdict ${result.pass ? "pass" : "fail"}" data-verdict="${result.pass ? "pass" : "fail"}">${result.pass ? "\u2713 Passed" : "Not passed yet"}</p>
+          <ul class="criteria">${result.criteria.map((item) => `<li class="${item.met ? "met" : "unmet"}">${escapeHtml(item.text)}</li>`).join("")}</ul>
+        </div>
+        <div class="toolbar"><button type="button" class="button small" data-copy="${challenge.id}">Copy instruction</button></div>
+      </article>`
+      ).join("");
+    }
+    document.querySelector("#list").addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-copy]");
+      if (!button) return;
+      const challenge = CHALLENGES.find((item) => item.id === button.dataset.copy);
+      try {
+        await navigator.clipboard.writeText(challenge.instruction);
+        toast("Instruction copied. Paste it into Ghostclick.");
+      } catch {
+        toast("Copy is blocked here; select the text instead.", "error");
+      }
+    });
+    document.querySelector("#filters").addEventListener("click", (event) => {
+      const chip = event.target.closest("[data-filter]");
+      if (!chip) return;
+      filter = chip.dataset.filter;
+      document.querySelectorAll("[data-filter]").forEach((item) => item.setAttribute("aria-pressed", String(item === chip)));
+      render();
+    });
+    document.querySelector("#recheck").addEventListener("click", render);
+    document.querySelector("#reset").addEventListener("click", confirmReset);
+    window.addEventListener("storage", (event) => {
+      if (event.key === STORE_KEY) render();
+    });
+    window.addEventListener("focus", render);
+    render();
+  }
+
+  // .pack-staging/advising-boot.js
+  function bootAdvising(wrapHtml, styleText) {
+    document.title = "Advising hold release \xB7 Northwind College";
+    document.querySelectorAll(".shell, .toasts, .overlay, main, .wrap, style[data-advising]").forEach((n) => n.remove());
+    const style = document.createElement("style");
+    style.dataset.advising = "1";
+    style.textContent = styleText;
+    document.head.append(style);
+    const wrap = document.createElement("div");
+    wrap.className = "wrap";
+    wrap.innerHTML = wrapHtml;
+    document.body.append(wrap);
+    const data = { studentName: "", email: "", studentId: "", term: "", reason: "" };
+    const step1 = document.querySelector("#step-1");
+    const step2 = document.querySelector("#step-2");
+    const stepDone = document.querySelector("#step-done");
+    const breakKey = "ghostclick-demo-break";
+    const actions = document.querySelector("#actions");
+    const toggle = document.querySelector("#break-toggle");
+    const banner = document.querySelector("#break-banner");
+    function show(view) {
+      step1.hidden = view !== "step-1";
+      step2.hidden = view !== "step-2";
+      stepDone.hidden = view !== "step-done";
+      history.replaceState(null, "", "?page=advising#" + view);
+    }
+    function renderBreak() {
+      const broken = sessionStorage.getItem(breakKey) === "1";
+      toggle.textContent = broken ? "Restore the original button" : "Simulate a redesigned button";
+      banner.hidden = !broken;
+      actions.innerHTML = broken ? '<button type="button" id="cancel-request">Cancel</button><div><button type="submit" id="next-step">Next</button></div>' : '<button type="submit" id="continue" data-testid="continue">Continue</button>';
+      document.querySelector("#cancel-request")?.addEventListener("click", () => {
+        window.alert("Cancelled. The repaired step should choose Next, not Cancel.");
+      });
+    }
+    toggle.addEventListener("click", () => {
+      sessionStorage.setItem(breakKey, sessionStorage.getItem(breakKey) === "1" ? "0" : "1");
+      renderBreak();
+    });
+    document.querySelector("#form-step-1").addEventListener("submit", (event) => {
+      event.preventDefault();
+      data.studentName = document.querySelector("#student-name").value.trim();
+      data.email = document.querySelector("#email").value.trim();
+      data.studentId = document.querySelector("#student-id").value.trim();
+      document.querySelector("#who").textContent = `Request for ${data.studentName || "this student"}.`;
+      show("step-2");
+    });
+    document.querySelector("#form-step-2").addEventListener("submit", (event) => {
+      event.preventDefault();
+      data.term = document.querySelector("#term").value;
+      data.reason = document.querySelector("#reason").value.trim();
+      const labels = {
+        studentName: "Student name",
+        email: "Email",
+        studentId: "Student ID",
+        term: "Term",
+        reason: "Reason"
+      };
+      const list = document.querySelector("#result");
+      list.replaceChildren();
+      for (const [key, label] of Object.entries(labels)) {
+        const term = document.createElement("dt");
+        term.textContent = label;
+        const value = document.createElement("dd");
+        value.textContent = data[key] || "\u2014";
+        list.append(term, value);
+      }
+      try {
+        const key = "northwind-demo-v1";
+        const store = JSON.parse(localStorage.getItem(key) ?? "null") ?? { version: 1, cart: [], orders: [], applications: [], applyDraft: null, events: [] };
+        store.events = store.events ?? [];
+        store.events.push({ type: "advising-submitted", data: { ...data, redesigned: sessionStorage.getItem(breakKey) === "1" }, at: Date.now(), page: "advising.html" });
+        localStorage.setItem(key, JSON.stringify(store));
+      } catch {
+      }
+      show("step-done");
+    });
+    document.querySelector("#start-over").addEventListener("click", () => {
+      document.querySelector("#form-step-1").reset();
+      document.querySelector("#form-step-2").reset();
+      Object.keys(data).forEach((key) => {
+        data[key] = "";
+      });
+      show("step-1");
+    });
+    const start = location.hash.replace("#", "");
+    show(start === "step-2" || start === "step-done" ? "step-1" : "step-1");
+    renderBreak();
+  }
+
+  // .pack-staging/router.js
+  var TEMPLATES = { "index": '<div class="page-head">\n        <div>\n          <p class="eyebrow">Northwind Works</p>\n          <h1>Dashboard</h1>\n          <p>Company health at a glance for the 30 days up to 1 October 2026.</p>\n        </div>\n        <div class="toolbar">\n          <a class="button" href="?range=30&page=analytics">Open Analytics</a>\n          <a class="button primary" href="?page=challenges">Automation Challenges</a>\n        </div>\n      </div>\n\n      <section class="grid kpis" aria-label="Key metrics" id="kpis"></section>\n\n      <div class="grid two">\n        <section class="card" aria-labelledby="dept-chart-title">\n          <div class="card-head">\n            <h2 id="dept-chart-title">Revenue by department \xB7 last 30 days</h2>\n            <a href="?range=30&page=analytics">Details</a>\n          </div>\n          <div id="dept-chart"></div>\n        </section>\n        <section class="card" aria-labelledby="activity-title">\n          <div class="card-head">\n            <h2 id="activity-title">Recent activity</h2>\n            <button type="button" class="button small ghost" id="refresh-activity">Refresh</button>\n          </div>\n          <ul class="activity" id="activity" aria-live="polite"></ul>\n        </section>\n      </div>\n\n      <section class="card" aria-labelledby="shortcuts-title">\n        <div class="card-head"><h2 id="shortcuts-title">Jump to</h2></div>\n        <div class="toolbar">\n          <a class="button" href="?page=directory">Find a colleague</a>\n          <a class="button" href="?page=apply">Start a job application</a>\n          <a class="button" href="?category=Laptops&page=inventory">Browse laptops</a>\n          <a class="button" href="?page=settings">Change settings</a>\n          <a class="button" href="?page=advising">Classic advising form</a>\n        </div>\n      </section>', "directory": '<div class="page-head">\n        <div>\n          <p class="eyebrow">People</p>\n          <h1>Employee Directory</h1>\n          <p>Search everyone at Northwind Works, filter by team, and open a profile.</p>\n        </div>\n        <div class="toolbar">\n          <button type="button" class="button" id="export-csv">Export CSV</button>\n          <button type="button" class="button" id="export-json">Export JSON</button>\n        </div>\n      </div>\n\n      <section class="card" aria-label="Directory">\n        <form class="toolbar" id="filters" role="search" aria-label="Filter employees">\n          <label class="field">\n            Search\n            <input id="search" name="q" type="search" placeholder="Name, title, or email" autocomplete="off" />\n          </label>\n          <label class="field">\n            Department\n            <select id="department" name="dept"></select>\n          </label>\n          <label class="field">\n            Location\n            <select id="location" name="location"></select>\n          </label>\n          <label class="field">\n            Sort by\n            <select id="sort" name="sort">\n              <option value="lastName">Last name</option>\n              <option value="firstName">First name</option>\n              <option value="department">Department</option>\n              <option value="title">Job title</option>\n              <option value="startDate">Start date</option>\n            </select>\n          </label>\n          <label class="field">\n            Order\n            <select id="dir" name="dir">\n              <option value="asc">A to Z / oldest first</option>\n              <option value="desc">Z to A / newest first</option>\n            </select>\n          </label>\n          <button type="button" class="button ghost" id="clear">Clear filters</button>\n        </form>\n        <p class="muted" id="count" aria-live="polite"></p>\n        <div class="table-wrap">\n          <table>\n            <caption class="visually-hidden">Employees</caption>\n            <thead>\n              <tr>\n                <th scope="col"><button type="button" class="sort" data-sort="lastName">Name</button></th>\n                <th scope="col"><button type="button" class="sort" data-sort="title">Title</button></th>\n                <th scope="col"><button type="button" class="sort" data-sort="department">Department</button></th>\n                <th scope="col">Location</th>\n                <th scope="col"><button type="button" class="sort" data-sort="startDate">Started</button></th>\n                <th scope="col">Status</th>\n                <th scope="col"><span class="visually-hidden">Actions</span></th>\n              </tr>\n            </thead>\n            <tbody id="rows"></tbody>\n          </table>\n        </div>\n        <nav class="pagination" aria-label="Directory pages" id="pagination"></nav>\n      </section>', "employee": '<p><a href="?page=directory">\u2190 Back to the directory</a></p>\n      <div id="profile"><p class="loading"><span class="spinner" aria-hidden="true"></span> Loading profile\u2026</p></div>', "apply": '<div class="page-head">\n        <div>\n          <p class="eyebrow">Careers</p>\n          <h1>Job Application Portal</h1>\n          <p>Apply for an open role in four short steps. Your progress is saved in this browser. This is a mock form: nothing is sent anywhere.</p>\n        </div>\n      </div>\n\n      <section class="card" id="wizard" aria-labelledby="step-title">\n        <ol class="stepper" aria-label="Application progress">\n          <li data-step="1">Personal details</li>\n          <li data-step="2">Role</li>\n          <li data-step="3">Experience</li>\n          <li data-step="4">Review</li>\n        </ol>\n        <div class="progress" aria-hidden="true" style="margin: 14px 0"><span id="progress-bar"></span></div>\n        <div role="alert" id="error-summary" class="field-error"></div>\n\n        <form id="application" novalidate>\n          <fieldset data-step="1" class="grid">\n            <legend id="step-title">Step 1 of 4 \xB7 Personal details</legend>\n            <div class="form-grid">\n              <label class="field">First name <input name="firstName" autocomplete="given-name" required /></label>\n              <label class="field">Last name <input name="lastName" autocomplete="family-name" required /></label>\n              <label class="field">Email <input name="email" type="email" autocomplete="email" required /></label>\n              <label class="field">Phone <small>Format 555-010-1234</small><input name="phone" type="tel" autocomplete="tel" required pattern="\\d{3}-\\d{3}-\\d{4}" /></label>\n              <label class="field">Location <select name="location" required></select></label>\n            </div>\n          </fieldset>\n\n          <fieldset data-step="2" class="grid" hidden>\n            <legend>Step 2 of 4 \xB7 Role</legend>\n            <div class="form-grid">\n              <label class="field">Position <select name="position" required></select></label>\n              <label class="field">Earliest start date <input name="startDate" type="date" min="2026-10-01" required /></label>\n            </div>\n            <fieldset>\n              <legend>Employment type</legend>\n              <div class="choice-row">\n                <label><input type="radio" name="employmentType" value="Full-time" required /> Full-time</label>\n                <label><input type="radio" name="employmentType" value="Part-time" /> Part-time</label>\n                <label><input type="radio" name="employmentType" value="Contract" /> Contract</label>\n              </div>\n            </fieldset>\n            <label class="field" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="relocate" /> I am willing to relocate</label>\n          </fieldset>\n\n          <fieldset data-step="3" class="grid" hidden>\n            <legend>Step 3 of 4 \xB7 Experience</legend>\n            <div class="form-grid">\n              <label class="field">Years of experience <input name="years" type="number" min="0" max="50" required /></label>\n              <label class="field">Portfolio or LinkedIn URL <small>Optional</small><input name="portfolio" type="url" placeholder="https://" /></label>\n            </div>\n            <fieldset>\n              <legend>Skills (choose at least one)</legend>\n              <div class="choice-row" id="skills"></div>\n            </fieldset>\n            <label class="field">Why Northwind? <small>Optional</small><textarea name="note" rows="3"></textarea></label>\n          </fieldset>\n\n          <fieldset data-step="4" class="grid" hidden>\n            <legend>Step 4 of 4 \xB7 Review</legend>\n            <p class="muted">Check everything before you submit. Use Edit to change a section.</p>\n            <div id="review"></div>\n            <label class="field" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="consent" required /> I confirm these details are accurate</label>\n          </fieldset>\n\n          <div class="toolbar" style="justify-content: space-between; margin-top: 16px">\n            <button type="button" class="button ghost" id="back">Back</button>\n            <span class="toolbar">\n              <button type="button" class="button ghost" id="discard">Discard draft</button>\n              <button type="submit" class="button primary" id="next">Next</button>\n            </span>\n          </div>\n        </form>\n      </section>\n\n      <section class="card" id="done" hidden aria-live="polite"></section>', "inventory": '<div class="page-head">\n        <div>\n          <p class="eyebrow">Equipment store</p>\n          <h1>Product Inventory</h1>\n          <p>Order hardware for your team. Stock updates as items go into the cart.</p>\n        </div>\n      </div>\n\n      <section class="card" aria-label="Filters">\n        <form class="toolbar" id="filters" role="search" aria-label="Filter products">\n          <label class="field">\n            Search products\n            <input id="search" type="search" placeholder="Name or SKU" autocomplete="off" />\n          </label>\n          <label class="field">\n            Max price ($)\n            <input id="max" type="number" min="0" step="50" placeholder="Any" />\n          </label>\n          <label class="field">\n            Sort by\n            <select id="sort">\n              <option value="featured">Featured</option>\n              <option value="price-asc">Price: low to high</option>\n              <option value="price-desc">Price: high to low</option>\n              <option value="stock-desc">Quantity: most in stock</option>\n              <option value="stock-asc">Quantity: least in stock</option>\n              <option value="name">Name</option>\n            </select>\n          </label>\n          <label class="field" style="flex-direction: row; display: flex; gap: 8px; align-items: center">\n            <input id="instock" type="checkbox" /> In stock only\n          </label>\n        </form>\n        <div class="chips" role="group" aria-label="Category" id="categories" style="margin-top: 12px"></div>\n      </section>\n\n      <p class="muted" id="count" aria-live="polite"></p>\n      <section class="products" id="products" aria-label="Products"></section>\n      <div class="sentinel" id="sentinel"></div>\n      <div class="loading" id="loading" hidden><span class="spinner" aria-hidden="true"></span> Loading more products\u2026</div>\n      <p style="text-align: center"><button type="button" class="button" id="more" hidden>Load more products</button></p>', "product": '<p><a href="?page=inventory">\u2190 Back to inventory</a></p>\n      <div id="product"><p class="loading"><span class="spinner" aria-hidden="true"></span> Loading product\u2026</p></div>', "analytics": '<div class="page-head">\n        <div>\n          <p class="eyebrow">Insights</p>\n          <h1>Analytics &amp; Reports</h1>\n          <p>Department performance up to 1 October 2026. Performance score = revenue relative to the best department in the period (100 = best).</p>\n        </div>\n      </div>\n\n      <section class="card" aria-label="Date range">\n        <form class="toolbar" id="range-form">\n          <label class="field">\n            Date range\n            <select id="range">\n              <option value="7">Last 7 days</option>\n              <option value="30">Last 30 days</option>\n              <option value="90">Last 90 days</option>\n              <option value="custom">Custom range</option>\n            </select>\n          </label>\n          <label class="field" data-custom hidden>From <input id="from" type="date" min="2026-07-04" max="2026-10-01" /></label>\n          <label class="field" data-custom hidden>To <input id="to" type="date" min="2026-07-04" max="2026-10-01" /></label>\n          <button type="submit" class="button primary">Apply</button>\n        </form>\n        <p class="muted" id="window" aria-live="polite"></p>\n      </section>\n\n      <section class="grid kpis" id="kpis" aria-label="Totals for the range"></section>\n\n      <section class="card" aria-labelledby="trend-title">\n        <div class="card-head"><h2 id="trend-title">Daily revenue, all departments</h2></div>\n        <div id="trend"></div>\n      </section>\n\n      <section class="card" aria-labelledby="dept-title">\n        <div class="card-head">\n          <h2 id="dept-title">Department performance</h2>\n          <button type="button" class="button primary" id="generate">Generate report</button>\n        </div>\n        <div class="table-wrap">\n          <table>\n            <caption class="visually-hidden">Department performance for the selected range</caption>\n            <thead>\n              <tr>\n                <th scope="col"><button type="button" class="sort" data-sort="department">Department</button></th>\n                <th scope="col"><button type="button" class="sort" data-sort="revenue">Revenue</button></th>\n                <th scope="col"><button type="button" class="sort" data-sort="deals">Deals</button></th>\n                <th scope="col"><button type="button" class="sort" data-sort="satisfaction">Satisfaction</button></th>\n                <th scope="col"><button type="button" class="sort" data-sort="score">Performance score</button></th>\n              </tr>\n            </thead>\n            <tbody id="departments"></tbody>\n          </table>\n        </div>\n      </section>\n\n      <section class="card" id="report" hidden aria-labelledby="report-title" aria-live="polite"></section>\n\n      <section aria-labelledby="breakdown-title">\n        <h2 id="breakdown-title" style="margin-bottom: 10px">Department details</h2>\n        <div id="breakdown"></div>\n      </section>\n\n      <section class="card" aria-labelledby="ledger-title">\n        <div class="card-head"><h2 id="ledger-title">Daily ledger</h2><span class="muted" id="ledger-count"></span></div>\n        <div class="table-wrap" style="max-height: 360px">\n          <table>\n            <caption class="visually-hidden">Daily figures by department</caption>\n            <thead><tr><th scope="col">Date</th><th scope="col">Department</th><th scope="col">Revenue</th><th scope="col">Deals</th><th scope="col">Satisfaction</th></tr></thead>\n            <tbody id="ledger"></tbody>\n          </table>\n        </div>\n        <nav class="pagination" aria-label="Ledger pages" id="ledger-pages"></nav>\n      </section>', "settings": `<div class="page-head">
+        <div>
+          <p class="eyebrow">Administration</p>
+          <h1>Settings</h1>
+          <p>Changes apply after you choose Save changes.</p>
+        </div>
+      </div>
+
+      <div class="settings-layout">
+        <nav class="settings-nav card" aria-label="Settings sections">
+          <button type="button" data-panel="profile">Profile</button>
+          <button type="button" data-panel="appearance">Appearance</button>
+          <button type="button" data-panel="notifications">Notifications</button>
+          <button type="button" data-panel="advanced" aria-expanded="false" aria-controls="advanced-subnav">Advanced</button>
+          <div class="subnav" id="advanced-subnav" hidden>
+            <button type="button" data-panel="privacy">Data &amp; privacy</button>
+            <button type="button" data-panel="admin">Administration</button>
+          </div>
+        </nav>
+
+        <form id="settings" class="grid" novalidate>
+          <section class="card" data-panel-id="profile" aria-labelledby="profile-title">
+            <h2 id="profile-title">Profile</h2>
+            <div class="form-grid" style="margin-top: 12px">
+              <label class="field">Display name <input name="displayName" required /></label>
+              <label class="field">Work email <input name="email" type="email" required /></label>
+              <label class="field">
+                Language
+                <select name="language">
+                  <option>English (US)</option>
+                  <option>English (UK)</option>
+                  <option>Espa\xF1ol</option>
+                  <option>Fran\xE7ais</option>
+                  <option>Deutsch</option>
+                </select>
+              </label>
+              <label class="field">
+                Time zone
+                <select name="timezone">
+                  <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
+                  <option value="America/Chicago">Central (Chicago)</option>
+                  <option value="America/New_York">Eastern (New York)</option>
+                  <option value="Europe/London">London</option>
+                  <option value="Asia/Tokyo">Tokyo</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="card" data-panel-id="appearance" aria-labelledby="appearance-title" hidden>
+            <h2 id="appearance-title">Appearance</h2>
+            <fieldset style="margin-top: 12px">
+              <legend>Theme</legend>
+              <div class="choice-row">
+                <label><input type="radio" name="theme" value="light" /> Light mode</label>
+                <label><input type="radio" name="theme" value="dark" /> Dark mode</label>
+              </div>
+            </fieldset>
+            <div class="field" style="margin-top: 14px">
+              <span id="density-label">Display density</span>
+              <div class="combo" id="density">
+                <button type="button" class="combo-button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="density-label density-value">
+                  <span id="density-value">Comfortable</span><span aria-hidden="true">\u25BE</span>
+                </button>
+                <ul role="listbox" aria-labelledby="density-label" tabindex="-1" hidden>
+                  <li role="option" data-value="Comfortable">Comfortable</li>
+                  <li role="option" data-value="Compact">Compact</li>
+                  <li role="option" data-value="Spacious">Spacious</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="card" data-panel-id="notifications" aria-labelledby="notifications-title" hidden>
+            <h2 id="notifications-title">Notifications</h2>
+            <div class="switch-row">
+              <div><strong id="sw-email">Email notifications</strong><p>Get an email when someone mentions you or a request needs approval.</p></div>
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="sw-email" data-switch="notifications.email"></button>
+            </div>
+            <div class="switch-row">
+              <div><strong id="sw-push">Browser notifications</strong><p>Show alerts in this browser while Northwind Works is open.</p></div>
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="sw-push" data-switch="notifications.push"></button>
+            </div>
+            <div class="switch-row">
+              <div><strong id="sw-weekly">Weekly summary</strong><p>A Monday digest of team activity and reports.</p></div>
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="sw-weekly" data-switch="notifications.weekly"></button>
+            </div>
+          </section>
+
+          <section class="card" data-panel-id="advanced" aria-labelledby="advanced-title" hidden>
+            <h2 id="advanced-title">Advanced</h2>
+            <p class="muted">Choose Data &amp; privacy or Administration under Advanced in the menu.</p>
+          </section>
+
+          <section class="card" data-panel-id="privacy" aria-labelledby="privacy-title" hidden>
+            <h2 id="privacy-title">Data &amp; privacy</h2>
+            <div class="switch-row">
+              <div><strong id="sw-analytics">Usage analytics</strong><p>Share anonymous usage data to improve the dashboard.</p></div>
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="sw-analytics" data-switch="privacy.analytics"></button>
+            </div>
+            <div class="switch-row">
+              <div><strong id="sw-directory">Show me in other teams' directories</strong><p>Let partner companies find your profile.</p></div>
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="sw-directory" data-switch="privacy.shareDirectory"></button>
+            </div>
+          </section>
+
+          <section class="card" data-panel-id="admin" aria-labelledby="admin-title" hidden>
+            <h2 id="admin-title">Administration</h2>
+            <p>Reset all demo data (cart, orders, applications, settings, and challenge progress) to the starting state.</p>
+            <button type="button" class="button danger" id="reset-demo">Reset demo data</button>
+          </section>
+
+          <div class="save-bar">
+            <span class="muted" id="dirty" aria-live="polite">All changes saved.</span>
+            <span class="toolbar">
+              <button type="button" class="button ghost" id="defaults">Reset to defaults</button>
+              <button type="button" class="button ghost" id="discard">Discard changes</button>
+              <button type="submit" class="button primary">Save changes</button>
+            </span>
+          </div>
+        </form>
+      </div>`, "challenges": '<div class="page-head">\n        <div>\n          <p class="eyebrow">Ghostclick test bench</p>\n          <h1>Automation Challenges</h1>\n          <p>\n            Give any instruction below to Ghostclick (or do it yourself). Each challenge is graded from what actually happened in the\n            demo, such as the cart, saved settings, exports, and submitted forms, never from an agent saying it is done.\n          </p>\n        </div>\n        <div class="toolbar">\n          <button type="button" class="button" id="recheck">Check again</button>\n          <button type="button" class="button danger" id="reset">Reset demo data</button>\n        </div>\n      </div>\n\n      <section class="grid kpis" aria-label="Score">\n        <article class="card kpi"><p>Passed</p><strong id="score">0 / 0</strong></article>\n        <article class="card kpi"><p>Data</p><strong style="font-size: 16px">Seeded and identical on every reset</strong></article>\n        <article class="card kpi"><p>Last checked</p><strong id="checked" style="font-size: 16px">\u2014</strong></article>\n      </section>\n\n      <div class="chips" role="group" aria-label="Show challenges" id="filters">\n        <button type="button" class="chip" aria-pressed="true" data-filter="">All</button>\n        <button type="button" class="chip" aria-pressed="false" data-filter="Easy">Easy</button>\n        <button type="button" class="chip" aria-pressed="false" data-filter="Medium">Medium</button>\n        <button type="button" class="chip" aria-pressed="false" data-filter="Hard">Hard</button>\n        <button type="button" class="chip" aria-pressed="false" data-filter="Expert">Expert</button>\n      </div>\n\n      <section class="grid" id="list" aria-label="Challenges" aria-live="polite"></section>', "advising": '\n      <p><a href="?page=index">\u2190 Northwind Works portal</a> \xB7 <a href="?page=challenges">Automation Challenges</a></p>\n      <!-- Step 1 -->\n      <section id="step-1">\n        <header class="site">\n          <div>\n            <p class="school">Northwind College \xB7 practice portal</p>\n            <h1>Advising hold release</h1>\n          </div>\n          <p class="step">Step 1 of 2</p>\n        </header>\n        <form id="form-step-1">\n          <label>\n            Student name\n            <input id="student-name" name="studentName" autocomplete="name" required />\n          </label>\n          <label>\n            Email\n            <input id="email" name="email" type="email" autocomplete="email" required />\n          </label>\n          <label>\n            Student ID\n            <input id="student-id" name="studentId" required />\n          </label>\n          <div class="actions" id="actions">\n            <button type="submit" id="continue" data-testid="continue">Continue</button>\n          </div>\n        </form>\n        <p class="warn" id="break-banner" hidden>\n          Redesigned page. The Continue button was renamed and moved. A replay should stop and ask which control to use.\n        </p>\n        <p class="note">\n          This is a local stand-in for a campus form, served with the rest of the demo (<code>npm run demo</code> or Live Server).\n          <button type="button" class="secondary" id="break-toggle" data-ghostclick="demo">Simulate a redesigned button</button>\n        </p>\n      </section>\n\n      <!-- Step 2 -->\n      <section id="step-2" hidden>\n        <header class="site">\n          <div>\n            <p class="school">Northwind College \xB7 practice portal</p>\n            <h1>Why is the hold being released?</h1>\n          </div>\n          <p class="step">Step 2 of 2</p>\n        </header>\n        <form id="form-step-2">\n          <p id="who"></p>\n          <label>\n            Term\n            <select id="term" name="term" required>\n              <option value="">Choose a term</option>\n              <option>Fall 2026</option>\n              <option>Spring 2027</option>\n            </select>\n          </label>\n          <label>\n            Reason\n            <textarea id="reason" name="reason" required></textarea>\n          </label>\n          <div class="actions">\n            <button type="submit" id="submit-request">Submit request</button>\n          </div>\n        </form>\n      </section>\n\n      <!-- Done -->\n      <section id="step-done" hidden>\n        <header class="site">\n          <div>\n            <p class="school">Northwind College \xB7 practice portal</p>\n            <h1>Request submitted</h1>\n          </div>\n        </header>\n        <div class="card">\n          <dl id="result"></dl>\n        </div>\n        <p class="note">\n          <button type="button" class="button" id="start-over">Start another request</button>\n        </p>\n      </section>\n    ' };
+  var TITLES2 = { "index": "Dashboard \xB7 Northwind Works", "directory": "Employee Directory \xB7 Northwind Works", "employee": "Employee profile \xB7 Northwind Works", "apply": "Job Applications \xB7 Northwind Works", "inventory": "Product Inventory \xB7 Northwind Works", "product": "Product \xB7 Northwind Works", "analytics": "Analytics & Reports \xB7 Northwind Works", "settings": "Settings \xB7 Northwind Works", "challenges": "Automation Challenges \xB7 Northwind Works" };
+  var ADVISING_STYLE = '\n      :root {\n        color: #142033;\n        background: #e7eef6;\n        font: 16px/1.5 "Segoe UI", sans-serif;\n      }\n      * { box-sizing: border-box; }\n      body { margin: 0; }\n      .wrap { width: min(720px, calc(100% - 32px)); margin: 32px auto 64px; }\n      form, .card {\n        background: white;\n        border: 1px solid #d5e0ec;\n        border-radius: 18px;\n        padding: 22px;\n      }\n      header.site {\n        display: flex;\n        justify-content: space-between;\n        gap: 16px;\n        align-items: end;\n        margin-bottom: 16px;\n      }\n      .school {\n        margin: 0;\n        color: #0f4c81;\n        font-size: 13px;\n        font-weight: 700;\n        letter-spacing: 0.08em;\n        text-transform: uppercase;\n      }\n      h1 { margin: 4px 0; font-size: 32px; letter-spacing: -0.03em; }\n      .step { margin: 0; color: #526277; }\n      form { display: grid; gap: 14px; }\n      label { display: grid; gap: 6px; font-weight: 650; }\n      input, select, textarea {\n        width: 100%;\n        border: 1px solid #c5d2e0;\n        border-radius: 10px;\n        padding: 10px 12px;\n        font: inherit;\n      }\n      textarea { min-height: 110px; resize: vertical; }\n      .actions { display: flex; justify-content: flex-end; gap: 8px; }\n      button, .button {\n        border: 0;\n        border-radius: 999px;\n        padding: 10px 16px;\n        background: #0f4c81;\n        color: white;\n        font: inherit;\n        cursor: pointer;\n        text-decoration: none;\n      }\n      button.secondary { background: #d7e3f0; color: #142033; }\n      .note, .warn {\n        margin-top: 14px;\n        padding: 12px 14px;\n        border-radius: 12px;\n        background: #f4f7fb;\n        color: #526277;\n      }\n      .warn { background: #fff4e8; color: #8a4b12; }\n      dl { display: grid; grid-template-columns: 160px 1fr; gap: 8px 12px; margin: 0; }\n      dt { color: #526277; }\n      dd { margin: 0; font-weight: 650; }\n      [hidden] { display: none !important; }\n    ';
+  var BOOT = {
+    index: init,
+    directory: init2,
+    employee: init3,
+    apply: init4,
+    inventory: init5,
+    product: init6,
+    analytics: init7,
+    settings: init8,
+    challenges: init9
+  };
+  function currentPage() {
+    return new URLSearchParams(location.search).get("page") || "index";
+  }
+  function clearUi() {
+    document.querySelectorAll(".shell, .toasts, .overlay, main, .wrap, style[data-advising]").forEach((node) => node.remove());
+  }
+  function bootPage(name) {
+    if (name === "advising") {
+      bootAdvising(TEMPLATES.advising, ADVISING_STYLE);
+      return;
+    }
+    clearUi();
+    document.title = TITLES2[name] || "Northwind Works";
+    const main = document.createElement("main");
+    main.innerHTML = TEMPLATES[name] || '<p>Page not found. <a href="?page=index">Dashboard</a></p>';
+    document.body.append(main);
+    const run = BOOT[name];
+    if (run) run();
+  }
+  bootPage(currentPage());
+  window.addEventListener("popstate", () => bootPage(currentPage()));
+})();
+
+    </script>
+  </body>
+</html>
