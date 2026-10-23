@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advising hold release · Northwind College</title>
+    <style>
+      :root {
+        color: #142033;
+        background: #e7eef6;
+        font: 16px/1.5 "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      .wrap { width: min(720px, calc(100% - 32px)); margin: 32px auto 64px; }
+      form, .card {
+        background: white;
+        border: 1px solid #d5e0ec;
+        border-radius: 18px;
+        padding: 22px;
+      }
+      header.site {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: end;
+        margin-bottom: 16px;
+      }
+      .school {
+        margin: 0;
+        color: #0f4c81;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      h1 { margin: 4px 0; font-size: 32px; letter-spacing: -0.03em; }
+      .step { margin: 0; color: #526277; }
+      form { display: grid; gap: 14px; }
+      label { display: grid; gap: 6px; font-weight: 650; }
+      input, select, textarea {
+        width: 100%;
+        border: 1px solid #c5d2e0;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font: inherit;
+      }
+      textarea { min-height: 110px; resize: vertical; }
+      .actions { display: flex; justify-content: flex-end; gap: 8px; }
+      button, .button {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 16px;
+        background: #0f4c81;
+        color: white;
+        font: inherit;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      button.secondary { background: #d7e3f0; color: #142033; }
+      .note, .warn {
+        margin-top: 14px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: #f4f7fb;
+        color: #526277;
+      }
+      .warn { background: #fff4e8; color: #8a4b12; }
+      dl { display: grid; grid-template-columns: 160px 1fr; gap: 8px 12px; margin: 0; }
+      dt { color: #526277; }
+      dd { margin: 0; font-weight: 650; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <p><a href="index.html">← Northwind Works portal</a> · <a href="challenges.html">Automation Challenges</a></p>
+      <!-- Step 1 -->
+      <section id="step-1">
+        <header class="site">
+          <div>
+            <p class="school">Northwind College · practice portal</p>
+            <h1>Advising hold release</h1>
+          </div>
+          <p class="step">Step 1 of 2</p>
+        </header>
+        <form id="form-step-1">
+          <label>
+            Student name
+            <input id="student-name" name="studentName" autocomplete="name" required />
+          </label>
+          <label>
+            Email
+            <input id="email" name="email" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Student ID
+            <input id="student-id" name="studentId" required />
+          </label>
+          <div class="actions" id="actions">
+            <button type="submit" id="continue" data-testid="continue">Continue</button>
+          </div>
+        </form>
+        <p class="warn" id="break-banner" hidden>
+          Redesigned page. The Continue button was renamed and moved. A replay should stop and ask which control to use.
+        </p>
+        <p class="note">
+          This is a local stand-in for a campus form, served with the rest of the demo (<code>npm run demo</code> or Live Server).
+          <button type="button" class="secondary" id="break-toggle" data-ghostclick="demo">Simulate a redesigned button</button>
+        </p>
+      </section>
+
+      <!-- Step 2 -->
+      <section id="step-2" hidden>
+        <header class="site">
+          <div>
+            <p class="school">Northwind College · practice portal</p>
+            <h1>Why is the hold being released?</h1>
+          </div>
+          <p class="step">Step 2 of 2</p>
+        </header>
+        <form id="form-step-2">
+          <p id="who"></p>
+          <label>
+            Term
+            <select id="term" name="term" required>
+              <option value="">Choose a term</option>
+              <option>Fall 2026</option>
+              <option>Spring 2027</option>
+            </select>
+          </label>
+          <label>
+            Reason
+            <textarea id="reason" name="reason" required></textarea>
+          </label>
+          <div class="actions">
+            <button type="submit" id="submit-request">Submit request</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Done -->
+      <section id="step-done" hidden>
+        <header class="site">
+          <div>
+            <p class="school">Northwind College · practice portal</p>
+            <h1>Request submitted</h1>
+          </div>
+        </header>
+        <div class="card">
+          <dl id="result"></dl>
+        </div>
+        <p class="note">
+          <button type="button" class="button" id="start-over">Start another request</button>
+        </p>
+      </section>
+    </div>
+
+    <script>
+      const data = { studentName: '', email: '', studentId: '', term: '', reason: '' };
+      const step1 = document.querySelector('#step-1');
+      const step2 = document.querySelector('#step-2');
+      const stepDone = document.querySelector('#step-done');
+      const breakKey = 'ghostclick-demo-break';
+      const actions = document.querySelector('#actions');
+      const toggle = document.querySelector('#break-toggle');
+      const banner = document.querySelector('#break-banner');
+
+      function show(view) {
+        step1.hidden = view !== 'step-1';
+        step2.hidden = view !== 'step-2';
+        stepDone.hidden = view !== 'step-done';
+        location.hash = view;
+      }
+
+      function renderBreak() {
+        const broken = sessionStorage.getItem(breakKey) === '1';
+        toggle.textContent = broken ? 'Restore the original button' : 'Simulate a redesigned button';
+        banner.hidden = !broken;
+        actions.innerHTML = broken
+          ? '<button type="button" id="cancel-request">Cancel</button><div><button type="submit" id="next-step">Next</button></div>'
+          : '<button type="submit" id="continue" data-testid="continue">Continue</button>';
+        document.querySelector('#cancel-request')?.addEventListener('click', () => {
+          window.alert('Cancelled. The repaired step should choose Next, not Cancel.');
+        });
+      }
+
+      toggle.addEventListener('click', () => {
+        sessionStorage.setItem(breakKey, sessionStorage.getItem(breakKey) === '1' ? '0' : '1');
+        renderBreak();
+      });
+
+      document.querySelector('#form-step-1').addEventListener('submit', (event) => {
+        event.preventDefault();
+        data.studentName = document.querySelector('#student-name').value.trim();
+        data.email = document.querySelector('#email').value.trim();
+        data.studentId = document.querySelector('#student-id').value.trim();
+        document.querySelector('#who').textContent = `Request for ${data.studentName || 'this student'}.`;
+        show('step-2');
+      });
+
+      document.querySelector('#form-step-2').addEventListener('submit', (event) => {
+        event.preventDefault();
+        data.term = document.querySelector('#term').value;
+        data.reason = document.querySelector('#reason').value.trim();
+        const labels = {
+          studentName: 'Student name',
+          email: 'Email',
+          studentId: 'Student ID',
+          term: 'Term',
+          reason: 'Reason',
+        };
+        const list = document.querySelector('#result');
+        list.replaceChildren();
+        for (const [key, label] of Object.entries(labels)) {
+          const term = document.createElement('dt');
+          term.textContent = label;
+          const value = document.createElement('dd');
+          value.textContent = data[key] || '—';
+          list.append(term, value);
+        }
+        // Record the submission for the Automation Challenges verifier (it stays in this browser).
+        try {
+          const key = 'northwind-demo-v1';
+          const store = JSON.parse(localStorage.getItem(key) ?? 'null') ?? { version: 1, cart: [], orders: [], applications: [], applyDraft: null, events: [] };
+          store.events = store.events ?? [];
+          store.events.push({ type: 'advising-submitted', data: { ...data, redesigned: sessionStorage.getItem(breakKey) === '1' }, at: Date.now(), page: 'advising.html' });
+          localStorage.setItem(key, JSON.stringify(store));
+        } catch {}
+        show('step-done');
+      });
+
+      document.querySelector('#start-over').addEventListener('click', () => {
+        document.querySelector('#form-step-1').reset();
+        document.querySelector('#form-step-2').reset();
+        Object.keys(data).forEach((key) => { data[key] = ''; });
+        show('step-1');
+      });
+
+      const start = location.hash.replace('#', '');
+      show(start === 'step-2' || start === 'step-done' ? 'step-1' : 'step-1');
+      renderBreak();
+    </script>
+  </body>
+</html>

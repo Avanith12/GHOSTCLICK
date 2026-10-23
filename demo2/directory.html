@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee Directory · Northwind Works</title>
+    <link rel="stylesheet" href="assets/app.css" />
+    <script>try { const s = JSON.parse(localStorage.getItem('northwind-demo-v1')); if (s?.settings?.theme === 'dark') document.documentElement.dataset.theme = 'dark'; } catch {}</script>
+  </head>
+  <body>
+    <main>
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">People</p>
+          <h1>Employee Directory</h1>
+          <p>Search everyone at Northwind Works, filter by team, and open a profile.</p>
+        </div>
+        <div class="toolbar">
+          <button type="button" class="button" id="export-csv">Export CSV</button>
+          <button type="button" class="button" id="export-json">Export JSON</button>
+        </div>
+      </div>
+
+      <section class="card" aria-label="Directory">
+        <form class="toolbar" id="filters" role="search" aria-label="Filter employees">
+          <label class="field">
+            Search
+            <input id="search" name="q" type="search" placeholder="Name, title, or email" autocomplete="off" />
+          </label>
+          <label class="field">
+            Department
+            <select id="department" name="dept"></select>
+          </label>
+          <label class="field">
+            Location
+            <select id="location" name="location"></select>
+          </label>
+          <label class="field">
+            Sort by
+            <select id="sort" name="sort">
+              <option value="lastName">Last name</option>
+              <option value="firstName">First name</option>
+              <option value="department">Department</option>
+              <option value="title">Job title</option>
+              <option value="startDate">Start date</option>
+            </select>
+          </label>
+          <label class="field">
+            Order
+            <select id="dir" name="dir">
+              <option value="asc">A to Z / oldest first</option>
+              <option value="desc">Z to A / newest first</option>
+            </select>
+          </label>
+          <button type="button" class="button ghost" id="clear">Clear filters</button>
+        </form>
+        <p class="muted" id="count" aria-live="polite"></p>
+        <div class="table-wrap">
+          <table>
+            <caption class="visually-hidden">Employees</caption>
+            <thead>
+              <tr>
+                <th scope="col"><button type="button" class="sort" data-sort="lastName">Name</button></th>
+                <th scope="col"><button type="button" class="sort" data-sort="title">Title</button></th>
+                <th scope="col"><button type="button" class="sort" data-sort="department">Department</button></th>
+                <th scope="col">Location</th>
+                <th scope="col"><button type="button" class="sort" data-sort="startDate">Started</button></th>
+                <th scope="col">Status</th>
+                <th scope="col"><span class="visually-hidden">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <nav class="pagination" aria-label="Directory pages" id="pagination"></nav>
+      </section>
+    </main>
+    <script type="module" src="assets/pages/directory.js"></script>
+  </body>
+</html>

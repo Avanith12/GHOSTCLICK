@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard · Northwind Works</title>
+    <link rel="stylesheet" href="assets/app.css" />
+    <script>try { const s = JSON.parse(localStorage.getItem('northwind-demo-v1')); if (s?.settings?.theme === 'dark') document.documentElement.dataset.theme = 'dark'; } catch {}</script>
+  </head>
+  <body>
+    <main>
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Northwind Works</p>
+          <h1>Dashboard</h1>
+          <p>Company health at a glance for the 30 days up to 1 October 2026.</p>
+        </div>
+        <div class="toolbar">
+          <a class="button" href="analytics.html?range=30">Open Analytics</a>
+          <a class="button primary" href="challenges.html">Automation Challenges</a>
+        </div>
+      </div>
+
+      <section class="grid kpis" aria-label="Key metrics" id="kpis"></section>
+
+      <div class="grid two">
+        <section class="card" aria-labelledby="dept-chart-title">
+          <div class="card-head">
+            <h2 id="dept-chart-title">Revenue by department · last 30 days</h2>
+            <a href="analytics.html?range=30">Details</a>
+          </div>
+          <div id="dept-chart"></div>
+        </section>
+        <section class="card" aria-labelledby="activity-title">
+          <div class="card-head">
+            <h2 id="activity-title">Recent activity</h2>
+            <button type="button" class="button small ghost" id="refresh-activity">Refresh</button>
+          </div>
+          <ul class="activity" id="activity" aria-live="polite"></ul>
+        </section>
+      </div>
+
+      <section class="card" aria-labelledby="shortcuts-title">
+        <div class="card-head"><h2 id="shortcuts-title">Jump to</h2></div>
+        <div class="toolbar">
+          <a class="button" href="directory.html">Find a colleague</a>
+          <a class="button" href="apply.html">Start a job application</a>
+          <a class="button" href="inventory.html?category=Laptops">Browse laptops</a>
+          <a class="button" href="settings.html">Change settings</a>
+          <a class="button" href="advising.html">Classic advising form</a>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="assets/pages/dashboard.js"></script>
+  </body>
+</html>
