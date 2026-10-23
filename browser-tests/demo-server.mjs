@@ -9,6 +9,9 @@ const types = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
 };
 
 const server = http.createServer((request, response) => {
@@ -30,5 +33,5 @@ const server = http.createServer((request, response) => {
 });
 
 server.listen(port, '127.0.0.1', () => {
-  console.log(`Practice form: http://127.0.0.1:${port}`);
+  console.log(`Northwind Works demo: http://127.0.0.1:${port}  (classic form: /advising.html, challenges: /challenges.html)`);
 });

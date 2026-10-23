@@ -1179,3 +1179,60 @@ html[data-theme='light'] .cog-link:hover:not(:disabled) {
 html[data-theme='light'] .cog-link small {
   color: #000000 !important;
 }
+
+/* Agent: "Ask Ghostclick to Do Anything" */
+.mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.agent-model {
+  margin-top: 8px;
+}
+
+.agent-model select {
+  width: 100%;
+}
+
+.agent-status details,
+.box > summary {
+  margin-top: 8px;
+}
+
+.agent-status summary,
+.box > summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.agent-plan {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+}
+
+button.danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.agent-banner {
+  width: 100%;
+  margin-top: 10px;
+  text-align: left;
+}
+
+.step-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.step-remove {
+  padding: 2px 8px;
+  font-size: 11px;
+}

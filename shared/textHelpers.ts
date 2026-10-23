@@ -46,8 +46,8 @@ export function slug(value: string) {
 }
 
 export function stepSummary(step: WorkflowStep) {
-  if (step.kind === 'navigate') return 'Open the recorded page';
-  if (step.kind === 'fill') return `Fill ${step.label}`;
+  if (step.kind === 'navigate') return step.label || 'Open the recorded page';
+  if (step.kind === 'fill') return `Fill ${step.label}${step.pressEnter ? ' and press Enter' : ''}`;
   if (step.kind === 'check') return `Set ${step.label}`;
   if (step.kind === 'extract') return `Scrape ${step.label}`;
   if (step.kind === 'assert') return `Check the page shows “${step.expectedText ?? ''}”`;

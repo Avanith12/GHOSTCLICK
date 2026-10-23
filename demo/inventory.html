@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Product Inventory · Northwind Works</title>
+    <link rel="stylesheet" href="assets/app.css" />
+    <script>try { const s = JSON.parse(localStorage.getItem('northwind-demo-v1')); if (s?.settings?.theme === 'dark') document.documentElement.dataset.theme = 'dark'; } catch {}</script>
+  </head>
+  <body>
+    <main>
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Equipment store</p>
+          <h1>Product Inventory</h1>
+          <p>Order hardware for your team. Stock updates as items go into the cart.</p>
+        </div>
+      </div>
+
+      <section class="card" aria-label="Filters">
+        <form class="toolbar" id="filters" role="search" aria-label="Filter products">
+          <label class="field">
+            Search products
+            <input id="search" type="search" placeholder="Name or SKU" autocomplete="off" />
+          </label>
+          <label class="field">
+            Max price ($)
+            <input id="max" type="number" min="0" step="50" placeholder="Any" />
+          </label>
+          <label class="field">
+            Sort by
+            <select id="sort">
+              <option value="featured">Featured</option>
+              <option value="price-asc">Price: low to high</option>
+              <option value="price-desc">Price: high to low</option>
+              <option value="stock-desc">Quantity: most in stock</option>
+              <option value="stock-asc">Quantity: least in stock</option>
+              <option value="name">Name</option>
+            </select>
+          </label>
+          <label class="field" style="flex-direction: row; display: flex; gap: 8px; align-items: center">
+            <input id="instock" type="checkbox" /> In stock only
+          </label>
+        </form>
+        <div class="chips" role="group" aria-label="Category" id="categories" style="margin-top: 12px"></div>
+      </section>
+
+      <p class="muted" id="count" aria-live="polite"></p>
+      <section class="products" id="products" aria-label="Products"></section>
+      <div class="sentinel" id="sentinel"></div>
+      <div class="loading" id="loading" hidden><span class="spinner" aria-hidden="true"></span> Loading more products…</div>
+      <p style="text-align: center"><button type="button" class="button" id="more" hidden>Load more products</button></p>
+    </main>
+    <script type="module" src="assets/pages/inventory.js"></script>
+  </body>
+</html>

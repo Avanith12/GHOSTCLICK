@@ -284,7 +284,7 @@ try {
   }
 
   if (only.has('repair')) {
-    await open(`${demo}/`);
+    await open(`${demo}/advising.html`);
     await site.evaluate(() => sessionStorage.setItem('ghostclick-demo-break', '0'));
     await site.reload({ waitUntil: 'domcontentloaded' });
     await sleep(1500);
@@ -300,7 +300,7 @@ try {
     const workflow = saved.snapshot.workflows.find((item) => item.id === saved.id);
 
     await site.evaluate(() => sessionStorage.setItem('ghostclick-demo-break', '1'));
-    await open(`${demo}/`);
+    await open(`${demo}/advising.html`);
     await msg({ type: 'CLEAR_LOG' });
     await msg({ type: 'START_REPLAY', workflowId: workflow.id, variables: { studentname: 'Grace Hopper' } });
     const start = Date.now();

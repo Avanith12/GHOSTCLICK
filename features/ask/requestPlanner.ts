@@ -88,6 +88,10 @@ function guessValues(request: string, workflow: Workflow) {
 const LIST_HINT =
   /\b(all|every|each|any|list|lists|items?|which|ones|find|show|get|collect|scrape|extract|repos?|results?|related|about|products?|stories|articles|posts|links|rows|table|headlines)\b/i;
 
+// Questions that compare scraped rows, such as "which three are cheapest?".
+const RANKING =
+  /\b(cheapest|cheaper|lowest|least expensive|most expensive|priciest|costliest|highest|largest|biggest|smallest)\b/;
+
 export function choosePlan(model: Plan | null, rules: Plan, request: string): Plan {
   if (!model) return rules;
   if (rules.confident && (model.action !== rules.action || (rules.action === 'run' && model.workflowId !== rules.workflowId))) {
@@ -162,6 +166,9 @@ export function rulesPlan(request: string, workflows: Workflow[], hasData: boole
       confident: true,
     };
   }
+  if (hasData && (/\b(data|rows|results|table|scraped)\b/.test(text) || RANKING.test(text))) {
+    return { action: 'ask_data', question: request, reply: 'Answer from the scraped data with the local model.', source: 'rules', confident: true };
+  }
   if (
     /\b(summar|explain|describe)\w*/.test(text) ||
     /\b(what|what's|whats|who|whom|whose|where|when|why|how)\b/.test(text) ||
@@ -169,7 +176,7 @@ export function rulesPlan(request: string, workflows: Workflow[], hasData: boole
     /\?\s*$/.test(request.trim())
   ) {
     return {
-      action: hasData && /\b(data|rows|results|table)\b/.test(text) ? 'ask_data' : 'ask_page',
+      action: 'ask_page',
       question: request,
       reply: 'Answer from the page with the local model.',
       source: 'rules',

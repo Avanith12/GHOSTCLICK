@@ -379,7 +379,7 @@ if (only.has('ask')) {
     await msg({ type: 'CLEAR_RESULTS' });
     await panel.bringToFront();
     await panel.reload({ waitUntil: 'load' });
-    await panel.waitForSelector('textarea');
+    await openAsk();
     await open('https://books.toscrape.com/catalogue/category/books/mystery_3/index.html');
     await askPanel('get all the book titles and prices on this page');
     await panel.waitForFunction(() => /items match|Collected|No repeated list|cannot read/.test(document.body.innerText), { timeout: 20_000, polling: 300 });
@@ -400,7 +400,7 @@ if (only.has('find')) {
       await msg({ type: 'CLEAR_RESULTS' });
       await panel.bringToFront();
       await panel.reload({ waitUntil: 'load' });
-      await panel.waitForSelector('textarea');
+      await openAsk();
       await open(url);
       await askPanel(request);
       await panel.waitForFunction(() => /items match|Collected|No repeated list|cannot read/.test(document.body.innerText), { timeout: 20_000, polling: 300 });
@@ -413,6 +413,13 @@ if (only.has('find')) {
       note('find', `Ask: “${request}”`, state.results.rows.length > 0 || /0 of \d+/.test(result.title), `${result.title} | ${result.items.join(' ; ')}`);
     });
   }
+}
+
+// The panel opens on the home screen; the keyboard button opens Ask for typing.
+async function openAsk() {
+  await panel.waitForSelector('.key-btn');
+  await panel.click('.key-btn');
+  await panel.waitForSelector('textarea', { timeout: 5000 });
 }
 
 async function askPanel(request) {

@@ -214,6 +214,19 @@ export function setNativeValue(element: HTMLElement, value: string) {
   }
 }
 
+/** Press Enter in a field. Synthetic key events never submit a form by themselves, so submit it too. */
+export function pressEnter(element: Element) {
+  const init = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true };
+  const allowed = element.dispatchEvent(new KeyboardEvent('keydown', init));
+  element.dispatchEvent(new KeyboardEvent('keypress', init));
+  element.dispatchEvent(new KeyboardEvent('keyup', init));
+  const form = element.closest('form');
+  if (allowed && form) {
+    if (typeof form.requestSubmit === 'function') form.requestSubmit();
+    else form.submit();
+  }
+}
+
 export function clickableTarget(target: EventTarget | null) {
   if (!(target instanceof Element)) return null;
   return target.closest(

@@ -30,6 +30,8 @@ export type WorkflowStep = {
   extract?: ExtractSpec;
   expectedText?: string;
   screenshot?: string;
+  /** Press Enter after filling, for search boxes and forms that submit on Enter. */
+  pressEnter?: boolean;
 };
 
 export type Workflow = {
@@ -108,6 +110,14 @@ export type Settings = {
   screenshots: boolean;
   model: string;
   theme: 'dark' | 'light';
+  /** Most actions one agent task may take. */
+  agentMaxSteps: number;
+  /** Sites the agent may read without asking, one host per line. */
+  agentAllowed: string;
+  /** Sites the agent must never open or act on. */
+  agentBlocked: string;
+  /** Let the agent read any site it opens without asking first. */
+  agentReadAny: boolean;
   /** Animate a ghost pointer over the page while replaying workflows. */
   showGhostCursor: boolean;
 };

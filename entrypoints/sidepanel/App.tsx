@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { Candidate, Snapshot } from '@/shared/types';
 import type { Command } from './api';
+import { agent } from '@/features/agent/chromeBrowser';
+import { AgentView } from './AgentView';
 import { AskView } from './AskView';
 import { DataView } from './DataView';
 import { modelReady, suggestRepair, visionReady } from '@/features/local-ai/localModel';
@@ -19,6 +21,11 @@ export function App() {
   const [askMode, setAskMode] = useState<'voice' | 'type'>('voice');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [autoReadPdf, setAutoReadPdf] = useState(false);
+  const [askView, setAskView] = useState<'agent' | 'quick'>('agent');
+  const agentState = useSyncExternalStore(
+    (listener) => agent.subscribe(listener),
+    () => agent.state,
+  );
   const wakeTimer = useRef(0);
   const model = useModel();
 
@@ -74,6 +81,8 @@ export function App() {
     if (cogOpen) return;
     window.clearTimeout(wakeTimer.current);
     setAskMode(mode);
+    // Voice and typing from the home screen go to Quick ask, where the voice input lives.
+    setAskView('quick');
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce || mode === 'type') {
       setWaking(false);
@@ -168,6 +177,18 @@ export function App() {
       />
 
       {snap.statusText && !cogOpen && !showHome ? <p className="status">{snap.statusText}</p> : null}
+      {agentState.phase !== 'idle' && agent.running && !(showAsk && askView === 'agent') ? (
+        <button
+          type="button"
+          className="ghost agent-banner"
+          onClick={() => {
+            openPanel('ask');
+            setAskView('agent');
+          }}
+        >
+          {agentState.pending ? 'The agent needs you. Open the task' : `Agent working: ${agentState.current || 'step ' + agentState.step}`}
+        </button>
+      ) : null}
 
       {!cogOpen && snap.mode === 'recording' && snap.draft ? <RecordView snap={snap} command={command} /> : null}
       {!cogOpen && snap.mode === 'picking' ? <PickView command={command} /> : null}
@@ -218,20 +239,32 @@ export function App() {
 
       {showAsk ? (
         <>
+          <div className="mode-toggle" role="tablist" aria-label="Ask mode">
+            <button type="button" role="tab" aria-selected={askView === 'agent'} className={askView === 'agent' ? '' : 'ghost'} onClick={() => setAskView('agent')}>
+              Do anything
+            </button>
+            <button type="button" role="tab" aria-selected={askView === 'quick'} className={askView === 'quick' ? '' : 'ghost'} onClick={() => setAskView('quick')}>
+              Quick ask
+            </button>
+          </div>
           <LastRun snap={snap} command={command} />
-          <AskView
-            key={askMode}
-            snap={snap}
-            model={model}
-            command={command}
-            autoVoice={askMode === 'voice'}
-            focusType={askMode === 'type'}
-            openTab={(next, workflowId, readPdf) => {
-              setPanel(next);
-              setSelectedId(workflowId ?? null);
-              if (readPdf) setAutoReadPdf(true);
-            }}
-          />
+          {askView === 'agent' ? (
+            <AgentView snap={snap} model={model} command={command} openData={() => setPanel('data')} />
+          ) : (
+            <AskView
+              key={askMode}
+              snap={snap}
+              model={model}
+              command={command}
+              autoVoice={askMode === 'voice'}
+              focusType={askMode === 'type'}
+              openTab={(next, workflowId, readPdf) => {
+                setPanel(next);
+                setSelectedId(workflowId ?? null);
+                if (readPdf) setAutoReadPdf(true);
+              }}
+            />
+          )}
         </>
       ) : null}
 
