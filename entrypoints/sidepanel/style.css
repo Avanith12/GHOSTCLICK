@@ -414,6 +414,15 @@ label.changed input {
   text-align: left;
 }
 
+.choice.recommended {
+  border-color: var(--cyan);
+  background: rgba(92, 225, 255, 0.12);
+}
+
+.suggestion button.primary {
+  margin-top: 8px;
+}
+
 .plan,
 .suggestion,
 .box,

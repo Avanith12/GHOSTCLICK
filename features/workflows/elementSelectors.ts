@@ -171,15 +171,17 @@ export function findBySelector(selector: string) {
   }
 }
 
+/** Strong enough to trust without checking the visible label. Bare `#id` only — not `#form button`. */
+function isStrongSelector(selector: string) {
+  if (selector.startsWith('text:')) return true;
+  if (selector.includes('[name=') || selector.includes('data-testid') || selector.includes('aria-label')) return true;
+  return /^#[A-Za-z][\w-]*$/.test(selector);
+}
+
 function accepts(element: Element, selector: string, step: Pick<WorkflowStep, 'kind' | 'label'>) {
   if (step.kind !== 'click') return true;
-  const specific =
-    selector.startsWith('#') ||
-    selector.startsWith('text:') ||
-    selector.includes('[name=') ||
-    selector.includes('data-testid') ||
-    selector.includes('aria-label');
-  if (specific) return true;
+  if (isStrongSelector(selector)) return true;
+  // Weak fallbacks (form submit, css path) must still show the same label, or repair takes over.
   return cleanText(element.textContent || element.getAttribute('value')).toLowerCase() === step.label.toLowerCase();
 }
 

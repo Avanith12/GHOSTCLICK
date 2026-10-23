@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { parseModelChoice, parseNumberChoice, rankCandidates } from './selfRepair';
+import { filterRepairPool, parseModelChoice, parseNumberChoice, rankCandidates, scoreCandidate } from './selfRepair';
 import type { Candidate } from '@/shared/types';
 
-function candidate(selector: string, label: string): Candidate {
-  return { selector, label, tag: 'button', score: 0 };
+function candidate(selector: string, label: string, tag = 'button'): Candidate {
+  return { selector, label, tag, score: 0 };
 }
 
 describe('rankCandidates', () => {
@@ -16,14 +16,43 @@ describe('rankCandidates', () => {
     expect(result.auto?.selector).toBe('#continue');
   });
 
-  it('leaves a renamed button for a person to confirm', () => {
+  it('auto-picks Next when Continue was renamed and Cancel is the only other option', () => {
+    const result = rankCandidates('Continue', '#continue', [
+      candidate('#cancel-request', 'Cancel'),
+      candidate('#next-step', 'Next'),
+    ]);
+
+    expect(result.auto?.selector).toBe('#next-step');
+    expect(result.ranked.map((item) => item.label)).toEqual(['Next']);
+  });
+
+  it('asks a person when two forward actions look equally plausible', () => {
     const result = rankCandidates('Continue', '#continue', [
       candidate('#next-step', 'Next'),
-      candidate('#cancel-request', 'Cancel'),
+      candidate('#save-draft', 'Save'),
     ]);
 
     expect(result.auto).toBeNull();
-    expect(result.ranked.map((item) => item.label)).toEqual(['Next', 'Cancel']);
+    expect(result.ranked.map((item) => item.label)).toEqual(['Next', 'Save']);
+  });
+});
+
+describe('scoreCandidate', () => {
+  it('penalizes Cancel when the recording was Continue', () => {
+    expect(scoreCandidate('Continue', '#continue', candidate('#cancel', 'Cancel'))).toBeLessThan(0.2);
+    expect(scoreCandidate('Continue', '#continue', candidate('#next', 'Next'))).toBeGreaterThan(0.6);
+  });
+});
+
+describe('filterRepairPool', () => {
+  it('hides Cancel and nav chrome for a Continue repair', () => {
+    const pool = filterRepairPool('Continue', [
+      candidate('#cancel', 'Cancel'),
+      candidate('#next', 'Next'),
+      candidate('a.home', '← Northwind Works portal', 'a'),
+      candidate('a.challenges', 'Automation Challenges', 'a'),
+    ]);
+    expect(pool.map((item) => item.label)).toEqual(['Next']);
   });
 });
 
@@ -52,6 +81,7 @@ describe('parseNumberChoice', () => {
     expect(parseNumberChoice('{"number":1,"reason":"Next continues the form."}', selectors)).toEqual({
       selector: '#next-step',
       reason: 'Next continues the form.',
+      sawPage: true,
     });
   });
 

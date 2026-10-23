@@ -1,7 +1,7 @@
 import type { MLCEngine } from '@mlc-ai/web-llm';
 import { bestKeywordMatches, keywordFilter, rowWords } from '@/features/ask/keywordSearch';
 import { parseMatches, selectPassages } from '@/features/local-ai/relevance';
-import { parseModelChoice, parseNumberChoice } from '@/features/workflows/selfRepair';
+import { DESTRUCTIVE, filterRepairPool, parseModelChoice, parseNumberChoice } from '@/features/workflows/selfRepair';
 import type { HumanPrompt, Row } from '@/shared/types';
 
 export const MODELS = [
@@ -12,11 +12,13 @@ export const MODELS = [
 ];
 
 // WebLLM reserves graphics memory for the whole context window up front (about 0.75 MB per token for
-// Phi-3.5 in 32-bit), so the default 4,096 does not fit an 8 GB card. Text prompts stay under
-// ANSWER_CHARS plus 400 reply tokens; a vision prompt is a 1,921-token screenshot plus a short question.
+// Phi-3.5 in 32-bit), so the default 4,096 does not fit an 8 GB card. Dense PDF text can tokenize at
+// ~2.5–3 chars/token, so keep content short enough that system + content + question + reply fit.
 const TEXT_CONTEXT = 3072;
 const VISION_CONTEXT = 2560;
-const ANSWER_CHARS = 5000;
+/** Max characters of retrieved content sent with Ask / PDF questions (fits TEXT_CONTEXT). */
+export const ANSWER_CHARS = 4200;
+const ANSWER_REPLY_TOKENS = 400;
 
 let engine: MLCEngine | null = null;
 let loadedId = '';
@@ -186,19 +188,18 @@ Examples:
   return parseJson(text);
 }
 
-const DESTRUCTIVE = /\b(cancel|delete|remove|back|reset|clear|discard|unsubscribe|sign ?out|log ?out)\b/i;
-
 export async function suggestRepair(prompt: HumanPrompt, screenshot?: string) {
+  const pooled = filterRepairPool(prompt.step.label, prompt.candidates);
   const safe = DESTRUCTIVE.test(prompt.step.label)
-    ? prompt.candidates
-    : prompt.candidates.filter((candidate) => !DESTRUCTIVE.test(`${candidate.label} ${candidate.selector}`));
-  const candidates = safe.length ? safe : prompt.candidates;
+    ? pooled
+    : pooled.filter((candidate) => !DESTRUCTIVE.test(`${candidate.label} ${candidate.selector}`));
+  const candidates = safe.length ? safe : pooled.length ? pooled : prompt.candidates;
   if (screenshot && visionReady()) return lookForRepair(prompt, candidates, screenshot);
   const choices = candidates
     .map((candidate) => `- selector: ${candidate.selector} | label: ${candidate.label} | tag: ${candidate.tag}`)
     .join('\n');
   const text = await chat(
-    'You repair one recorded browser step. Choose exactly one selector from the list. Never choose a control that cancels, deletes, or goes back unless the recorded control did that. Reply with JSON only: {"selector":"...","reason":"short reason"}.',
+    'You repair one recorded browser step. Choose exactly one selector from the list. Prefer the control that continues the task (Next, Continue, Submit, Save). Never choose Cancel, Delete, Back, or Log out unless the recorded control did that. Reply with JSON only: {"selector":"...","reason":"short reason"}.',
     `The recorded control was "${prompt.step.label}" and its selector ${prompt.step.selector} is missing.\nChoose the control that continues the same task.\n${choices}`,
     120,
   );
@@ -312,17 +313,37 @@ export async function filterRows(filter: string, rows: Row[], onProgress?: (done
   return [...kept].sort((left, right) => left - right);
 }
 
+function isContextOverflow(error: unknown) {
+  const text = error instanceof Error ? error.message : String(error ?? '');
+  return /prompt tokens exceed context window|context window size/i.test(text);
+}
+
 export async function answer(question: string, context: string, maxChars = ANSWER_CHARS) {
-  const budget = Math.max(ANSWER_CHARS, maxChars);
-  // Pick the passages that actually bear on the question before trimming to the budget,
-  // so a long page or PDF is not answered from only its opening characters.
-  const clipped = selectPassages(question, context, budget);
-  if (!clipped) {
-    return 'No text was available to answer from. For PDFs, use Data → PDF → Read / Open a PDF file first.';
+  // Never exceed ANSWER_CHARS — callers used to pass larger PDF budgets and blow the 3072 window.
+  let budget = Math.min(ANSWER_CHARS, Math.max(1200, maxChars));
+  const system =
+    'Answer using only the provided content. Prefer concrete facts (names, dates, numbers, section titles). Quote short phrases when helpful. If the content is incomplete for the question, say what is missing instead of guessing.';
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    // Pick the passages that actually bear on the question before trimming to the budget,
+    // so a long page or PDF is not answered from only its opening characters.
+    const clipped = selectPassages(question, context, budget);
+    if (!clipped) {
+      return 'No text was available to answer from. For PDFs, use Data → PDF → Read / Open a PDF file first.';
+    }
+    try {
+      return await chat(system, `Content:\n${clipped}\n\nQuestion: ${question}`, ANSWER_REPLY_TOKENS);
+    } catch (error) {
+      if (!isContextOverflow(error) || attempt === 2) {
+        if (isContextOverflow(error)) {
+          throw new Error(
+            'This document is too long for the local model’s context window. Try a shorter question, or ask about one section at a time.',
+          );
+        }
+        throw error;
+      }
+      budget = Math.max(1000, Math.floor(budget * 0.6));
+    }
   }
-  return chat(
-    'Answer using only the provided content. Prefer concrete facts (names, dates, numbers, section titles). Quote short phrases when helpful. If the content is incomplete for the question, say what is missing instead of guessing.',
-    `Content:\n${clipped}\n\nQuestion: ${question}`,
-    500,
-  );
+  return 'Could not answer from this document.';
 }

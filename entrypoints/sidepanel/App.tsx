@@ -414,21 +414,34 @@ function RunView({ snap, model, command }: { snap: Snapshot; model: ModelState; 
               <p className="tag">{suggestion.sawPage ? 'Vision model suggests, from a screenshot' : 'Local model suggests'}</p>
               <strong>{labelFor(prompt.candidates, suggestion.selector)}</strong>
               <p>{suggestion.reason}</p>
-              <button type="button" onClick={() => void decide(true, suggestion.selector)}>
+              <button type="button" className="primary" onClick={() => void decide(true, suggestion.selector)}>
                 Use this control
               </button>
             </div>
           ) : null}
-          <p className="hint">Or pick it yourself. The numbers match the orange tags on the page:</p>
+          <p className="hint">
+            {suggestion
+              ? 'Or pick a different control. Numbers match the orange tags on the page:'
+              : 'Pick the control that should be used. Numbers match the orange tags on the page:'}
+          </p>
           <div className="choices">
-            {prompt.candidates.map((candidate, index) => (
-              <button key={candidate.selector} type="button" className="choice" onClick={() => void decide(true, candidate.selector)}>
-                <span>
-                  {index + 1}. {candidate.label}
-                </span>
-                <small>{candidate.tag}</small>
-              </button>
-            ))}
+            {prompt.candidates.map((candidate, index) => {
+              const recommended = suggestion?.selector === candidate.selector;
+              return (
+                <button
+                  key={candidate.selector}
+                  type="button"
+                  className={`choice${recommended ? ' recommended' : ''}`}
+                  onClick={() => void decide(true, candidate.selector)}
+                >
+                  <span>
+                    {index + 1}. {candidate.label}
+                    {recommended ? ' · suggested' : ''}
+                  </span>
+                  <small>{candidate.tag}</small>
+                </button>
+              );
+            })}
           </div>
           <div className="row">
             {!suggestion && !thinking ? (

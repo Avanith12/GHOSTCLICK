@@ -177,11 +177,16 @@
         const broken = sessionStorage.getItem(breakKey) === '1';
         toggle.textContent = broken ? 'Restore the original button' : 'Simulate a redesigned button';
         banner.hidden = !broken;
+        // When broken, Next must not match recorded Continue fallbacks like
+        // `#form-step-1 button[type=submit]` or `text:Continue` — otherwise repair never runs.
         actions.innerHTML = broken
-          ? '<button type="button" id="cancel-request">Cancel</button><div><button type="submit" id="next-step">Next</button></div>'
+          ? '<button type="button" id="cancel-request">Cancel</button><div><button type="button" id="next-step" class="primary-action">Next</button></div>'
           : '<button type="submit" id="continue" data-testid="continue">Continue</button>';
         document.querySelector('#cancel-request')?.addEventListener('click', () => {
           window.alert('Cancelled. The repaired step should choose Next, not Cancel.');
+        });
+        document.querySelector('#next-step')?.addEventListener('click', () => {
+          document.querySelector('#form-step-1')?.requestSubmit();
         });
       }
 

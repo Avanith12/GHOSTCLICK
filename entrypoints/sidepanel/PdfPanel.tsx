@@ -2,12 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { chunkPages, cleanRows, pdfMarkdown, relevantText, UNVERIFIED, verifyRows } from '@/features/data/pdfContent';
 import type { Row, Snapshot } from '@/shared/types';
 import { downloadText, fileName, type Command } from './api';
-import { answer, extractRows } from '@/features/local-ai/localModel';
+import { ANSWER_CHARS, answer, extractRows } from '@/features/local-ai/localModel';
 import { pdfFromFile, pdfFromUrl, type PdfDocument } from '@/features/data/loadPdf';
 import type { ModelState } from '@/features/local-ai/useLocalModel';
 
 const MAX_PARTS = 30;
-const PDF_ANSWER_CHARS = 9000;
 
 export function PdfPanel({
   snap,
@@ -125,13 +124,14 @@ export function PdfPanel({
     try {
       if (!(await needModel())) return;
       setStatus('Finding the best PDF pages for your question…');
-      const context = relevantText(chunkPages(pdf.pages), question, PDF_ANSWER_CHARS);
+      // Keep under the local model’s context window (dense form PDFs tokenize tightly).
+      const context = relevantText(chunkPages(pdf.pages), question, ANSWER_CHARS);
       if (!context.trim()) {
         setReply('No usable text chunks were found in this PDF.');
         return;
       }
       setStatus(`Asking with ${context.length.toLocaleString()} characters of PDF text…`);
-      setReply(await answer(question, context, PDF_ANSWER_CHARS));
+      setReply(await answer(question, context, ANSWER_CHARS));
       setStatus(`Answered from “${pdf.title}”. For tables of rows, use Pull out into a table instead of Ask.`);
     } catch (error) {
       setReply(error instanceof Error ? error.message : 'The model could not answer.');

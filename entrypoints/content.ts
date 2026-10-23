@@ -614,14 +614,30 @@ function buildUi(top: boolean) {
 }
 
 function candidatesFor(step: WorkflowStep) {
-  const wanted = step.kind === 'click' ? new Set(['button', 'a']) : new Set(['input', 'textarea', 'select']);
+  const wanted =
+    step.kind === 'click' ? new Set(['button', 'a', 'input']) : new Set(['input', 'textarea', 'select']);
   const recordedTag = [step.selector, ...step.fallbacks]
     .map((selector) => selector.split('>').pop()?.trim().match(/^([a-z]+)(?=[:.[#]|$)/i)?.[1]?.toLowerCase())
     .find((tag) => tag && wanted.has(tag));
-  const candidates = collectCandidates().filter((candidate) => wanted.has(candidate.tag));
-  return recordedTag
-    ? [...candidates.filter((item) => item.tag === recordedTag), ...candidates.filter((item) => item.tag !== recordedTag)]
-    : candidates;
+  let candidates = collectCandidates().filter((candidate) => {
+    if (!wanted.has(candidate.tag)) return false;
+    if (step.kind === 'click' && candidate.tag === 'input') {
+      // Keep submit/button inputs; skip text fields from the click-repair pool.
+      return /\b(submit|button)\b/i.test(candidate.selector) || /submit|button/i.test(candidate.label);
+    }
+    return true;
+  });
+  // Prefer real buttons over nav links when the recording was a button/submit.
+  if (step.kind === 'click' && (!recordedTag || recordedTag === 'button' || /submit/i.test(step.selector))) {
+    const buttons = candidates.filter((item) => item.tag === 'button' || item.tag === 'input');
+    if (buttons.length) candidates = [...buttons, ...candidates.filter((item) => item.tag === 'a')];
+  } else if (recordedTag) {
+    candidates = [
+      ...candidates.filter((item) => item.tag === recordedTag),
+      ...candidates.filter((item) => item.tag !== recordedTag),
+    ];
+  }
+  return candidates;
 }
 
 function markCandidates(candidates: Candidate[]) {
