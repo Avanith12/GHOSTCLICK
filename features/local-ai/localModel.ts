@@ -220,13 +220,16 @@ Reply with JSON only: {"number":<tag number>,"reason":"short reason"}`,
 }
 
 export async function extractRows(request: string, columns: string[], text: string) {
-  const columnRule = columns.length
-    ? `Use exactly these keys in this order: ${columns.map((column) => JSON.stringify(column)).join(', ')}.`
-    : 'Choose short, clear keys and use the same keys for every row.';
+  const keys = columns.length ? columns : ['item', 'value'];
+  const keyList = keys.map((column) => JSON.stringify(column)).join(', ');
+  const example = Object.fromEntries(keys.map((key, index) => [key, index === 0 ? '2D cancer cases' : '7351']));
   const reply = await chat(
-    `You copy information out of document text into a table. ${columnRule}
-Copy values exactly as written in the text. Use "" when a value is not in the text. Never invent rows.
-Reply with JSON only: {"rows":[{"key":"value"}]}. If nothing matches, reply {"rows":[]}.`,
+    `You copy facts from document text into a table of rows.
+Use exactly these keys in every row, in this order: ${keyList}.
+Each row is one fact or one listed item. Do not put every number into one column named "type".
+Copy values exactly as written. Use "" when missing. Never invent numbers or labels.
+Reply with JSON only shaped like: {"rows":[${JSON.stringify(example)}]}.
+If nothing matches, reply {"rows":[]}.`,
     `What to pull out: ${request}\n\nDocument text:\n${text}`,
     900,
   );
@@ -234,7 +237,14 @@ Reply with JSON only: {"rows":[{"key":"value"}]}. If nothing matches, reply {"ro
   const rows = Array.isArray(data?.rows) ? (data.rows as unknown[]) : [];
   return rows
     .filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object' && !Array.isArray(row))
-    .map((row) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, value == null ? '' : String(value)])));
+    .map((row) => {
+      const ordered = keys.map((key) => [key, row[key] == null ? '' : String(row[key])] as const);
+      // Keep any extra keys the model added, but prefer the requested shape first.
+      const extras = Object.entries(row)
+        .filter(([key]) => !keys.includes(key))
+        .map(([key, value]) => [key, value == null ? '' : String(value)] as const);
+      return Object.fromEntries([...ordered, ...extras]);
+    });
 }
 
 async function yesScore(topic: string, item: string) {

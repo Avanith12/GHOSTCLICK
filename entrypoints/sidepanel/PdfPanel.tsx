@@ -39,18 +39,19 @@ export function PdfPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRead]);
 
-  async function load(task: () => Promise<PdfDocument>) {
+  async function load(task: (onProgress: (message: string) => void) => Promise<PdfDocument>) {
     setBusy(true);
     setReply('');
     setStatus('Reading the PDF…');
     try {
-      const doc = await task();
+      const doc = await task((message) => setStatus(message));
       const characters = doc.pages.reduce((total, page) => total + page.length, 0);
       setPdf(doc);
+      const ocrNote = doc.ocrPages ? ` OCR’d ${doc.ocrPages} scanned page${doc.ocrPages === 1 ? '' : 's'}.` : '';
       setStatus(
         characters < 20
-          ? `“${doc.title}” has ${doc.pages.length} pages but almost no text. It is probably a scanned image PDF — Ghostclick cannot OCR those yet. Use a PDF with selectable text, or Open a PDF file from disk.`
-          : `Read “${doc.title}”: ${doc.pages.length} pages, ${characters.toLocaleString()} characters. Next: Ask about this PDF, or describe a table to pull out (that is how you “scrape” a PDF). Load a text model in Settings (⚙) if needed.`,
+          ? `“${doc.title}” still has almost no text after OCR.${ocrNote} Try a clearer scan, or a PDF with selectable text.`
+          : `Read “${doc.title}”: ${doc.pages.length} pages, ${characters.toLocaleString()} characters.${ocrNote} Next: Ask about this PDF, or Pull out into a table. Load a text model in Settings (⚙) if needed.`,
       );
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Could not read that PDF.');
@@ -69,7 +70,7 @@ export function PdfPanel({
       setStatus('Chrome blocks reading file:// PDF tabs. Use “Open a PDF file” below and pick it from disk.');
       return;
     }
-    await load(() => pdfFromUrl(tab.url!));
+    await load((onProgress) => pdfFromUrl(tab.url!, onProgress));
   }
 
   async function needModel() {
@@ -143,7 +144,7 @@ export function PdfPanel({
     <div className="box">
       <h2>PDF</h2>
       <p className="hint">
-        PDFs are not list-scraped. Read the PDF first, then Ask, or Pull out into a table (that is the PDF “scrape”).
+        PDFs are not list-scraped. Read first (scanned pages use on-device OCR), then Ask or Pull out into a table.
       </p>
       <div className="row">
         <button type="button" className="ghost" disabled={busy} onClick={() => void readTab()}>
@@ -157,7 +158,7 @@ export function PdfPanel({
             disabled={busy}
             onChange={(event) => {
               const file = event.target.files?.[0];
-              if (file) void load(() => pdfFromFile(file));
+              if (file) void load((onProgress) => pdfFromFile(file, onProgress));
               event.target.value = '';
             }}
           />
@@ -178,21 +179,24 @@ export function PdfPanel({
           </div>
 
           <h2>Pull out a table (PDF scrape)</h2>
+          <p className="hint">
+            Uses your local model. Fill Columns (required for good results), e.g. type, count — then describe what to extract.
+          </p>
           <label>
             What should be pulled out?
             <textarea
               rows={2}
               value={want}
-              placeholder="Every course with its code, title, and credits"
+              placeholder="Cancer case counts for 2D and 3D"
               onChange={(event) => setWant(event.target.value)}
             />
           </label>
           <label>
-            Columns (optional, comma separated)
-            <input value={columns} placeholder="code, title, credits" onChange={(event) => setColumns(event.target.value)} />
+            Columns (comma separated)
+            <input value={columns} placeholder="type, count" onChange={(event) => setColumns(event.target.value)} />
           </label>
           <div className="row">
-            <button type="button" disabled={busy || !want.trim()} onClick={() => void pullOut()}>
+            <button type="button" disabled={busy || !want.trim() || !columns.trim()} onClick={() => void pullOut()}>
               {busy ? 'Working…' : 'Pull out into a table'}
             </button>
             {busy ? (
