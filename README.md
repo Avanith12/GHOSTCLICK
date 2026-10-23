@@ -29,6 +29,23 @@ Then in Chrome:
 
 Reload any tabs that were open before you installed it.
 
+### Updating on another computer
+
+`git pull` only updates the **source code**. Chrome keeps running whatever you last **built**. On every machine:
+
+```bash
+cd GHOSTCLICK
+git pull
+npm install
+npm run build
+```
+
+Then at `chrome://extensions` → Ghostclick → **Reload**.
+
+- Always load / reload **`.output/chrome-mv3`** (not the repo root).
+- **`npm install` is required** after pulls that add packages (for example OCR / `tesseract.js`). If you skip it, `npm run build` fails with “failed to resolve import …”.
+- If the UI still looks old: remove the extension → **Load unpacked** again → pick `.output/chrome-mv3`.
+
 ### Practice form (for Workflows)
 
 The campus practice form is one file: [`demo/index.html`](demo/index.html).
