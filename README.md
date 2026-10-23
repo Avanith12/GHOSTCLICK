@@ -8,7 +8,9 @@
 
 ---
 
-Ghostclick is a Chrome extension with a local AI browser agent. Describe a task in plain words and the agent looks at the page, picks one action at a time, checks the result, and keeps going across pages and tabs until the task is done. It can also record a task you show it once and replay it with new values, scrape lists, and read PDFs.
+Ghostclick is a Chrome extension with a local AI browser agent. Describe a task in plain words and the agent looks at the page, picks one action at a time, checks the result, and keeps going across pages and tabs. It can also record a task you show it once and replay it with new values, scrape lists, and read PDFs.
+
+> **Status (23 Oct 2026).** The agent's machinery (observation, actions, tabs, approvals, Stop, saving runs as workflows) is tested end to end in Chrome. With the real local model (Phi-3.5 Mini) it reaches the goal on short, single-site tasks, slowly (about 20 seconds per step on an integrated GPU), and it does not yet reliably recognize when it is done. Record-and-replay workflows are the dependable path for repeat tasks. See [Verified results](#verified-results).
 
 The AI model ([WebLLM](https://github.com/mlc-ai/web-llm)) runs on your own graphics card. Your pages and data are never sent to a server, and no account or API key is needed. The one exception is optional voice input, which uses Chrome's speech service (see [Limits](#limits)).
 
@@ -33,6 +35,23 @@ Then in Chrome:
 
 Reload any tabs that were open before you installed it.
 
+### Updating on another computer
+
+`git pull` only updates the **source code**. Chrome keeps running whatever you last **built**. On every machine:
+
+```bash
+cd GHOSTCLICK
+git pull
+npm install
+npm run build
+```
+
+Then at `chrome://extensions` → Ghostclick → **Reload**.
+
+- Always load / reload **`.output/chrome-mv3`** (not the repo root).
+- **`npm install` is required** after pulls that add packages (for example OCR / `tesseract.js`). If you skip it, `npm run build` fails with “failed to resolve import …”.
+- If the UI still looks old: remove the extension → **Load unpacked** again → pick `.output/chrome-mv3`.
+
 ### The demo site
 
 ```bash
@@ -50,7 +69,7 @@ This serves **Northwind Works**, a fictional company app with a dashboard, emplo
 
 ## How to use it
 
-The side panel opens on a home screen. Click the ghost to open **Ask**. The **⚙ settings** button leads to **Workflows** and **Data**, the theme, and the default model.
+The side panel opens on a home screen. Click the ghost or **Voice** to speak a request, or the keyboard button (⌨) to type one; both open **Ask**. At the top of Ask, switch between **Do anything** (the agent) and **Quick ask**. The **⚙ settings** button leads to **Workflows** and **Data**, the theme, the ghost pointer shown during replays, and the default model.
 
 ### Ask → Do anything (the agent)
 
@@ -119,6 +138,14 @@ Fast, mostly rule-based answers that need no agent loop:
 - Save any article as clean Markdown
 - Read PDFs from a tab or from disk, with on-device OCR for scanned pages; ask questions or pull values into a table, with values not found in the PDF flagged
 
+## Technology
+
+- **Chrome extension, Manifest V3**, built with [WXT](https://wxt.dev): a service worker for sessions, replay, and agent status; a content script that observes and acts in pages; a React 19 side panel
+- **[WebLLM](https://github.com/mlc-ai/web-llm)** for on-device models over WebGPU, with grammar-constrained JSON output for the agent
+- **pdf.js** for PDFs and **Tesseract.js** for on-device OCR
+- **TypeScript**, **Vitest** with jsdom for unit tests, **Puppeteer** driving real Chrome for end-to-end tests
+- The demo site is plain HTML, CSS, and JavaScript modules with seeded data and no backend
+
 ## The AI model
 
 Choose a model in the **Do anything** panel or in ⚙ settings. It downloads once from Hugging Face, then runs on your graphics card through WebGPU.
@@ -130,7 +157,7 @@ Choose a model in the **Do anything** panel or in ⚙ settings. It downloads onc
 | Phi-3.5 Mini | about 2.2 GB | The strongest text model here; the first choice for agent tasks |
 | Phi-3.5 Vision | about 4 GB | Only for repairing replays from a screenshot; not used by the agent or for questions |
 
-The recommendations above follow model size and the team's earlier testing of Quick ask. The agent loop itself is verified with scripted decisions (see [Testing](#testing)); how often each model completes each challenge has not been benchmarked yet, so try your demo tasks on your own hardware first.
+Only Phi-3.5 Mini has been benchmarked on the agent (see [Verified results](#verified-results)); the other rows are guidance from model size. Measured on an Intel Arc 140V laptop GPU: first download and load 294 s, later loads from cache 12–13 s, and 15–21 s per agent step, nearly all of it spent reading the prompt.
 
 Small local models make mistakes. They sometimes pick the wrong control or stop early. The loop is built around that: every action is validated, failures are fed back, consequential steps need you, and “done” is double-checked. Long, open-ended research across many sites is still beyond what a 1.5–4 B model does reliably. Short, concrete tasks on one or two sites work best.
 
@@ -163,18 +190,49 @@ browser-tests/            Real-Chrome tests (see Testing)
 ## Testing
 
 ```bash
-npm test                                   # 98 unit tests (vitest): planner, agent loop, actions, page observation, scraping, PDFs
-npm run build
+npm test                                   # 108 unit tests (vitest): agent loop, actions, prompts, page observation, planner, scraping, PDFs
+npx tsc --noEmit -p .                      # type check
+npm run build                              # or: npx wxt zip, for a packaged .zip
 CHROME_PATH="<path to chrome>" npm run test:demo    # demo site: every page, deep links, refresh, all 13 challenges by hand, scoring
-CHROME_PATH="<path to chrome>" npm run test:agent   # the agent in real Chrome with the extension loaded (16 scenarios)
+CHROME_PATH="<path to chrome>" npm run test:agent   # the agent in real Chrome with the extension loaded (16 scenarios, scripted decisions)
+# Real-model runs (need WebGPU; the first run downloads the model, about 2 GB, into .cache/):
+CHROME_PATH="<path to chrome>" MODEL=Phi-3.5-mini-instruct-q4f16_1-MLC MAX_STEPS=12 node browser-tests/agent-bench.mjs
+CHROME_PATH="<path to chrome>" MAX_STEPS=12 node browser-tests/public-bench.mjs
 ```
 
 `test:agent` swaps the model for scripted decisions that read the real prompt, so it checks everything except the model's judgement: observation, element ids, validation, approvals, site permissions, tab switching, new-tab handling, Stop (panel and page), extraction, saving the run as a workflow, and replaying it without a model. Results are checked against the demo's own challenge grader. `test:live` (external websites) and `model-test.mjs` (real WebLLM models; needs a GPU and the model downloads) cover the older features.
 
+## Verified results
+
+Everything below was run on 23 October 2026 on a Windows laptop with an Intel Arc 140V GPU (8 GB shared) and Chrome 156.
+
+**Without a model (deterministic)**
+
+| Check | Result |
+|-------|--------|
+| Type check, production build, packaged `.zip` | pass |
+| Unit tests | 108 passed (20 skipped tests need saved copies of real websites) |
+| Demo site, every challenge done by hand and graded | 29 / 29 |
+| Agent in real Chrome with scripted decisions | 16 / 16: navigation, look-alike names and modals, a two-step form with approval, declining a consequential action, multi-page tasks, custom dropdowns and switches, a report export, extraction, recovery from bad ids, tab discovery, switching, and reading, site permissions, closing tabs only with approval, Stop in the panel and on the page, reporting an impossible task, saving the run as a workflow and replaying it with new values without a model |
+
+The scripted runs prove the machinery, not the model's judgement.
+
+**With the real model (Phi-3.5 Mini, 12-step limit, one run each)**
+
+| Challenge | Verifier | What happened | Time |
+|-----------|----------|---------------|------|
+| 1. Find a colleague | pass | Searched “Jordan Lee”, opened the right person (not a look-alike) on its 2nd action, later opened the profile in a new tab; did not send FINISH and used all 12 steps | 278 s |
+| 3. Add a product to the cart | pass (after a fix) | Picked the product search box, searched, added Lumen Air on its 4th action; then kept going until loop protection stopped it. The first run failed because a hint pointed at the people search box; that hint was fixed | 240 s |
+| 2. Turn on dark mode | fail | Toggled the top-bar theme button on and off instead of saving in Settings; loop protection stopped it | 126 s |
+
+The other 10 challenges were not run with the real model before release. Earlier real-model runs, before the fixes below, failed every attempt; they exposed and led to fixing: replies that were not one valid action (now grammar-constrained JSON), relative URLs, relevance ranking that buried the target, ignoring search boxes, and a prompt budget that cut late-page controls such as **Next page**.
+
+**Public websites (real model, read-only):** a check on books.toscrape.com, quotes.toscrape.com, and Wikipedia (navigation, reading, and switching between two tabs) was still running at release time; results will be added here. The scripted end-to-end tests above cover tab discovery, switching, reading, and extraction on the local demo site.
+
 ## Limits
 
-- The agent works in one Chrome window's tabs at a time and stops when the side panel closes
-- Small local models can choose wrong actions or give up early; per-model success rates on the challenges are not benchmarked yet
+- The agent works in one Chrome window's tabs at a time. Closing the side panel ends the run; when it reopens, Ghostclick offers to resume from the last step's checkpoint
+- With Phi-3.5 Mini the agent is slow (15–21 s per step here) and often reaches the goal without recognizing it is done: watch it and press Stop. Only 3 of the 13 challenges have been run with a real model
 - Saved agent workflows replay in one tab: tab switches become “open this page” steps
 - Captchas are never solved, passwords are never typed, and files are never chosen automatically
 - Scraping covers one page at a time (no automatic “Next page” in the Data tab; the agent can click Next itself)

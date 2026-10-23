@@ -17,7 +17,17 @@ export function WorkflowsView({
   select: (id: string | null) => void;
 }) {
   const selected = snap.workflows.find((workflow) => workflow.id === selectedId) ?? null;
-  if (selected) return <WorkflowDetail key={selected.id} workflow={selected} command={command} back={() => select(null)} />;
+  if (selected) {
+    return (
+      <WorkflowDetail
+        key={selected.id}
+        workflow={selected}
+        showGhostCursor={snap.settings.showGhostCursor !== false}
+        command={command}
+        back={() => select(null)}
+      />
+    );
+  }
 
   return (
     <section>
@@ -33,6 +43,14 @@ export function WorkflowsView({
           onChange={(event) => void command({ type: 'SET_SETTINGS', settings: { screenshots: event.target.checked } })}
         />
         While recording, save a screenshot with each new step (helps repair later)
+      </label>
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={snap.settings.showGhostCursor !== false}
+          onChange={(event) => void command({ type: 'SET_SETTINGS', settings: { showGhostCursor: event.target.checked } })}
+        />
+        Show ghost cursor while replaying
       </label>
       <h2>Saved workflows</h2>
       {snap.workflows.length === 0 ? <p>Record a task once to create the first workflow.</p> : null}
@@ -53,7 +71,17 @@ export function WorkflowsView({
   );
 }
 
-function WorkflowDetail({ workflow, command, back }: { workflow: Workflow; command: Command; back: () => void }) {
+function WorkflowDetail({
+  workflow,
+  showGhostCursor,
+  command,
+  back,
+}: {
+  workflow: Workflow;
+  showGhostCursor: boolean;
+  command: Command;
+  back: () => void;
+}) {
   const fields = workflowFields(workflow);
   const [name, setName] = useState(workflow.name);
   const [goal, setGoal] = useState(workflow.goal);
@@ -127,6 +155,14 @@ function WorkflowDetail({ workflow, command, back }: { workflow: Workflow; comma
       <label className="check">
         <input type="checkbox" checked={startHere} onChange={(event) => setStartHere(event.target.checked)} />
         Start from the tab that is already open
+      </label>
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={showGhostCursor}
+          onChange={(event) => void command({ type: 'SET_SETTINGS', settings: { showGhostCursor: event.target.checked } })}
+        />
+        Show ghost cursor while replaying
       </label>
       <div className="row">
         <button

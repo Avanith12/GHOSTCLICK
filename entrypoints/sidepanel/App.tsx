@@ -18,9 +18,10 @@ export function App() {
   const [panel, setPanel] = useState<Panel>('home');
   const [waking, setWaking] = useState(false);
   const [cogOpen, setCogOpen] = useState(false);
+  const [askMode, setAskMode] = useState<'voice' | 'type'>('voice');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [autoReadPdf, setAutoReadPdf] = useState(false);
-  const [askMode, setAskMode] = useState<'agent' | 'quick'>('agent');
+  const [askView, setAskView] = useState<'agent' | 'quick'>('agent');
   const agentState = useSyncExternalStore(
     (listener) => agent.subscribe(listener),
     () => agent.state,
@@ -76,30 +77,32 @@ export function App() {
     setPanel('home');
   }
 
-  function wakeGhost() {
+  function openAsk(mode: 'voice' | 'type') {
     if (cogOpen) return;
     window.clearTimeout(wakeTimer.current);
+    setAskMode(mode);
+    // Voice and typing from the home screen go to Quick ask, where the voice input lives.
+    setAskView('quick');
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (reduce) {
+    if (reduce || mode === 'type') {
       setWaking(false);
       setPanel('ask');
       return;
     }
-
     setWaking(true);
     wakeTimer.current = window.setTimeout(() => {
       setWaking(false);
       setPanel('ask');
-    }, 600);
+    }, 550);
   }
 
-  /** Top Ghostclick mark — home from anywhere. */
+  /** Home from anywhere. */
   function goHome() {
     window.clearTimeout(wakeTimer.current);
     setWaking(false);
     setPanel('home');
     setCogOpen(false);
+    setAskMode('voice');
   }
 
   function toggleCog() {
@@ -141,8 +144,8 @@ export function App() {
   const showData = idle && !cogOpen && panel === 'data';
 
   return (
-    <main className={showHome ? 'main-home' : ''}>
-      <header className="top-bar">
+    <main className={showHome ? 'main-home agent-shell' : ''}>
+      <header className={`top-bar${showHome ? ' top-bar-home' : ''}`}>
         <button type="button" className="wordmark" onClick={goHome} aria-label="Ghostclick home">
           <span className="wordmark-banners" data-theme-banner={snap.settings.theme === 'light' ? 'light' : 'dark'}>
             <img className="wordmark-banner banner-light" src={bannerLight} alt="Ghostclick" draggable={false} />
@@ -174,13 +177,13 @@ export function App() {
       />
 
       {snap.statusText && !cogOpen && !showHome ? <p className="status">{snap.statusText}</p> : null}
-      {agentState.phase !== 'idle' && agent.running && !(showAsk && askMode === 'agent') ? (
+      {agentState.phase !== 'idle' && agent.running && !(showAsk && askView === 'agent') ? (
         <button
           type="button"
           className="ghost agent-banner"
           onClick={() => {
             openPanel('ask');
-            setAskMode('agent');
+            setAskView('agent');
           }}
         >
           {agentState.pending ? 'The agent needs you. Open the task' : `Agent working: ${agentState.current || 'step ' + agentState.step}`}
@@ -194,43 +197,67 @@ export function App() {
       ) : null}
 
       {showHome ? (
-        <section className={`ghost-home${waking ? ' waking' : ''}`}>
+        <section className={`ghost-home agent-home${waking ? ' waking' : ''}`}>
           <div className="ghost-mist" aria-hidden="true" />
           <button
             type="button"
-            className="ghost-wake"
-            aria-label="Wake Ghostclick"
+            className="ghost-wake ghost-wake-xl"
+            aria-label="Talk to Ghostclick"
             disabled={waking}
-            onClick={wakeGhost}
+            onClick={() => openAsk('voice')}
           >
             <span className="ghost-ring" aria-hidden="true" />
             <span className="ghost-ring delay" aria-hidden="true" />
             <span className="ghost-ring delay2" aria-hidden="true" />
-            <img src={heroIcon} alt="" width={96} height={96} />
+            <img src={heroIcon} alt="" width={168} height={168} />
           </button>
-          <h1 className="ghost-title">Ghostclick</h1>
-          <p className="ghost-hint">{waking ? 'Waking…' : 'Click to ASK :)'}</p>
+          <p className="ghost-hint">{waking ? 'Listening…' : 'Click to ASK :)'}</p>
+
+          <div className="home-input-row">
+            <button type="button" className="voice-strip" onClick={() => openAsk('voice')} disabled={waking}>
+              <span className="voice-dot" aria-hidden="true" />
+              <span className="voice-wave" aria-hidden="true">
+                <i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i />
+              </span>
+              <span className="voice-label">{waking ? 'Waking…' : 'Voice'}</span>
+            </button>
+            <button
+              type="button"
+              className="ghost key-btn"
+              aria-label="Type instead"
+              title="Keyboard"
+              disabled={waking}
+              onClick={() => openAsk('type')}
+            >
+              <span className="key-glyph" aria-hidden="true">
+                ⌨
+              </span>
+            </button>
+          </div>
         </section>
       ) : null}
 
       {showAsk ? (
         <>
           <div className="mode-toggle" role="tablist" aria-label="Ask mode">
-            <button type="button" role="tab" aria-selected={askMode === 'agent'} className={askMode === 'agent' ? '' : 'ghost'} onClick={() => setAskMode('agent')}>
+            <button type="button" role="tab" aria-selected={askView === 'agent'} className={askView === 'agent' ? '' : 'ghost'} onClick={() => setAskView('agent')}>
               Do anything
             </button>
-            <button type="button" role="tab" aria-selected={askMode === 'quick'} className={askMode === 'quick' ? '' : 'ghost'} onClick={() => setAskMode('quick')}>
+            <button type="button" role="tab" aria-selected={askView === 'quick'} className={askView === 'quick' ? '' : 'ghost'} onClick={() => setAskView('quick')}>
               Quick ask
             </button>
           </div>
           <LastRun snap={snap} command={command} />
-          {askMode === 'agent' ? (
+          {askView === 'agent' ? (
             <AgentView snap={snap} model={model} command={command} openData={() => setPanel('data')} />
           ) : (
             <AskView
+              key={askMode}
               snap={snap}
               model={model}
               command={command}
+              autoVoice={askMode === 'voice'}
+              focusType={askMode === 'type'}
               openTab={(next, workflowId, readPdf) => {
                 setPanel(next);
                 setSelectedId(workflowId ?? null);

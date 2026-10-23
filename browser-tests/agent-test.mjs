@@ -142,7 +142,10 @@ await scenario('0. side panel shows the agent section and both Ask modes', async
   panel.on('pageerror', (error) => problems.push(error.message));
   // Background tabs pause animation frames, which Puppeteer's waits rely on.
   await panel.bringToFront();
-  await panel.click('.ghost-wake');
+  // The home screen's keyboard button opens Ask for typing (the ghost itself starts voice input).
+  await panel.click('.key-btn');
+  await panel.waitForSelector('::-p-text(Do anything)', { timeout: 5000 });
+  await panel.click('::-p-text(Do anything)');
   await panel.waitForSelector('::-p-text(Ask Ghostclick to Do Anything)', { timeout: 5000 });
   const controls = await panel.$$eval('button', (buttons) => buttons.map((button) => button.textContent.trim()));
   const hasModel = Boolean(await panel.$('select[aria-label="Model"]'));

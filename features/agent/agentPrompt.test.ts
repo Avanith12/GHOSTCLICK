@@ -32,7 +32,7 @@ describe('formatPage hints', () => {
   });
 
   it('says what is missing and where the search box is', () => {
-    expect(formatPage(page, 'find Jordan Lee')).toContain('Not on this page: "Jordan Lee". The search box is [3].');
+    expect(formatPage(page, 'find Jordan Lee')).toContain('Not on this page: "Jordan Lee". Search boxes: [3] "Search".');
   });
 });
 
@@ -52,11 +52,23 @@ describe('candidateActions', () => {
       '{"action":"CLICK","id":12} (button "View details for Jordan Lee")',
     ]);
     const empty = { ...page, elements: page.elements.slice(0, 2) };
-    expect(candidateActions(empty, 'find Jordan Lee')).toEqual(['{"action":"TYPE","id":10,"text":"Jordan Lee","submit":true} (search for "Jordan Lee")']);
+    expect(candidateActions(empty, 'find Jordan Lee')).toEqual(['{"action":"TYPE","id":10,"text":"Jordan Lee","submit":true} (search "Search people" for "Jordan Lee")']);
   });
 
   it('leaves out controls the agent just used', () => {
     const page = { ...base, url: 'http://x/', elements: [{ id: 5, kind: 'button' as const, label: 'Add Lumen Air to cart', inView: true }] };
     expect(candidateActions(page, 'Add a Lumen Air', ['CLICK [5] "Add Lumen Air to cart"'])).toEqual([]);
+  });
+});
+
+describe('formatPage budget', () => {
+  it('keeps the elements that fit the goal when the list is too long, in page order', () => {
+    const filler = Array.from({ length: 80 }, (_, index) => ({ id: index + 1, kind: 'link' as const, label: `Open someone's profile number ${index}`, inView: true, priority: 3 }));
+    const next = { id: 81, kind: 'button' as const, label: 'Next page', inView: false, priority: 6 };
+    const page = { url: 'http://x/', title: 'T', elements: [...filler, next], hidden: 0, text: '', problems: [], password: false, captcha: false, atBottom: false, fingerprint: 'f' };
+    const text = formatPage(page, 'open the next page');
+    expect(text).toContain('[81] button "Next page"');
+    expect(text.indexOf('[1] link')).toBeLessThan(text.indexOf('[81] button'));
+    expect(text).toMatch(/more elements not listed/);
   });
 });

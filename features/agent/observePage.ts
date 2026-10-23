@@ -218,7 +218,7 @@ export function observePage(goal: string): PageObservation {
     .sort((left, right) => left.order - right.order);
 
   registry = kept.map(({ element, kind }) => ({ element, kind, described: describeElement(element) }));
-  const elements = kept.map(({ element, kind }, index) => describe(element, index + 1, kind));
+  const elements = kept.map(({ element, kind, score }, index) => ({ ...describe(element, index + 1, kind), priority: score }));
 
   // Leave out lines that only repeat a listed control's name or are stray symbols; the model already
   // sees those in the element list.

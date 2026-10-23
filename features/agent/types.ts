@@ -64,6 +64,8 @@ export type ObservedElement = {
   formFields?: number;
   password?: boolean;
   inView: boolean;
+  /** How well it fits the goal; the prompt keeps the best ones when space runs out. Not shown to the model. */
+  priority?: number;
 };
 
 export type PageObservation = {

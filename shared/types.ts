@@ -118,6 +118,8 @@ export type Settings = {
   agentBlocked: string;
   /** Let the agent read any site it opens without asking first. */
   agentReadAny: boolean;
+  /** Animate a ghost pointer over the page while replaying workflows. */
+  showGhostCursor: boolean;
 };
 
 export type Snapshot = Session & {

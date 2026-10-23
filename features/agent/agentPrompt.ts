@@ -111,8 +111,9 @@ function termHints(page: PageObservation, goal: string) {
   const lines: string[] = [];
   if (found.length) lines.push(`Goal names on this page: ${found.join('; ')}`);
   if (missing.length) {
-    const search = page.elements.find((element) => element.kind === 'input' && /search/i.test(`${element.label} ${element.type ?? ''}`));
-    lines.push(`Not on this page: ${missing.join(', ')}.${search ? ` The search box is [${search.id}].` : ''}`);
+    const boxes = page.elements.filter((element) => element.kind === 'input' && /search/i.test(`${element.label} ${element.type ?? ''}`)).slice(0, 3);
+    const where = boxes.map((box) => `[${box.id}] "${box.label}"`).join(', ');
+    lines.push(`Not on this page: ${missing.join(', ')}.${boxes.length ? ` Search boxes: ${where}.` : ''}`);
   }
   return lines;
 }
@@ -152,8 +153,10 @@ export function candidateActions(page: PageObservation | null, goal: string, rec
     }
     const named = page.elements.some((element) => element.label.toLowerCase().includes(lower));
     if (!named && !text.includes(lower) && !page.title.toLowerCase().includes(lower)) {
-      const search = page.elements.find((element) => element.kind === 'input' && /search/i.test(`${element.label} ${element.type ?? ''}`));
-      if (search) out.push(`${JSON.stringify({ action: 'TYPE', id: search.id, text: term, submit: true })} (search for "${term}")`);
+      // Name every search box: the first one is often a site-wide box for something else (people
+      // search on a product page), and only the model can tell which fits.
+      const boxes = page.elements.filter((element) => element.kind === 'input' && /search/i.test(`${element.label} ${element.type ?? ''}`)).slice(0, 3);
+      for (const box of boxes) out.push(`${JSON.stringify({ action: 'TYPE', id: box.id, text: term, submit: true })} (search "${box.label}" for "${term}")`);
     }
   }
   return [...new Set(out)].slice(0, 4);
@@ -167,17 +170,18 @@ export function formatPage(page: PageObservation | null, goal = '') {
   if (page.password) lines.push('The page asks for a password. If you need to log in, use ASK_USER.');
   if (page.problems.length) lines.push(`Problems shown on the page: ${page.problems.join(' ; ')}`);
   lines.push('Elements:');
+  // Spend the space on the elements that fit the goal best, then list them in page order, so a
+  // relevant control near the end of a long page (a "Next page" button) is not the one cut.
   let used = 0;
-  let cut = 0;
-  for (const element of page.elements) {
-    const line = formatElement(element);
-    if (used + line.length > ELEMENT_BUDGET) {
-      cut += 1;
-      continue;
-    }
-    lines.push(line);
-    used += line.length + 1;
+  const shown = new Set<number>();
+  for (const element of [...page.elements].sort((left, right) => (right.priority ?? 0) - (left.priority ?? 0))) {
+    const length = formatElement(element).length + 1;
+    if (used + length > ELEMENT_BUDGET) continue;
+    shown.add(element.id);
+    used += length;
   }
+  const cut = page.elements.length - shown.size;
+  for (const element of page.elements) if (shown.has(element.id)) lines.push(formatElement(element));
   const more = page.hidden + cut;
   if (more) lines.push(`(${more} more elements not listed${page.atBottom ? '' : '; SCROLL to see others'})`);
   if (page.text) lines.push(`Text:\n${page.text}`);

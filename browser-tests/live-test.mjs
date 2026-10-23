@@ -415,10 +415,10 @@ if (only.has('find')) {
   }
 }
 
-// The panel opens on the home screen; clicking the ghost opens Ask.
+// The panel opens on the home screen; the keyboard button opens Ask for typing.
 async function openAsk() {
-  await panel.waitForSelector('.ghost-wake');
-  await panel.click('.ghost-wake');
+  await panel.waitForSelector('.key-btn');
+  await panel.click('.key-btn');
   await panel.waitForSelector('textarea', { timeout: 5000 });
 }
 

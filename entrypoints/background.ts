@@ -44,6 +44,7 @@ let settings: Settings = {
   agentAllowed: '',
   agentBlocked: '',
   agentReadAny: false,
+  showGhostCursor: true,
 };
 // What the side panel's agent is doing, shown in that tab's on-page bar. Not persisted: a run ends
 // when the side panel closes.
@@ -84,10 +85,12 @@ async function ensureReady() {
         ...workflow,
         goal: workflow.goal ?? '',
       }));
+      const saved = (local.settings as Partial<Settings> | undefined) ?? {};
       settings = {
         ...settings,
-        ...((local.settings as Partial<Settings> | undefined) ?? {}),
-        theme: ((local.settings as Partial<Settings> | undefined)?.theme === 'light' ? 'light' : 'dark'),
+        ...saved,
+        theme: saved.theme === 'light' ? 'light' : 'dark',
+        showGhostCursor: saved.showGhostCursor !== false,
       };
       session = { ...emptySession(), ...((stored.session as Session | undefined) ?? {}) };
       results = (stored.results as Results | undefined) ?? emptyResults();
@@ -145,6 +148,7 @@ async function handle(message: { type?: string; [key: string]: unknown }, sender
         replayIndex: session.replayIndex,
         replayTotal: currentWorkflow()?.steps.length ?? 0,
         agent: sender.tab?.id !== undefined && sender.tab.id === agent.tabId ? agent.text : '',
+        showGhostCursor: settings.showGhostCursor !== false,
       };
     case 'AGENT_STATUS':
       agent = { ...agent, tabId: typeof message.tabId === 'number' ? message.tabId : null, text: String(message.text ?? '').slice(0, 120) };

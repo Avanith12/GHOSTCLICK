@@ -14,6 +14,7 @@ const executablePath = process.env.CHROME_PATH;
 if (!executablePath) throw new Error('Set CHROME_PATH to a Chrome binary.');
 const model = process.env.MODEL ?? 'Phi-3.5-mini-instruct-q4f16_1-MLC';
 const runs = Number(process.env.RUNS ?? 1);
+const maxSteps = Number(process.env.MAX_STEPS ?? 20);
 const only = new Set((process.env.ONLY ?? '').split(',').filter(Boolean));
 const out = path.resolve(process.env.OUT ?? path.join(root, '.cache/public-results.json'));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -149,7 +150,7 @@ for (const task of TASKS) {
       await panel.evaluate(() => chrome.runtime.sendMessage({ type: 'CLEAR_RESULTS' }));
       const before = (await browser.pages()).length;
       const started = Date.now();
-      const run = await panel.evaluate(async (goal) => {
+      const run = await panel.evaluate(async (goal, maxSteps) => {
         const { agent } = window.ghostclickAgent;
         const asked = [];
         const stop = agent.subscribe((state) => {
@@ -160,13 +161,13 @@ for (const task of TASKS) {
           }
         });
         try {
-          const state = await agent.run(goal, { maxSteps: 20, readAnySite: false });
+          const state = await agent.run(goal, { maxSteps, readAnySite: false });
           agent.reset();
           return { phase: state.phase, result: state.result ?? '', error: state.error, rows: state.rows, log: state.log.map((entry) => `${entry.step}. ${entry.action} → ${entry.result}${entry.ok ? '' : ' ✗'}`), asked };
         } finally {
           stop();
         }
-      }, task.instruction);
+      }, task.instruction, maxSteps);
       const pages = await browser.pages();
       const current = await panel.evaluate(async () => (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0]?.url ?? '');
       Object.assign(result, run, {
