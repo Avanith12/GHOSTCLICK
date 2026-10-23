@@ -166,7 +166,7 @@ export function App() {
         openPanel={(next) => openPanel(next)}
       />
 
-      {snap.statusText && !cogOpen ? <p className="status">{snap.statusText}</p> : null}
+      {snap.statusText && !cogOpen && !showHome ? <p className="status">{snap.statusText}</p> : null}
 
       {!cogOpen && snap.mode === 'recording' && snap.draft ? <RecordView snap={snap} command={command} /> : null}
       {!cogOpen && snap.mode === 'picking' ? <PickView command={command} /> : null}
