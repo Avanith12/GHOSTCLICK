@@ -192,7 +192,7 @@ While developing with `npm run dev`, load **`.output/chrome-mv3-dev`** and keep 
 - Avanith Kanamarlapudi
 - Kurt Sooknanan
 - Ana Maria Fahlböck
-- Chelsea Nguyen
+- Chelsea Nguyen :)
 - Kalysha MelendezHernandez
 - Ila Lama
 
