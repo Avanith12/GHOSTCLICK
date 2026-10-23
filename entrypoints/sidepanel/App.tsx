@@ -136,56 +136,26 @@ export function App() {
 
   return (
     <main className={showHome ? 'main-home agent-shell' : ''}>
-      {!showHome ? (
-        <header className="top-bar">
-          <button type="button" className="wordmark" onClick={goHome} aria-label="Ghostclick home">
-            <span className="wordmark-banners" data-theme-banner={snap.settings.theme === 'light' ? 'light' : 'dark'}>
-              <img className="wordmark-banner banner-light" src={bannerLight} alt="Ghostclick" draggable={false} />
-              <img className="wordmark-banner banner-dark" src={bannerDark} alt="" draggable={false} />
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`ghost cog-btn${cogOpen ? ' active' : ''}`}
-            aria-label="Settings"
-            aria-expanded={cogOpen}
-            title="Settings"
-            onClick={toggleCog}
-          >
-            <span className="cog-glyph" aria-hidden="true">
-              ⚙
-            </span>
-          </button>
-        </header>
-      ) : null}
-
-      {showHome ? (
-        <div className="agent-rail">
-          <button
-            type="button"
-            className={`ghost cog-btn${cogOpen ? ' active' : ''}`}
-            aria-label="Settings"
-            aria-expanded={cogOpen}
-            title="Settings"
-            onClick={toggleCog}
-          >
-            <span className="cog-glyph" aria-hidden="true">
-              ⚙
-            </span>
-          </button>
-          <button
-            type="button"
-            className="ghost key-btn"
-            aria-label="Type instead"
-            title="Keyboard"
-            onClick={() => openAsk('type')}
-          >
-            <span className="key-glyph" aria-hidden="true">
-              ⌨
-            </span>
-          </button>
-        </div>
-      ) : null}
+      <header className={`top-bar${showHome ? ' top-bar-home' : ''}`}>
+        <button type="button" className="wordmark" onClick={goHome} aria-label="Ghostclick home">
+          <span className="wordmark-banners" data-theme-banner={snap.settings.theme === 'light' ? 'light' : 'dark'}>
+            <img className="wordmark-banner banner-light" src={bannerLight} alt="Ghostclick" draggable={false} />
+            <img className="wordmark-banner banner-dark" src={bannerDark} alt="" draggable={false} />
+          </span>
+        </button>
+        <button
+          type="button"
+          className={`ghost cog-btn${cogOpen ? ' active' : ''}`}
+          aria-label="Settings"
+          aria-expanded={cogOpen}
+          title="Settings"
+          onClick={toggleCog}
+        >
+          <span className="cog-glyph" aria-hidden="true">
+            ⚙
+          </span>
+        </button>
+      </header>
 
       <SettingsCog
         open={cogOpen}
@@ -222,13 +192,27 @@ export function App() {
           </button>
           <p className="ghost-hint">{waking ? 'Listening…' : 'Click to ASK :)'}</p>
 
-          <button type="button" className="voice-strip" onClick={() => openAsk('voice')} disabled={waking}>
-            <span className="voice-dot" aria-hidden="true" />
-            <span className="voice-wave" aria-hidden="true">
-              <i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i />
-            </span>
-            <span className="voice-label">{waking ? 'Waking…' : 'Voice'}</span>
-          </button>
+          <div className="home-input-row">
+            <button type="button" className="voice-strip" onClick={() => openAsk('voice')} disabled={waking}>
+              <span className="voice-dot" aria-hidden="true" />
+              <span className="voice-wave" aria-hidden="true">
+                <i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i />
+              </span>
+              <span className="voice-label">{waking ? 'Waking…' : 'Voice'}</span>
+            </button>
+            <button
+              type="button"
+              className="ghost key-btn"
+              aria-label="Type instead"
+              title="Keyboard"
+              disabled={waking}
+              onClick={() => openAsk('type')}
+            >
+              <span className="key-glyph" aria-hidden="true">
+                ⌨
+              </span>
+            </button>
+          </div>
         </section>
       ) : null}
 
