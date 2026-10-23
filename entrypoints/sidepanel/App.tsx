@@ -371,7 +371,16 @@ function RunView({ snap, model, command }: { snap: Snapshot; model: ModelState; 
     try {
       if (!modelReady() && !(await model.load(snap.settings.model))) return;
       const screenshot = visionReady() && snap.tabId ? await pageScreenshot(snap.tabId).catch(() => null) : null;
-      setSuggestion(await suggestRepair(prompt, screenshot ?? undefined));
+      const pick = await suggestRepair(prompt, screenshot ?? undefined);
+      setSuggestion(pick);
+      // Small redesigns: apply the model's choice automatically so replay keeps going.
+      if (pick?.selector) {
+        await new Promise((resolve) => window.setTimeout(resolve, 450));
+        void command({
+          type: 'RESOLVE_HUMAN',
+          decision: { token: prompt.token, approved: true, selector: pick.selector },
+        });
+      }
     } finally {
       setThinking(false);
     }

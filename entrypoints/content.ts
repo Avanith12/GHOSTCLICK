@@ -464,9 +464,9 @@ function buildUi(top: boolean) {
       animation: ghostclick-dot 1.4s ease-out infinite;
     }
     [data-ghostclick="hud"][data-mode="recording"] [data-ghostclick="dot"] {
-      background: #ff6b5a;
-      box-shadow: 0 0 0 0 rgba(255,107,90,.5);
-      animation-name: ghostclick-dot-rec;
+      background: #5ce1ff;
+      box-shadow: 0 0 0 0 rgba(92,225,255,.55);
+      animation-name: ghostclick-dot;
     }
     [data-ghostclick="stop"] {
       border: 0; border-radius: 999px; background: #e8f7ff; color: #0f1a20;
@@ -487,10 +487,10 @@ function buildUi(top: boolean) {
     }
     [data-ghostclick="glow"][data-mode="recording"] {
       box-shadow:
-        inset 0 0 0 3px rgba(255,107,90,.62),
-        inset 0 0 48px rgba(255,107,90,.24),
-        inset 0 0 100px rgba(255,107,90,.1);
-      animation-name: ghostclick-glow-rec;
+        inset 0 0 0 4px rgba(92,225,255,.75),
+        inset 0 0 56px rgba(92,225,255,.32),
+        inset 0 0 120px rgba(92,225,255,.14);
+      animation-name: ghostclick-glow;
     }
     [data-ghostclick="cursor"] {
       position: fixed; left: 0; top: 0; z-index: 2147483647; pointer-events: none;
