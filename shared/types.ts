@@ -108,6 +108,8 @@ export type Settings = {
   screenshots: boolean;
   model: string;
   theme: 'dark' | 'light';
+  /** Animate a ghost pointer over the page while replaying workflows. */
+  showGhostCursor: boolean;
 };
 
 export type Snapshot = Session & {

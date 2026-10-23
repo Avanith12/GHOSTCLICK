@@ -27,6 +27,7 @@ type LightState = {
   mode: SessionMode;
   replayIndex: number;
   replayTotal: number;
+  showGhostCursor?: boolean;
 };
 
 export default defineContentScript({
@@ -46,12 +47,15 @@ export default defineContentScript({
     };
     if (window === window.top) {
       document
-        .querySelectorAll('[data-ghostclick="hud"], [data-ghostclick="outline"], [data-ghostclick="marks"]')
+        .querySelectorAll(
+          '[data-ghostclick="hud"], [data-ghostclick="outline"], [data-ghostclick="marks"], [data-ghostclick="glow"], [data-ghostclick="cursor"], [data-ghostclick="style"]',
+        )
         .forEach((element) => element.remove());
     }
 
     const top = window === window.top;
     let mode: SessionMode = 'idle';
+    let showGhostCursor = true;
     let replaying = false;
     let pending: { selector: string; step: WorkflowStep; timer: number } | null = null;
     let mismatch: { index: number; since: number } | null = null;
@@ -99,7 +103,9 @@ export default defineContentScript({
       if (!state) return;
       if (mode === 'picking' && state.mode !== 'picking') endPick();
       mode = state.mode;
+      showGhostCursor = state.showGhostCursor !== false;
       ui.show(state);
+      if (mode !== 'replaying' && mode !== 'paused') ui.hideGhost();
       if (mode === 'replaying') void replayLoop();
     }
 
@@ -261,9 +267,10 @@ export default defineContentScript({
             }
             await advance(job.index);
             element.scrollIntoView({ block: 'center', inline: 'nearest' });
+            await ui.pointAt(element, showGhostCursor);
             flash(element);
             if (element instanceof HTMLElement) element.click();
-            await sleep(700);
+            await sleep(showGhostCursor ? 420 : 700);
             continue;
           }
 
@@ -271,6 +278,8 @@ export default defineContentScript({
             step.variableKey && step.variableKey in job.variables
               ? job.variables[step.variableKey]
               : (step.value ?? '');
+          element.scrollIntoView({ block: 'center', inline: 'nearest' });
+          await ui.pointAt(element, showGhostCursor);
           if (element instanceof HTMLInputElement && (element.type === 'checkbox' || element.type === 'radio')) {
             const wantOn = value !== 'off';
             if (element.checked !== wantOn) element.click();
@@ -279,10 +288,11 @@ export default defineContentScript({
           }
           flash(element);
           await advance(job.index);
-          await sleep(160);
+          await sleep(showGhostCursor ? 220 : 160);
         }
       } finally {
         replaying = false;
+        ui.hideGhost();
       }
     }
 
@@ -352,9 +362,15 @@ export default defineContentScript({
 });
 
 function buildUi(top: boolean) {
-  if (!top) {
-    return { stop: null as HTMLButtonElement | null, show: (_state: LightState) => undefined, outline: (_target: Element | null) => undefined };
-  }
+  const noop = {
+    stop: null as HTMLButtonElement | null,
+    show: (_state: LightState) => undefined,
+    outline: (_target: Element | null) => undefined,
+    pointAt: async (_target: Element, _enabled: boolean) => undefined,
+    hideGhost: () => undefined,
+  };
+  if (!top) return noop;
+
   const hud = document.createElement('div');
   hud.dataset.ghostclick = 'hud';
   hud.innerHTML = '<span data-ghostclick="dot"></span><span data-ghostclick="text"></span>';
@@ -363,34 +379,151 @@ function buildUi(top: boolean) {
   stop.dataset.ghostclick = 'stop';
   stop.textContent = 'Stop';
   hud.append(stop);
+
   const box = document.createElement('div');
   box.dataset.ghostclick = 'outline';
+
+  const glow = document.createElement('div');
+  glow.dataset.ghostclick = 'glow';
+  glow.setAttribute('aria-hidden', 'true');
+
+  const cursor = document.createElement('div');
+  cursor.dataset.ghostclick = 'cursor';
+  cursor.setAttribute('aria-hidden', 'true');
+  cursor.innerHTML = `
+    <span data-ghostclick="cursor-ring"></span>
+    <svg data-ghostclick="cursor-ghost" viewBox="0 0 64 72" width="44" height="50" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="ghostclick-soft" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="1.2" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <path filter="url(#ghostclick-soft)" fill="#f4fbff" stroke="#5ce1ff" stroke-width="2.2"
+        d="M32 6c-11.5 0-20 9-20 22v22c0 3.2 2.2 4.4 4.4 2.6 2.4-2 5.2-2 7.6 0 2.2 1.8 4.4.6 4.4-2.6V42c0-1.4 1.2-2.4 2.6-2.2 1.2.2 2 .1 3.2-1.8L48 18.4C50.6 14.2 47.4 6 32 6z"/>
+      <circle cx="24.5" cy="28" r="3.2" fill="#0b1c24"/>
+      <circle cx="36.5" cy="28" r="3.2" fill="#0b1c24"/>
+      <path d="M26 36c2.4 2.2 9.6 2.2 12 0" fill="none" stroke="#0b1c24" stroke-width="2" stroke-linecap="round"/>
+      <path d="M46 20l12 18" stroke="#5ce1ff" stroke-width="3.4" stroke-linecap="round"/>
+      <path d="M58 38l-8-2 3 8z" fill="#5ce1ff"/>
+    </svg>
+  `;
+
   const style = document.createElement('style');
+  style.dataset.ghostclick = 'style';
   style.textContent = `
     [data-ghostclick="hud"] {
       position: fixed; right: 16px; bottom: 16px; z-index: 2147483646;
       display: none; align-items: center; gap: 10px;
       max-width: min(380px, calc(100vw - 32px)); padding: 10px 12px;
-      border-radius: 999px; background: #1c1915; color: #f7f3ea;
-      font: 13px/1.3 "Segoe UI", sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      border-radius: 999px; background: #0f1a20; color: #e8f7ff;
+      font: 13px/1.3 "Segoe UI", sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      border: 1px solid rgba(92,225,255,.28);
     }
-    [data-ghostclick="dot"] { width: 8px; height: 8px; border-radius: 99px; background: #e26a3d; flex: none; }
+    [data-ghostclick="dot"] {
+      width: 8px; height: 8px; border-radius: 99px; background: #5ce1ff; flex: none;
+      box-shadow: 0 0 0 0 rgba(92,225,255,.55);
+      animation: ghostclick-dot 1.4s ease-out infinite;
+    }
+    [data-ghostclick="hud"][data-mode="recording"] [data-ghostclick="dot"] {
+      background: #ff6b5a;
+      box-shadow: 0 0 0 0 rgba(255,107,90,.5);
+      animation-name: ghostclick-dot-rec;
+    }
     [data-ghostclick="stop"] {
-      border: 0; border-radius: 999px; background: #f7f3ea; color: #1c1915;
+      border: 0; border-radius: 999px; background: #e8f7ff; color: #0f1a20;
       font: inherit; padding: 4px 10px; cursor: pointer;
     }
     [data-ghostclick="outline"] {
       position: fixed; z-index: 2147483645; pointer-events: none; display: none;
-      border: 2px solid #c4552a; background: rgba(196,85,42,.08); border-radius: 4px;
+      border: 2px solid #5ce1ff; background: rgba(92,225,255,.08); border-radius: 4px;
+    }
+    [data-ghostclick="glow"] {
+      position: fixed; inset: 0; z-index: 2147483644; pointer-events: none; display: none;
+      border-radius: 0;
+      box-shadow:
+        inset 0 0 0 3px rgba(92,225,255,.55),
+        inset 0 0 42px rgba(92,225,255,.22),
+        inset 0 0 90px rgba(92,225,255,.1);
+      animation: ghostclick-glow 1.8s ease-in-out infinite;
+    }
+    [data-ghostclick="glow"][data-mode="recording"] {
+      box-shadow:
+        inset 0 0 0 3px rgba(255,107,90,.62),
+        inset 0 0 48px rgba(255,107,90,.24),
+        inset 0 0 100px rgba(255,107,90,.1);
+      animation-name: ghostclick-glow-rec;
+    }
+    [data-ghostclick="cursor"] {
+      position: fixed; left: 0; top: 0; z-index: 2147483647; pointer-events: none;
+      width: 44px; height: 50px; margin: 0; opacity: 0;
+      transform: translate3d(-999px, -999px, 0) scale(1);
+      transition: transform 0.55s cubic-bezier(.22,.9,.28,1), opacity 0.18s ease;
+      filter: drop-shadow(0 8px 16px rgba(8,20,28,.4));
+      will-change: transform, opacity;
+    }
+    [data-ghostclick="cursor"].visible { opacity: 1; }
+    [data-ghostclick="cursor"].clicking { transform: translate3d(var(--gx), var(--gy), 0) scale(.86) !important; }
+    [data-ghostclick="cursor-ghost"] { display: block; overflow: visible; }
+    [data-ghostclick="cursor-ring"] {
+      position: absolute; left: 34px; top: 40px; width: 10px; height: 10px; border-radius: 99px;
+      border: 2px solid rgba(92,225,255,.9); opacity: 0; transform: scale(.4);
+      pointer-events: none;
+    }
+    [data-ghostclick="cursor"].clicking [data-ghostclick="cursor-ring"] {
+      animation: ghostclick-ring .42s ease-out;
+    }
+    @keyframes ghostclick-glow {
+      0%, 100% { opacity: .72; }
+      50% { opacity: 1; }
+    }
+    @keyframes ghostclick-glow-rec {
+      0%, 100% { opacity: .7; }
+      50% { opacity: 1; }
+    }
+    @keyframes ghostclick-dot {
+      0% { box-shadow: 0 0 0 0 rgba(92,225,255,.5); }
+      70% { box-shadow: 0 0 0 10px rgba(92,225,255,0); }
+      100% { box-shadow: 0 0 0 0 rgba(92,225,255,0); }
+    }
+    @keyframes ghostclick-dot-rec {
+      0% { box-shadow: 0 0 0 0 rgba(255,107,90,.5); }
+      70% { box-shadow: 0 0 0 10px rgba(255,107,90,0); }
+      100% { box-shadow: 0 0 0 0 rgba(255,107,90,0); }
+    }
+    @keyframes ghostclick-ring {
+      0% { opacity: .9; transform: scale(.35); }
+      100% { opacity: 0; transform: scale(2.4); }
     }
   `;
-  document.documentElement.append(style, box, hud);
+  document.documentElement.append(style, glow, box, cursor, hud);
   const text = hud.querySelector('[data-ghostclick="text"]');
+
+  let ghostX = window.innerWidth * 0.72;
+  let ghostY = window.innerHeight * 0.78;
+  let moving: Promise<void> = Promise.resolve();
+
+  function place(x: number, y: number, animate: boolean) {
+    ghostX = x;
+    ghostY = y;
+    cursor.style.setProperty('--gx', `${x}px`);
+    cursor.style.setProperty('--gy', `${y}px`);
+    cursor.style.transition = animate
+      ? 'transform 0.55s cubic-bezier(.22,.9,.28,1), opacity 0.18s ease'
+      : 'opacity 0.18s ease';
+    cursor.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1)`;
+  }
+
+  place(ghostX, ghostY, false);
 
   return {
     stop,
     show(state: LightState) {
-      hud.style.display = state.mode === 'idle' ? 'none' : 'flex';
+      const active = state.mode !== 'idle';
+      hud.style.display = active ? 'flex' : 'none';
+      hud.dataset.mode = state.mode;
+      glow.style.display = state.mode === 'recording' || state.mode === 'replaying' ? 'block' : 'none';
+      glow.dataset.mode = state.mode;
       if (!text) return;
       text.textContent =
         state.mode === 'recording'
@@ -416,6 +549,27 @@ function buildUi(top: boolean) {
         width: `${rect.width}px`,
         height: `${rect.height}px`,
       });
+    },
+    async pointAt(target: Element, enabled: boolean) {
+      if (!enabled) return;
+      const rect = target.getBoundingClientRect();
+      const x = Math.max(8, Math.min(window.innerWidth - 52, rect.left + rect.width / 2 - 8));
+      const y = Math.max(8, Math.min(window.innerHeight - 58, rect.top + rect.height / 2 - 10));
+      const dist = Math.hypot(x - ghostX, y - ghostY);
+      const duration = Math.max(280, Math.min(780, dist * 0.85));
+      cursor.classList.add('visible');
+      cursor.classList.remove('clicking');
+      cursor.style.transition = `transform ${duration}ms cubic-bezier(.22,.9,.28,1), opacity 0.18s ease`;
+      place(x, y, true);
+      moving = sleep(duration + 40);
+      await moving;
+      cursor.classList.add('clicking');
+      await sleep(160);
+      cursor.classList.remove('clicking');
+      await sleep(80);
+    },
+    hideGhost() {
+      cursor.classList.remove('visible', 'clicking');
     },
   };
 }

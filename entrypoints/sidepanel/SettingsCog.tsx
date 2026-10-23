@@ -70,6 +70,19 @@ export function SettingsCog({
           Theme
           <small>{snap.settings.theme === 'light' ? 'Light' : 'Dark'}</small>
         </button>
+        <button
+          type="button"
+          className="cog-link"
+          onClick={() => {
+            void command({
+              type: 'SET_SETTINGS',
+              settings: { showGhostCursor: !(snap.settings.showGhostCursor !== false) },
+            });
+          }}
+        >
+          Ghost cursor
+          <small>{snap.settings.showGhostCursor !== false ? 'On' : 'Off'}</small>
+        </button>
       </div>
 
       <div className="cog-section">

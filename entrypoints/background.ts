@@ -36,7 +36,12 @@ const emptyResults = (): Results => ({ columns: [], rows: [], source: '' });
 let session = emptySession();
 let workflows: Workflow[] = [];
 let results = emptyResults();
-let settings: Settings = { screenshots: false, model: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', theme: 'dark' };
+let settings: Settings = {
+  screenshots: false,
+  model: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
+  theme: 'dark',
+  showGhostCursor: true,
+};
 let ready: Promise<void> | null = null;
 let writing: Promise<void> = Promise.resolve();
 
@@ -64,10 +69,12 @@ async function ensureReady() {
         ...workflow,
         goal: workflow.goal ?? '',
       }));
+      const saved = (local.settings as Partial<Settings> | undefined) ?? {};
       settings = {
         ...settings,
-        ...((local.settings as Partial<Settings> | undefined) ?? {}),
-        theme: ((local.settings as Partial<Settings> | undefined)?.theme === 'light' ? 'light' : 'dark'),
+        ...saved,
+        theme: saved.theme === 'light' ? 'light' : 'dark',
+        showGhostCursor: saved.showGhostCursor !== false,
       };
       session = { ...emptySession(), ...((stored.session as Session | undefined) ?? {}) };
       results = (stored.results as Results | undefined) ?? emptyResults();
@@ -124,6 +131,7 @@ async function handle(message: { type?: string; [key: string]: unknown }, sender
         mode: sender.tab?.id === session.tabId ? session.mode : 'idle',
         replayIndex: session.replayIndex,
         replayTotal: currentWorkflow()?.steps.length ?? 0,
+        showGhostCursor: settings.showGhostCursor !== false,
       };
     case 'START_RECORDING':
       return startRecording(String(message.name ?? ''), String(message.goal ?? ''));
