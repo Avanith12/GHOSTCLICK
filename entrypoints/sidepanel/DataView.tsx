@@ -33,6 +33,19 @@ export function DataView({
   ];
   const host = source ? safeHost(source) : 'ghostclick';
 
+  async function scrapeList() {
+    setNote('');
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const url = tab?.url ?? '';
+    if (/^file:/i.test(url) || /\.pdf(\?|#|$)/i.test(url) || /\/pdf(\?|#|$)/i.test(url)) {
+      setNote(
+        'This looks like a PDF tab. “Scrape a list” is for web pages. Use PDF below: Read / Open a PDF file, then Ask or Pull out into a table.',
+      );
+      return;
+    }
+    await command({ type: 'START_PICK' });
+  }
+
   async function savePage() {
     setNote('');
     try {
@@ -61,14 +74,16 @@ export function DataView({
   return (
     <section>
       <div className="row">
-        <button type="button" onClick={() => void command({ type: 'START_PICK' })}>
+        <button type="button" onClick={() => void scrapeList()}>
           Scrape a list on this page
         </button>
         <button type="button" className="ghost" onClick={() => void savePage()}>
           Save page as document
         </button>
       </div>
-      <p className="hint">Scrape: click one item in a repeated list or table, and Ghostclick finds the rest.</p>
+      <p className="hint">
+        Web pages: scrape a repeated list/table. PDFs: use the PDF section below (Read → Ask or Pull out into a table).
+      </p>
       {note ? <p className="status">{note}</p> : null}
       <PdfPanel snap={snap} model={model} command={command} autoRead={autoReadPdf} onAutoReadDone={onAutoReadDone} />
 

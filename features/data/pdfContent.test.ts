@@ -41,6 +41,15 @@ describe('verifyRows', () => {
 
 describe('relevantText', () => {
   it('prefers chunks that mention the question words', () => {
-    expect(relevantText(['alpha beta', 'refund policy details'], 'What is the refund policy?', 20)).toContain('refund');
+    expect(relevantText(['alpha beta', 'refund policy details'], 'What is the refund policy?', 40)).toContain('refund');
+  });
+
+  it('keeps early pages for summary questions', () => {
+    const text = relevantText(
+      ['[Page 1]\nAbstract: transformers for translation', '[Page 2]\nunrelated appendix', '[Page 3]\nmore noise'],
+      'Summarize this paper',
+      80,
+    );
+    expect(text).toContain('Abstract');
   });
 });

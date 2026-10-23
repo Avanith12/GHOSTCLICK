@@ -6,7 +6,8 @@ import { answer, extractRows } from '@/features/local-ai/localModel';
 import { pdfFromFile, pdfFromUrl, type PdfDocument } from '@/features/data/loadPdf';
 import type { ModelState } from '@/features/local-ai/useLocalModel';
 
-const MAX_PARTS = 20;
+const MAX_PARTS = 30;
+const PDF_ANSWER_CHARS = 9000;
 
 export function PdfPanel({
   snap,
@@ -34,7 +35,7 @@ export function PdfPanel({
     if (!autoRead) return;
     onAutoReadDone();
     void readTab();
-    // Run once when the Ask tab hands off a PDF request.
+    // Run once when Ask hands off a PDF request.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRead]);
 
@@ -48,8 +49,8 @@ export function PdfPanel({
       setPdf(doc);
       setStatus(
         characters < 20
-          ? `“${doc.title}” has ${doc.pages.length} pages but almost no text. It is probably a scanned image PDF — Ghostclick cannot OCR those yet. Use a PDF that contains selectable text.`
-          : `Read “${doc.title}”: ${doc.pages.length} pages, ${characters.toLocaleString()} characters. Load a local model below to ask questions or pull out a table.`,
+          ? `“${doc.title}” has ${doc.pages.length} pages but almost no text. It is probably a scanned image PDF — Ghostclick cannot OCR those yet. Use a PDF with selectable text, or Open a PDF file from disk.`
+          : `Read “${doc.title}”: ${doc.pages.length} pages, ${characters.toLocaleString()} characters. Next: Ask about this PDF, or describe a table to pull out (that is how you “scrape” a PDF). Load a text model in Settings (⚙) if needed.`,
       );
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Could not read that PDF.');
@@ -62,6 +63,10 @@ export function PdfPanel({
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     if (!tab?.url) {
       setStatus('Open the PDF in a tab first.');
+      return;
+    }
+    if (/^file:/i.test(tab.url)) {
+      setStatus('Chrome blocks reading file:// PDF tabs. Use “Open a PDF file” below and pick it from disk.');
       return;
     }
     await load(() => pdfFromUrl(tab.url!));
@@ -85,7 +90,7 @@ export function PdfPanel({
       const collected: Row[] = [];
       for (let index = 0; index < parts.length; index += 1) {
         if (cancelled.current) break;
-        setStatus(`Reading part ${index + 1} of ${parts.length}…`);
+        setStatus(`Pulling table · part ${index + 1} of ${parts.length}…`);
         const rows = await extractRows(want, keys, parts[index] ?? '');
         if (!keys.length && rows[0]) keys = Object.keys(rows[0]);
         collected.push(...rows);
@@ -118,7 +123,15 @@ export function PdfPanel({
     setReply('');
     try {
       if (!(await needModel())) return;
-      setReply(await answer(question, relevantText(chunkPages(pdf.pages), question)));
+      setStatus('Finding the best PDF pages for your question…');
+      const context = relevantText(chunkPages(pdf.pages), question, PDF_ANSWER_CHARS);
+      if (!context.trim()) {
+        setReply('No usable text chunks were found in this PDF.');
+        return;
+      }
+      setStatus(`Asking with ${context.length.toLocaleString()} characters of PDF text…`);
+      setReply(await answer(question, context, PDF_ANSWER_CHARS));
+      setStatus(`Answered from “${pdf.title}”. For tables of rows, use Pull out into a table instead of Ask.`);
     } catch (error) {
       setReply(error instanceof Error ? error.message : 'The model could not answer.');
     } finally {
@@ -129,6 +142,9 @@ export function PdfPanel({
   return (
     <div className="box">
       <h2>PDF</h2>
+      <p className="hint">
+        PDFs are not list-scraped. Read the PDF first, then Ask, or Pull out into a table (that is the PDF “scrape”).
+      </p>
       <div className="row">
         <button type="button" className="ghost" disabled={busy} onClick={() => void readTab()}>
           Read the PDF in this tab
@@ -161,6 +177,7 @@ export function PdfPanel({
             </button>
           </div>
 
+          <h2>Pull out a table (PDF scrape)</h2>
           <label>
             What should be pulled out?
             <textarea
@@ -185,9 +202,15 @@ export function PdfPanel({
             ) : null}
           </div>
 
+          <h2>Ask about this PDF</h2>
           <label>
-            Ask about this PDF
-            <textarea rows={2} value={question} placeholder="When is the deadline?" onChange={(event) => setQuestion(event.target.value)} />
+            Question
+            <textarea
+              rows={2}
+              value={question}
+              placeholder="Summarize the abstract. What is the deadline?"
+              onChange={(event) => setQuestion(event.target.value)}
+            />
           </label>
           <button type="button" className="ghost" disabled={busy || !question.trim()} onClick={() => void ask()}>
             Ask the local model

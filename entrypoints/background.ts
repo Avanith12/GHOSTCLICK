@@ -197,6 +197,9 @@ async function handle(message: { type?: string; [key: string]: unknown }, sender
         await persist();
       }
       return { ok: true };
+    case 'VOICE_TRANSCRIPT':
+      // Side panel listens for this; background only acknowledges.
+      return { ok: true };
     default:
       return { ok: false, error: 'Unknown message' };
   }

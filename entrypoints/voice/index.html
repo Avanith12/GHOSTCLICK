@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ghostclick Voice</title>
+    <style>
+      :root {
+        color: #e8fbff;
+        background: #05080f;
+        font: 14px/1.45 system-ui, sans-serif;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background:
+          radial-gradient(80% 60% at 50% 0%, rgba(92, 225, 255, 0.16), transparent 55%),
+          #05080f;
+      }
+      .card {
+        width: min(100%, 320px);
+        text-align: center;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        letter-spacing: -0.03em;
+      }
+      #status {
+        margin: 0 0 14px;
+        color: #7aa8b8;
+        min-height: 2.8em;
+      }
+      #status.live {
+        color: #5ce1ff;
+      }
+      #status.err {
+        color: #ff6b7a;
+      }
+      button {
+        border: 1px solid #2a5566;
+        border-radius: 4px;
+        background: transparent;
+        color: #5ce1ff;
+        padding: 8px 14px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:hover {
+        background: rgba(92, 225, 255, 0.08);
+      }
+      .pulse {
+        width: 14px;
+        height: 14px;
+        margin: 0 auto 12px;
+        border-radius: 50%;
+        background: #5ce1ff;
+        box-shadow: 0 0 0 0 rgba(92, 225, 255, 0.5);
+        animation: pulse 1.4s ease-out infinite;
+      }
+      .pulse.off {
+        background: #2a5566;
+        animation: none;
+      }
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(92, 225, 255, 0.45);
+        }
+        70% {
+          box-shadow: 0 0 0 12px rgba(92, 225, 255, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(92, 225, 255, 0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div id="dot" class="pulse off" aria-hidden="true"></div>
+      <h1>Ghostclick Voice</h1>
+      <p id="status">Starting microphone…</p>
+      <button type="button" id="done">Done</button>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -26,6 +26,14 @@ export function WorkflowsView({
           Record this page
         </button>
       </div>
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={snap.settings.screenshots}
+          onChange={(event) => void command({ type: 'SET_SETTINGS', settings: { screenshots: event.target.checked } })}
+        />
+        While recording, save a screenshot with each new step (helps repair later)
+      </label>
       <h2>Saved workflows</h2>
       {snap.workflows.length === 0 ? <p>Record a task once to create the first workflow.</p> : null}
       <ul className="workflows">

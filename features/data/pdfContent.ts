@@ -85,20 +85,59 @@ export function verifyRows(rows: Row[], source: string) {
 }
 
 export function relevantText(chunks: string[], question: string, limit = 5000) {
-  const words = new Set(question.toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length > 2));
-  const ranked = chunks
-    .map((chunk, index) => {
-      const lower = chunk.toLowerCase();
-      let score = 0;
-      for (const word of words) if (lower.includes(word)) score += 1;
-      return { chunk, index, score };
-    })
-    .sort((left, right) => right.score - left.score || left.index - right.index);
-  let text = '';
+  if (!chunks.length) return '';
+  const lowerQuestion = question.toLowerCase();
+  const overview = /\b(summar(?:y|ise|ize)|overview|abstract|tl;?dr|main (?:idea|points)|what is this|about this)\b/i.test(
+    question,
+  );
+  const words = [...new Set(lowerQuestion.split(/[^a-z0-9]+/).filter((word) => word.length > 2))];
+  const ranked = chunks.map((chunk, index) => {
+    const lower = chunk.toLowerCase();
+    let score = 0;
+    for (const word of words) {
+      if (!lower.includes(word)) continue;
+      // Prefer rarer / longer matches so “deadline” beats “the”.
+      score += Math.min(3, 1 + Math.floor(word.length / 4));
+      const hits = lower.split(word).length - 1;
+      if (hits > 1) score += Math.min(2, hits - 1);
+    }
+    // Keep early pages in play for overviews and short docs.
+    if (overview && index < 2) score += 8;
+    else if (index === 0) score += 1;
+    return { chunk, index, score };
+  });
+  ranked.sort((left, right) => right.score - left.score || left.index - right.index);
+
+  const picked = new Set<number>();
+  const order: number[] = [];
+  const take = (index: number) => {
+    if (index < 0 || index >= chunks.length || picked.has(index)) return;
+    picked.add(index);
+    order.push(index);
+  };
+
+  // Always seed with the best hit (or page 1 for overviews).
+  if (overview) take(0);
   for (const item of ranked) {
-    if (!text && item.chunk.length > limit) return item.chunk.slice(0, limit);
-    if (text.length + item.chunk.length > limit) break;
-    text += `${item.chunk}\n\n`;
+    if (order.length >= chunks.length) break;
+    take(item.index);
+    // Pull a neighbor so answers keep surrounding sentences.
+    if (item.score > 0) {
+      take(item.index - 1);
+      take(item.index + 1);
+    }
   }
-  return text;
+  if (!order.length) take(0);
+
+  let text = '';
+  for (const index of order) {
+    const chunk = chunks[index] ?? '';
+    if (!text && chunk.length > limit) return chunk.slice(0, limit);
+    if (text.length + chunk.length + 2 > limit) {
+      if (!text) return chunk.slice(0, limit);
+      break;
+    }
+    text += `${chunk}\n\n`;
+  }
+  return text.trim();
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { bestKeywordMatches, rowTitle } from '@/features/ask/keywordSearch';
 import { choosePlan, rulesPlan, validatePlan, workflowFields, type Plan } from '@/features/ask/requestPlanner';
 import { dataContext } from '@/features/data/sortRowsForQuestion';
@@ -8,15 +8,6 @@ import { answer, filterRows, planTask, textModelReady, visionReady } from '@/fea
 import type { ModelState } from '@/features/local-ai/useLocalModel';
 
 type Found = { total: number; kept: Row[]; filter: string; byModel: boolean };
-
-const EXAMPLES = [
-  'Clear the advising hold for Grace Hopper, ID 55667788, grace@navy.mil',
-  'Get every item on this page',
-  'Find the items on this page related to AI',
-  'Save this page as a clean document',
-  'Summarize this page',
-  'Read the PDF in this tab',
-];
 
 export function AskView({
   snap,
@@ -38,6 +29,84 @@ export function AskView({
   const [error, setError] = useState('');
   const [found, setFound] = useState<Found | null>(null);
   const [progress, setProgress] = useState('');
+  const [listening, setListening] = useState(false);
+  const [voiceNote, setVoiceNote] = useState('');
+  const voiceWindowId = useRef<number | null>(null);
+
+  useEffect(() => {
+    const onMessage = (message: { type?: string; text?: string; final?: boolean }) => {
+      if (message.type !== 'VOICE_TRANSCRIPT' || typeof message.text !== 'string') return;
+      setRequest(message.text);
+      setListening(true);
+      setVoiceNote('Listening in the Voice window…');
+      if (message.final) {
+        setListening(false);
+        setVoiceNote('');
+        voiceWindowId.current = null;
+      }
+    };
+    const onRemoved = (id: number) => {
+      if (voiceWindowId.current === id) {
+        voiceWindowId.current = null;
+        setListening(false);
+        setVoiceNote('');
+      }
+    };
+    chrome.runtime.onMessage.addListener(onMessage);
+    chrome.windows.onRemoved.addListener(onRemoved);
+    return () => {
+      chrome.runtime.onMessage.removeListener(onMessage);
+      chrome.windows.onRemoved.removeListener(onRemoved);
+    };
+  }, []);
+
+  async function beginListen() {
+    setVoiceNote('');
+    try {
+      if (voiceWindowId.current != null) {
+        try {
+          await chrome.windows.update(voiceWindowId.current, { focused: true });
+          setListening(true);
+          setVoiceNote('Listening in the Voice window…');
+          return;
+        } catch {
+          voiceWindowId.current = null;
+        }
+      }
+      const win = await chrome.windows.create({
+        url: chrome.runtime.getURL('voice.html'),
+        type: 'popup',
+        width: 380,
+        height: 240,
+        focused: true,
+      });
+      if (!win?.id) {
+        setListening(false);
+        setVoiceNote('Could not open Voice. Type instead, or try again.');
+        return;
+      }
+      voiceWindowId.current = win.id;
+      setListening(true);
+      setVoiceNote('Speak in the small Voice window. Allow the mic if Chrome asks.');
+    } catch {
+      setListening(false);
+      setVoiceNote('Could not open Voice. Type instead, or try again.');
+    }
+  }
+
+  async function stopListening() {
+    const id = voiceWindowId.current;
+    voiceWindowId.current = null;
+    setListening(false);
+    setVoiceNote('');
+    if (id != null) {
+      try {
+        await chrome.windows.remove(id);
+      } catch {
+        /* already closed */
+      }
+    }
+  }
 
   async function makePlan(text = request) {
     if (!text.trim()) return;
@@ -67,7 +136,7 @@ export function AskView({
         // Recording belongs in Workflows, not Ask.
         setPlan(null);
         openTab('workflows');
-        setReply('Recording lives in the Workflows tab. Show the task once there and Ghostclick will remember it.');
+        setReply('Recording lives in Workflows. Open it from the settings cog, show the task once, and Ghostclick will remember it.');
       } else if (next.action === 'run') {
         setPlan(next);
         const workflow = snap.workflows.find((item) => item.id === next?.workflowId);
@@ -150,7 +219,7 @@ export function AskView({
       } else if (current.action === 'record') {
         setPlan(null);
         openTab('workflows');
-        setReply('Recording lives in the Workflows tab. Show the task once there and Ghostclick will remember it.');
+        setReply('Recording lives in Workflows. Open it from the settings cog, show the task once, and Ghostclick will remember it.');
       }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : 'That did not work.');
@@ -170,46 +239,49 @@ export function AskView({
   const fields = workflow ? workflowFields(workflow) : [];
 
   return (
-    <section>
+    <section className="ask-panel">
       <label>
-        What should Ghostclick do?
+        Tell Ghostclick what to do
         <textarea
           value={request}
-          rows={3}
-          placeholder="Describe the task in your own words, then press Enter"
+          rows={4}
+          placeholder={listening ? 'Listening…' : 'Speak or type, then press Enter'}
           onChange={(event) => setRequest(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault();
+              if (listening) void stopListening();
               if (!busy) void makePlan();
             }
           }}
         />
       </label>
       <div className="row">
-        <button type="button" disabled={busy || !request.trim()} onClick={() => void makePlan()}>
+        <button
+          type="button"
+          className={`ghost mic-btn${listening ? ' mic-live' : ''}`}
+          aria-pressed={listening}
+          onClick={() => (listening ? void stopListening() : void beginListen())}
+        >
+          {listening ? 'Stop' : 'Voice'}
+        </button>
+        <button
+          type="button"
+          disabled={busy || !request.trim()}
+          onClick={() => {
+            if (listening) void stopListening();
+            void makePlan();
+          }}
+        >
           {busy && !plan ? 'Working…' : 'Go'}
         </button>
       </div>
-      <div className="chips">
-        {EXAMPLES.map((example) => (
-          <button
-            key={example}
-            type="button"
-            className="chip"
-            onClick={() => {
-              setRequest(example);
-              void makePlan(example);
-            }}
-          >
-            {example}
-          </button>
-        ))}
-      </div>
+      {listening ? <p className="status listen-status">Listening…</p> : null}
+      {voiceNote ? <p className="hint">{voiceNote}</p> : null}
       {visionReady() ? (
-        <p className="hint">Phi-3.5 Vision is loaded for repairing replays. Load Phi-3.5 Mini below for questions and summaries.</p>
+        <p className="hint">Phi-3.5 Vision is ready for replay repairs. Load a text model in settings for questions.</p>
       ) : !textModelReady() ? (
-        <p className="hint">Simple requests work without AI. Summaries and questions load the model below.</p>
+        <p className="hint">Simple requests work now. Summaries use the default model in settings.</p>
       ) : null}
 
       {plan ? (

@@ -281,10 +281,14 @@ export async function filterRows(filter: string, rows: Row[], onProgress?: (done
   return [...kept].sort((left, right) => left - right);
 }
 
-export async function answer(question: string, context: string) {
+export async function answer(question: string, context: string, maxChars = ANSWER_CHARS) {
+  const clipped = context.trim().slice(0, Math.max(ANSWER_CHARS, maxChars));
+  if (!clipped) {
+    return 'No text was available to answer from. For PDFs, use Data → PDF → Read / Open a PDF file first (scanned image PDFs cannot be read yet).';
+  }
   return chat(
-    'Answer using only the provided content. Be brief and concrete. If the content does not contain the answer, say so.',
-    `Content:\n${context.slice(0, ANSWER_CHARS)}\n\nQuestion: ${question}`,
-    400,
+    'Answer using only the provided content. Prefer concrete facts (names, dates, numbers, section titles). Quote short phrases when helpful. If the content is incomplete for the question, say what is missing instead of guessing.',
+    `Content:\n${clipped}\n\nQuestion: ${question}`,
+    500,
   );
 }

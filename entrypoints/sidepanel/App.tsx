@@ -3,18 +3,22 @@ import type { Candidate, Snapshot } from '@/shared/types';
 import type { Command } from './api';
 import { AskView } from './AskView';
 import { DataView } from './DataView';
-import { MODELS, modelReady, suggestRepair, visionReady } from '@/features/local-ai/localModel';
+import { modelReady, suggestRepair, visionReady } from '@/features/local-ai/localModel';
 import { pageScreenshot } from '@/features/local-ai/pageScreenshot';
 import { useModel, type ModelState } from '@/features/local-ai/useLocalModel';
+import { SettingsCog } from './SettingsCog';
 import { StepList, WorkflowsView } from './WorkflowsView';
 
-type Tab = 'ask' | 'workflows' | 'data';
+type Panel = 'home' | 'ask' | 'workflows' | 'data';
 
 export function App() {
   const [snap, setSnap] = useState<Snapshot | null>(null);
-  const [tab, setTab] = useState<Tab>('ask');
+  const [panel, setPanel] = useState<Panel>('home');
+  const [waking, setWaking] = useState(false);
+  const [cogOpen, setCogOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [autoReadPdf, setAutoReadPdf] = useState(false);
+  const wakeTimer = useRef(0);
   const model = useModel();
 
   useEffect(() => {
@@ -28,6 +32,7 @@ export function App() {
     return () => {
       stop = true;
       window.clearInterval(timer);
+      window.clearTimeout(wakeTimer.current);
     };
   }, []);
 
@@ -36,7 +41,8 @@ export function App() {
     if (response?.snapshot) setSnap(response.snapshot as Snapshot);
     if (response?.id) {
       setSelectedId(String(response.id));
-      setTab('workflows');
+      setPanel('workflows');
+      setCogOpen(false);
     }
     return response;
   };
@@ -46,8 +52,64 @@ export function App() {
     document.documentElement.dataset.theme = theme;
   }, [snap?.settings?.theme]);
 
+  /** Workflows / Data from settings — leave settings and stay on that screen. */
+  function openPanel(next: Panel) {
+    window.clearTimeout(wakeTimer.current);
+    setWaking(false);
+    setCogOpen(false);
+    setPanel(next);
+    if (next === 'workflows') setSelectedId(null);
+  }
+
+  /** Close settings, theme, or load model — always return home. */
+  function finishSettings() {
+    window.clearTimeout(wakeTimer.current);
+    setWaking(false);
+    setCogOpen(false);
+    setPanel('home');
+  }
+
+  function wakeGhost() {
+    if (cogOpen) return;
+    window.clearTimeout(wakeTimer.current);
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduce) {
+      setWaking(false);
+      setPanel('ask');
+      return;
+    }
+
+    setWaking(true);
+    wakeTimer.current = window.setTimeout(() => {
+      setWaking(false);
+      setPanel('ask');
+    }, 600);
+  }
+
+  /** Top Ghostclick mark — home from anywhere. */
+  function goHome() {
+    window.clearTimeout(wakeTimer.current);
+    setWaking(false);
+    setPanel('home');
+    setCogOpen(false);
+  }
+
+  function toggleCog() {
+    if (cogOpen) {
+      finishSettings();
+      return;
+    }
+    window.clearTimeout(wakeTimer.current);
+    setWaking(false);
+    setCogOpen(true);
+  }
+
   if (!snap) return <main className="loading">Loading…</main>;
   const brandIcon = chrome.runtime.getURL('icon-48.png');
+  const heroIcon = chrome.runtime.getURL('icon-128.png');
+  const bannerLight = chrome.runtime.getURL('banner-light.gif');
+  const bannerDark = chrome.runtime.getURL('banner-dark.gif');
 
   if (!snap.results || !snap.settings) {
     return (
@@ -65,85 +127,102 @@ export function App() {
     );
   }
 
+  const idle = snap.mode === 'idle';
+  const showHome = idle && !cogOpen && (panel === 'home' || waking);
+  const showAsk = idle && !cogOpen && panel === 'ask' && !waking;
+  const showWorkflows = idle && !cogOpen && panel === 'workflows';
+  const showData = idle && !cogOpen && panel === 'data';
+
   return (
-    <main>
-      <header>
-        <div className="header-row">
-          <div>
-            <h1 className="brand">
-              <img className="brand-icon" src={brandIcon} alt="" width={28} height={28} />
-              Ghostclick
-            </h1>
-            <p className="tagline">Show it once. Ask it again.</p>
-          </div>
-          <button
-            type="button"
-            className="ghost theme-toggle"
-            aria-label={snap.settings.theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
-            title={snap.settings.theme === 'light' ? 'Dark theme' : 'Light theme'}
-            onClick={() =>
-              void command({
-                type: 'SET_SETTINGS',
-                settings: { theme: snap.settings.theme === 'light' ? 'dark' : 'light' },
-              })
-            }
-          >
-            {snap.settings.theme === 'light' ? 'Dark' : 'Light'}
-          </button>
-        </div>
-        {snap.statusText ? <p className="status">{snap.statusText}</p> : null}
+    <main className={showHome ? 'main-home' : ''}>
+      <header className="top-bar">
+        <button type="button" className="wordmark" onClick={goHome} aria-label="Ghostclick home">
+          <span className="wordmark-banners" data-theme-banner={snap.settings.theme === 'light' ? 'light' : 'dark'}>
+            <img className="wordmark-banner banner-light" src={bannerLight} alt="Ghostclick" draggable={false} />
+            <img className="wordmark-banner banner-dark" src={bannerDark} alt="" draggable={false} />
+          </span>
+        </button>
+        <button
+          type="button"
+          className={`ghost cog-btn${cogOpen ? ' active' : ''}`}
+          aria-label="Settings"
+          aria-expanded={cogOpen}
+          title="Settings"
+          onClick={toggleCog}
+        >
+          <span className="cog-glyph" aria-hidden="true">
+            ⚙
+          </span>
+        </button>
       </header>
 
-      {snap.mode === 'recording' && snap.draft ? <RecordView snap={snap} command={command} /> : null}
-      {snap.mode === 'picking' ? <PickView command={command} /> : null}
-      {snap.mode === 'replaying' || snap.mode === 'paused' ? <RunView snap={snap} model={model} command={command} /> : null}
+      <SettingsCog
+        open={cogOpen}
+        onClose={finishSettings}
+        onDone={finishSettings}
+        snap={snap}
+        model={model}
+        command={command}
+        openPanel={(next) => openPanel(next)}
+      />
 
-      {snap.mode === 'idle' ? (
+      {snap.statusText && !cogOpen ? <p className="status">{snap.statusText}</p> : null}
+
+      {!cogOpen && snap.mode === 'recording' && snap.draft ? <RecordView snap={snap} command={command} /> : null}
+      {!cogOpen && snap.mode === 'picking' ? <PickView command={command} /> : null}
+      {!cogOpen && (snap.mode === 'replaying' || snap.mode === 'paused') ? (
+        <RunView snap={snap} model={model} command={command} />
+      ) : null}
+
+      {showHome ? (
+        <section className={`ghost-home${waking ? ' waking' : ''}`}>
+          <div className="ghost-mist" aria-hidden="true" />
+          <button
+            type="button"
+            className="ghost-wake"
+            aria-label="Wake Ghostclick"
+            disabled={waking}
+            onClick={wakeGhost}
+          >
+            <span className="ghost-ring" aria-hidden="true" />
+            <span className="ghost-ring delay" aria-hidden="true" />
+            <span className="ghost-ring delay2" aria-hidden="true" />
+            <img src={heroIcon} alt="" width={96} height={96} />
+          </button>
+          <h1 className="ghost-title">Ghostclick</h1>
+          <p className="ghost-hint">{waking ? 'Waking…' : 'Click to ASK :)'}</p>
+        </section>
+      ) : null}
+
+      {showAsk ? (
         <>
-          <nav className="tabs">
-            {(['ask', 'workflows', 'data'] as Tab[]).map((name) => (
-              <button
-                key={name}
-                type="button"
-                className={tab === name ? 'active' : ''}
-                onClick={() => {
-                  setTab(name);
-                  if (name === 'workflows') setSelectedId(null);
-                }}
-              >
-                {name === 'ask' ? 'Ask' : name === 'workflows' ? `Workflows (${snap.workflows.length})` : `Data (${snap.results.rows.length})`}
-              </button>
-            ))}
-          </nav>
           <LastRun snap={snap} command={command} />
-          {tab === 'ask' ? (
-            <AskView
-              snap={snap}
-              model={model}
-              command={command}
-              openTab={(next, workflowId, readPdf) => {
-                setTab(next);
-                setSelectedId(workflowId ?? null);
-                if (readPdf) setAutoReadPdf(true);
-              }}
-            />
-          ) : null}
-          {tab === 'workflows' ? (
-            <WorkflowsView snap={snap} command={command} selectedId={selectedId} select={setSelectedId} />
-          ) : null}
-          {tab === 'data' ? (
-            <DataView
-              snap={snap}
-              model={model}
-              command={command}
-              autoReadPdf={autoReadPdf}
-              onAutoReadDone={() => setAutoReadPdf(false)}
-            />
-          ) : null}
+          <AskView
+            snap={snap}
+            model={model}
+            command={command}
+            openTab={(next, workflowId, readPdf) => {
+              setPanel(next);
+              setSelectedId(workflowId ?? null);
+              if (readPdf) setAutoReadPdf(true);
+            }}
+          />
         </>
       ) : null}
 
-      <ModelBar snap={snap} model={model} command={command} />
+      {showWorkflows ? (
+        <WorkflowsView snap={snap} command={command} selectedId={selectedId} select={setSelectedId} />
+      ) : null}
+
+      {showData ? (
+        <DataView
+          snap={snap}
+          model={model}
+          command={command}
+          autoReadPdf={autoReadPdf}
+          onAutoReadDone={() => setAutoReadPdf(false)}
+        />
+      ) : null}
     </main>
   );
 }
@@ -191,7 +270,7 @@ function RecordView({ snap, command }: { snap: Snapshot; command: Command }) {
             checked={snap.settings.screenshots}
             onChange={(event) => void command({ type: 'SET_SETTINGS', settings: { screenshots: event.target.checked } })}
           />
-          Save a screenshot with each new step
+          While recording, save a screenshot with each new step (helps repair later)
         </label>
       </div>
       <h2>Steps so far</h2>
@@ -351,34 +430,6 @@ function LastRun({ snap, command }: { snap: Snapshot; command: Command }) {
         Clear
       </button>
     </details>
-  );
-}
-
-function ModelBar({ snap, model, command }: { snap: Snapshot; model: ModelState; command: Command }) {
-  return (
-    <footer>
-      <h2>Local model</h2>
-      <select
-        value={snap.settings.model}
-        disabled={model.phase === 'loading'}
-        onChange={(event) => void command({ type: 'SET_SETTINGS', settings: { model: event.target.value } })}
-      >
-        {MODELS.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <p>{model.text}</p>
-      <button
-        type="button"
-        className="ghost"
-        disabled={model.phase === 'loading'}
-        onClick={() => void model.load(snap.settings.model)}
-      >
-        {model.phase === 'loading' ? 'Loading…' : model.phase === 'ready' ? 'Load selected model' : 'Load model'}
-      </button>
-    </footer>
   );
 }
 
