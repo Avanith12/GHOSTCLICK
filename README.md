@@ -248,7 +248,7 @@ The other 10 challenges were not run with the real model before release. Earlier
 - Avanith Kanamarlapudi
 - Kurt Sooknanan
 - Ana Maria Fahlböck
-- Chelsea Nguyen
+- Chelsea Nguyen :)
 - Kalysha MelendezHernandez
 - Ila Lama
 
