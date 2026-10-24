@@ -55,6 +55,7 @@ export function AskView({
   useEffect(() => {
     const onMessage = (message: { type?: string; text?: string; final?: boolean }) => {
       if (message.type !== 'VOICE_TRANSCRIPT' || typeof message.text !== 'string') return;
+      const text = message.text.trim();
       setRequest(message.text);
       setListening(true);
       setVoiceNote('Listening in the Voice window…');
@@ -62,6 +63,8 @@ export function AskView({
         setListening(false);
         setVoiceNote('');
         voiceWindowId.current = null;
+        // Speak → auto Go (no need to press Go / Run for voice).
+        if (text) void makePlan(text, { fromVoice: true });
       }
     };
     const onRemoved = (id: number) => {
@@ -77,7 +80,9 @@ export function AskView({
       chrome.runtime.onMessage.removeListener(onMessage);
       chrome.windows.onRemoved.removeListener(onRemoved);
     };
-  }, []);
+    // makePlan is stable enough for this listener; recreate if snap/model identity matters mid-listen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snap, model]);
 
   async function beginListen() {
     setVoiceNote('');
@@ -127,14 +132,15 @@ export function AskView({
     }
   }
 
-  async function makePlan(text = request) {
-    if (!text.trim()) return;
+  async function makePlan(text = request, options: { fromVoice?: boolean } = {}) {
+    if (!text.trim() || busy) return;
     setBusy(true);
     setReply('');
     setReplyFrom('');
     setError('');
     setFound(null);
     let answerNow: Plan | null = null;
+    let runValues: Record<string, string> | undefined;
     try {
       let next: Plan | null = null;
       if (textModelReady()) {
@@ -156,12 +162,19 @@ export function AskView({
         setPlan(null);
         openTab('workflows');
       } else if (next.action === 'run') {
-        setPlan(next);
         const workflow = snap.workflows.find((item) => item.id === next?.workflowId);
+        const defaults: Record<string, string> = {};
         if (workflow) {
-          const defaults: Record<string, string> = {};
           for (const field of workflowFields(workflow)) defaults[field.key] = field.example;
-          setValues({ ...defaults, ...(next.variables ?? {}) });
+        }
+        runValues = { ...defaults, ...(next.variables ?? {}) };
+        setValues(runValues);
+        if (options.fromVoice) {
+          // Voice: start immediately — no extra Run click.
+          setPlan(null);
+          answerNow = next;
+        } else {
+          setPlan(next);
         }
       } else {
         setPlan(null);
@@ -172,7 +185,7 @@ export function AskView({
     } finally {
       setBusy(false);
     }
-    if (answerNow) await carryOut(answerNow, text);
+    if (answerNow) await carryOut(answerNow, text, runValues);
   }
 
   async function needModel() {
@@ -183,13 +196,17 @@ export function AskView({
     return ok;
   }
 
-  async function carryOut(current = plan, asked = request) {
+  async function carryOut(current = plan, asked = request, variableOverride?: Record<string, string>) {
     if (!current) return;
     setBusy(true);
     setError('');
     try {
       if (current.action === 'run' && current.workflowId) {
-        const response = await command({ type: 'START_REPLAY', workflowId: current.workflowId, variables: values });
+        const response = await command({
+          type: 'START_REPLAY',
+          workflowId: current.workflowId,
+          variables: variableOverride ?? values,
+        });
         if (response?.ok) setPlan(null);
       } else if (current.action === 'find') {
         const filter = current.question?.trim() ?? '';
@@ -276,7 +293,7 @@ export function AskView({
           ref={textareaRef}
           value={request}
           rows={3}
-          placeholder={listening ? 'Listening…' : 'Speak or type, then Go'}
+          placeholder={listening ? 'Listening…' : 'Speak (auto-runs) or type, then Go'}
           onChange={(event) => setRequest(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {

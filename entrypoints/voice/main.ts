@@ -20,6 +20,19 @@ const done = document.getElementById('done')!;
 let committed = '';
 let recognition: SpeechRec | null = null;
 let closing = false;
+let silenceTimer = 0;
+
+/** After a short pause with text, finish and send so Ask can run without clicking Done. */
+function scheduleFinish() {
+  window.clearTimeout(silenceTimer);
+  silenceTimer = window.setTimeout(() => {
+    if (closing || !committed.trim()) return;
+    closing = true;
+    stop();
+    sendTranscript(committed.trim(), true);
+    window.close();
+  }, 1500);
+}
 
 function setStatus(text: string, kind: '' | 'live' | 'err' = '') {
   status.textContent = text;
@@ -92,6 +105,10 @@ async function start() {
     if (finals.trim()) {
       committed = `${committed} ${finals}`.replace(/\s+/g, ' ').trim();
       sendTranscript(committed, false);
+      scheduleFinish();
+    }
+    if (interim.trim()) {
+      window.clearTimeout(silenceTimer);
     }
     const shown = `${committed}${interim ? ` ${interim}` : ''}`.replace(/\s+/g, ' ').trim();
     setStatus(shown || 'Listening… speak now', 'live');
@@ -130,6 +147,7 @@ async function start() {
 }
 
 done.addEventListener('click', () => {
+  window.clearTimeout(silenceTimer);
   closing = true;
   stop();
   if (committed.trim()) sendTranscript(committed.trim(), true);
@@ -137,6 +155,7 @@ done.addEventListener('click', () => {
 });
 
 window.addEventListener('beforeunload', () => {
+  window.clearTimeout(silenceTimer);
   closing = true;
   stop();
   if (committed.trim()) sendTranscript(committed.trim(), true);

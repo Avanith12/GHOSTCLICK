@@ -202,7 +202,7 @@ export function AgentView({
         <div className="box agent-status">
           <p className="tag">
             {PHASES[state.phase]}
-            {state.step ? ` · step ${state.step} of ${state.maxSteps}` : ''}
+            {running && state.step ? ` · step ${state.step} of ${state.maxSteps}` : ''}
           </p>
           {running ? <progress max={state.maxSteps} value={state.step} /> : null}
           {state.current ? <p className="status">{state.current}</p> : null}

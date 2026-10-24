@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AgentRunner, type AgentBrowser, type Answer, type Decide, type SavedRun } from './agentLoop';
+import { AgentRunner, goalOpenTarget, hostsMatch, type AgentBrowser, type Answer, type Decide, type SavedRun } from './agentLoop';
 import { AGENT_SYSTEM, PLAN_SYSTEM } from './agentPrompt';
 import type { ActResult, AgentAction, ObservedElement, PageObservation } from './types';
 
@@ -115,7 +115,48 @@ const form = page('https://shop.test/', [
   { kind: 'button', label: 'Continue', submit: true, formFields: 1 },
 ]);
 
+describe('goalOpenTarget', () => {
+  it('detects open-only goals and ignores goals with more work', () => {
+    expect(goalOpenTarget('can you go to youtube.com')).toBe('youtube.com');
+    expect(goalOpenTarget('Open https://www.gmail.com/')).toBe('gmail.com');
+    expect(goalOpenTarget('go to youtube.com and search for cats')).toBeNull();
+    expect(goalOpenTarget('Find Jordan Lee')).toBeNull();
+  });
+
+  it('matches page hosts to the open target', () => {
+    expect(hostsMatch('www.youtube.com', 'youtube.com')).toBe(true);
+    expect(hostsMatch('m.youtube.com', 'youtube.com')).toBe(true);
+    expect(hostsMatch('notyoutube.com', 'youtube.com')).toBe(false);
+  });
+});
+
 describe('AgentRunner', () => {
+  it('opens an open-only goal directly without asking the model', async () => {
+    const yt = page('https://youtube.com/', [{ label: 'Home' }]);
+    const { browser, calls } = fakeBrowser({ 'https://shop.test/': form, 'https://youtube.com/': yt });
+    let modelSteps = 0;
+    const decide: Decide = async (system) => {
+      if (system === PLAN_SYSTEM || system === AGENT_SYSTEM) modelSteps += 1;
+      return '{"plan":["nope"],"done_when":"no"}';
+    };
+    const state = await new AgentRunner(browser, decide).run('can you go to youtube.com');
+    expect(state.phase).toBe('done');
+    expect(state.result).toMatch(/youtube\.com/i);
+    expect(calls).toContain('navigate https://youtube.com/');
+    expect(modelSteps).toBe(0);
+    expect(state.plan).toEqual(['Open youtube.com']);
+  });
+
+  it('treats already being on that site as done for open-only goals', async () => {
+    const yt = page('https://www.youtube.com/', [{ label: 'Home' }]);
+    const { browser, calls } = fakeBrowser({ 'https://www.youtube.com/': yt }, [
+      { tabId: 1, title: 'YouTube', url: 'https://www.youtube.com/' },
+    ]);
+    const state = await new AgentRunner(browser, script([]).decide).run('go to youtube.com');
+    expect(state.phase).toBe('done');
+    expect(calls.some((call) => call.startsWith('navigate'))).toBe(false);
+  });
+
   it('runs a task to a verified finish and records replayable steps', async () => {
     const { browser, calls } = fakeBrowser({ 'https://shop.test/': form });
     const { decide, prompts } = script([

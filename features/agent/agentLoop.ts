@@ -1,5 +1,5 @@
 import type { Row, WorkflowStep } from '@/shared/types';
-import { actionKey, describeAction, firstJsonObject, isBlocked, needsApproval, parseAction, validateAction } from './actions';
+import { actionKey, describeAction, firstJsonObject, isBlocked, needsApproval, normalizeUrl, parseAction, validateAction } from './actions';
 import { AGENT_SYSTEM, PLAN_SCHEMA, PLAN_SYSTEM, STEP_SCHEMA, VERIFY_SCHEMA, VERIFY_SYSTEM, planPrompt, stepPrompt, verifyPrompt, type HistoryLine } from './agentPrompt';
 import type { ActResult, AgentAction, ObservedElement, PageObservation, TabInfo } from './types';
 
@@ -117,6 +117,38 @@ export function hostOf(url: string) {
   } catch {
     return '';
   }
+}
+
+/** True when the page host is the target site (www / subdomain ok). */
+export function hostsMatch(pageHost: string, target: string) {
+  const a = pageHost.toLowerCase().replace(/^www\./, '');
+  const b = target.toLowerCase().replace(/^www\./, '');
+  if (!a || !b) return false;
+  return a === b || a.endsWith(`.${b}`);
+}
+
+/**
+ * If the goal is only to open/go to a site (no further work), return that hostname.
+ * Used to stop as soon as that site is open instead of letting the model keep poking the page.
+ */
+export function goalOpenTarget(goal: string): string | null {
+  const trimmed = goal.trim().replace(/[.?!]+$/, '');
+  const match = trimmed.match(
+    /^(?:can you |could you |please |pls )?(?:go to|open|visit|navigate to|take me to|launch)\s+(.+)$/i,
+  );
+  if (!match) return null;
+  const rest = match[1]!.trim();
+  // More work after the site → not open-only.
+  if (/\b(and|then|after|find|search|click|type|login|log in|sign|buy|add|fill|read|download|upload|compare)\b/i.test(rest)) {
+    return null;
+  }
+  const raw = rest
+    .replace(/^https?:\/\//i, '')
+    .replace(/[/?#].*$/, '')
+    .replace(/\s+/g, '')
+    .replace(/\.$/, '');
+  if (!/^[\w.-]+\.[a-z]{2,}(?::\d+)?$/i.test(raw) && !/^localhost(?::\d+)?$/i.test(raw)) return null;
+  return raw.toLowerCase().replace(/^www\./, '');
 }
 
 function navigateStep(url: string): WorkflowStep {
@@ -270,6 +302,18 @@ export class AgentRunner {
     return true;
   }
 
+  /** End successfully when the goal was only to open a site and that site is already showing. */
+  private async finishIfOpenOnly(run: Run, step: number) {
+    const target = goalOpenTarget(run.goal);
+    if (!target) return false;
+    const url = await this.browser.tabUrl(run.tabId).catch(() => '');
+    if (!hostsMatch(hostOf(url), target)) return false;
+    await this.browser.status(run.tabId, 'Done');
+    this.log({ step, say: 'Site is open', action: 'FINISH', result: 'Task complete.', ok: true });
+    this.set({ phase: 'done', current: '', say: 'Done', result: `Opened ${url}`, error: '' });
+    return true;
+  }
+
   /** Observe the agent's current tab, respecting blocked and authorized sites. */
   private async look(run: Run): Promise<{ page: PageObservation | null; note: string }> {
     const url = await this.browser.tabUrl(run.tabId).catch(() => '');
@@ -336,6 +380,21 @@ export class AgentRunner {
       // Clear a Stop left over from an earlier run, so it cannot end this one.
       await this.browser.stopRequested().catch(() => false);
       await this.browser.status(run.tabId, 'Planning…');
+      const openTarget = goalOpenTarget(goal);
+      if (openTarget) {
+        // Small models often SEARCH/VERIFY instead of NAVIGATE on open-only goals — do it directly.
+        run.maxSteps = 1;
+        this.set({
+          phase: 'running',
+          maxSteps: 1,
+          plan: [`Open ${openTarget}`],
+          doneWhen: `${openTarget} is open in the browser`,
+          step: 1,
+          current: `Opening ${openTarget}…`,
+        });
+        await this.openSiteOnly(run, openTarget);
+        return;
+      }
       const first = await this.look(run);
       try {
         const planned = firstJsonObject(await this.think(run, PLAN_SYSTEM, planPrompt(goal, first.page), 200, PLAN_SCHEMA));
@@ -347,6 +406,43 @@ export class AgentRunner {
       this.set({ phase: this.pausing ? 'paused' : 'running' });
       await this.loop(run, 1, 'Nothing yet. This is the first step.');
     });
+  }
+
+  /** Open a site for a plain "go to / open …" goal and finish — no model steps. */
+  private async openSiteOnly(run: Run, target: string) {
+    const current = await this.browser.tabUrl(run.tabId).catch(() => '');
+    if (hostsMatch(hostOf(current), target)) {
+      await this.browser.status(run.tabId, 'Done');
+      this.log({ step: 1, say: 'Already there', action: 'FINISH', result: 'Task complete.', ok: true });
+      this.set({ phase: 'done', current: '', say: 'Done', result: `Opened ${current}`, error: '' });
+      return;
+    }
+    const url = normalizeUrl(target);
+    if (!url) {
+      this.set({ phase: 'failed', current: '', error: `Could not open ${target}.` });
+      return;
+    }
+    if (isBlocked(url, run.blocked)) {
+      this.set({ phase: 'failed', current: '', error: `${target} is blocked in Ghostclick settings.` });
+      return;
+    }
+    await this.browser.status(run.tabId, `Opening ${target}…`);
+    const outcome = await this.goTo(run, url, false);
+    this.log({
+      step: 1,
+      say: `Open ${target}`,
+      action: `NAVIGATE ${url}`,
+      result: outcome.message,
+      ok: outcome.ok,
+    });
+    if (!outcome.ok) {
+      this.set({ phase: 'failed', current: '', error: outcome.message });
+      return;
+    }
+    const now = await this.browser.tabUrl(run.tabId).catch(() => url);
+    await this.browser.status(run.tabId, 'Done');
+    this.log({ step: 1, say: 'Site is open', action: 'FINISH', result: 'Task complete.', ok: true });
+    this.set({ phase: 'done', current: '', say: 'Done', result: `Opened ${now}`, error: '', step: 1 });
   }
 
   /**
@@ -439,6 +535,8 @@ export class AgentRunner {
       await this.saveCheckpoint(run, step);
       await this.checkpoint();
       this.set({ step, current: 'Looking at the page…' });
+      // Simple "go to site.com" goals: stop as soon as that site is open (model often keeps going and fails).
+      if (await this.finishIfOpenOnly(run, step)) return;
       const { page, note } = await this.look(run);
       run.tabs = await this.tabList(run);
       this.set({ page: page ? `${page.title || page.url}` : (run.tabs.find((tab) => tab.current)?.url ?? '') });
