@@ -87,6 +87,19 @@ describe('rulesPlan', () => {
     expect(rulesPlan('how many tabs do I have open?', [], false).action).toBe('tab_info');
     expect(rulesPlan('list my open tabs', [], false).action).toBe('tab_info');
   });
+
+  it('routes the full Ask demo script phrases', () => {
+    expect(rulesPlan('go to example.com', [], false).action).toBe('agent');
+    expect(rulesPlan('How many tabs do I have open?', [], false).action).toBe('tab_info');
+    expect(rulesPlan('open my last 3 tabs', [], false)).toMatchObject({ action: 'reopen_tabs', count: 3 });
+    expect(rulesPlan('What is this page about?', [], false).action).toBe('ask_page');
+    expect(rulesPlan('Get every product on this page', [], false).action).toBe('find');
+    expect(rulesPlan('Which three are cheapest?', [], false).action).toBe('ask_page');
+    expect(rulesPlan('Which three are cheapest?', [], true).action).toBe('ask_data');
+    expect(rulesPlan('Save this page as a clean document', [], false).action).toBe('save_page');
+    expect(rulesPlan('Add one Lumen Air laptop to the cart', [], false).action).toBe('agent');
+    expect(rulesPlan('Read the PDF in this tab', [], false).action).toBe('read_pdf');
+  });
 });
 
 describe('choosePlan', () => {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { siteList } from '@/features/agent/actions';
+import { goalOpenTarget } from '@/features/agent/agentLoop';
 import { agent } from '@/features/agent/chromeBrowser';
 import { bestKeywordMatches, rowTitle } from '@/features/ask/keywordSearch';
 import { choosePlan, rulesPlan, validatePlan, workflowFields, type Plan } from '@/features/ask/requestPlanner';
@@ -274,7 +275,8 @@ export function AskView({
         setReplyFrom('From your open tabs');
         setPlan(null);
       } else if (current.action === 'agent') {
-        if (!(await needModel())) return;
+        // Plain “go to site.com” opens the URL without the LLM — no model download required.
+        if (!goalOpenTarget(asked) && !(await needModel())) return;
         setPlan(null);
         void agent.run(asked, {
           maxSteps: snap.settings.agentMaxSteps,

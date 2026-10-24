@@ -5,13 +5,22 @@ export type Command = (
   message: Record<string, unknown>,
 ) => Promise<{ ok?: boolean; snapshot?: Snapshot; id?: string; error?: string; message?: string } | null>;
 
+/** Prefer the active http(s) tab; if the side panel stole focus, use the last normal website tab. */
+export async function usableWebsiteTab() {
+  const [active] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (active?.id !== undefined && active.url && /^https?:\/\//i.test(active.url)) return active;
+  const all = await chrome.tabs.query({});
+  const http = all.filter((tab) => tab.id !== undefined && tab.url && /^https?:\/\//i.test(tab.url));
+  return http.at(-1) ?? active ?? null;
+}
+
 export async function activeTabId() {
-  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  const tab = await usableWebsiteTab();
   return tab?.id ?? null;
 }
 
 export async function pageMarkdown() {
-  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  const tab = await usableWebsiteTab();
   const tabId = tab?.id;
   if (!tabId) throw new Error('Open a website first.');
   if (/\.pdf(\?|#|$)/i.test(tab.url ?? '')) {
