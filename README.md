@@ -243,9 +243,9 @@ The other 10 challenges were not run with the real model before release. Earlier
 <img src="docs/ghostclick_mini_animated.gif" alt="Ghostclick ghost" width="96" align="right" />
 
 - Avanith Kanamarlapudi
-- Kurt Sooknanan
-- Ana Maria Fahlböck
 - Chelsea Nguyen
+- Ana Maria Fahlböck
+- Kurt Sooknanan
 - Kalysha MelendezHernandez
 - Ila Lama
 
