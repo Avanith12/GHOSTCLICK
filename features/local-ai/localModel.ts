@@ -248,29 +248,30 @@ Reply with JSON only: {"number":<tag number>,"reason":"short reason"}`,
 export async function extractRows(request: string, columns: string[], text: string) {
   const keys = columns.length ? columns : ['item', 'value'];
   const keyList = keys.map((column) => JSON.stringify(column)).join(', ');
-  const example = Object.fromEntries(keys.map((key, index) => [key, index === 0 ? '2D cancer cases' : '7351']));
-  const reply = await chat(
-    `You copy facts from document text into a table of rows.
+  const example = Object.fromEntries(keys.map((key, index) => [key, index === 0 ? 'CS 101' : '3']));
+  const system = `You copy facts from document text into a table of rows.
 Use exactly these keys in every row, in this order: ${keyList}.
-Each row is one fact or one listed item. Do not put every number into one column named "type".
-Copy values exactly as written. Use "" when missing. Never invent numbers or labels.
+Each row is one fact, one table line, or one listed item — never merge many items into one row.
+Copy values exactly as written (keep codes, numbers, and short labels). Use "" when missing.
+Never invent numbers, names, or rows that are not in the text. Skip headers like "Code" / "Title" as data rows.
 Reply with JSON only shaped like: {"rows":[${JSON.stringify(example)}]}.
-If nothing matches, reply {"rows":[]}.`,
-    `What to pull out: ${request}\n\nDocument text:\n${text}`,
-    900,
-  );
-  const data = parseJson(reply);
-  const rows = Array.isArray(data?.rows) ? (data.rows as unknown[]) : [];
-  return rows
-    .filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object' && !Array.isArray(row))
-    .map((row) => {
-      const ordered = keys.map((key) => [key, row[key] == null ? '' : String(row[key])] as const);
-      // Keep any extra keys the model added, but prefer the requested shape first.
-      const extras = Object.entries(row)
-        .filter(([key]) => !keys.includes(key))
-        .map(([key, value]) => [key, value == null ? '' : String(value)] as const);
-      return Object.fromEntries([...ordered, ...extras]);
-    });
+If nothing matches, reply {"rows":[]}.`;
+
+  let body = text.trim();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const reply = await chat(system, `What to pull out: ${request}\n\nDocument text:\n${body}`, 700);
+      const data = parseJson(reply);
+      const rows = Array.isArray(data?.rows) ? (data.rows as unknown[]) : [];
+      return rows
+        .filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object' && !Array.isArray(row))
+        .map((row) => Object.fromEntries(keys.map((key) => [key, row[key] == null ? '' : String(row[key]).trim()])));
+    } catch (error) {
+      if (!isContextOverflow(error) || attempt === 2) throw error;
+      body = body.slice(0, Math.max(800, Math.floor(body.length * 0.6)));
+    }
+  }
+  return [];
 }
 
 // Decide which of several items are mainly about a topic in a single model call, and

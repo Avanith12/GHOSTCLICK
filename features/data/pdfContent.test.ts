@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { chunkPages, cleanRows, linesFromItems, relevantText, UNVERIFIED, verifyRows } from './pdfContent';
+import {
+  chunkPages,
+  cleanRows,
+  linesFromItems,
+  partsForExtract,
+  relevantText,
+  shapeRows,
+  UNVERIFIED,
+  verifyRows,
+} from './pdfContent';
 
 describe('cleanRows', () => {
   it('drops empty rows, echoed column names, and repeats', () => {
@@ -51,5 +60,26 @@ describe('relevantText', () => {
       80,
     );
     expect(text).toContain('Abstract');
+  });
+});
+
+describe('partsForExtract', () => {
+  it('keeps matching pages in document order', () => {
+    const parts = partsForExtract(
+      ['Cover letter only', 'Code Title Credits\nCS 101 Intro 3\nBIO 210 Cells 4', 'Appendix noise'],
+      'course code title credits',
+      5,
+      80,
+    );
+    expect(parts.join('\n')).toContain('CS 101');
+    expect(parts[0]).toContain('Page 2');
+  });
+});
+
+describe('shapeRows', () => {
+  it('keeps only the requested columns', () => {
+    expect(shapeRows([{ code: 'CS 101', title: 'Intro', junk: 'x' }], ['code', 'title'])).toEqual([
+      { code: 'CS 101', title: 'Intro' },
+    ]);
   });
 });

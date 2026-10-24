@@ -36,6 +36,9 @@ export function pdfMarkdown(title: string, source: string, pages: string[]) {
   return [`# ${title}`, `Source: ${source}`, ...pages.map((text, index) => `## Page ${index + 1}\n\n${text}`)].join('\n\n');
 }
 
+/** Chunk size for PDF table extraction — must leave room for the prompt inside a 3072-token window. */
+export const EXTRACT_CHUNK_CHARS = 2200;
+
 export function chunkPages(pages: string[], size = 3000) {
   const chunks: string[] = [];
   let current = '';
@@ -53,6 +56,37 @@ export function chunkPages(pages: string[], size = 3000) {
   });
   if (current) chunks.push(current);
   return chunks;
+}
+
+/**
+ * Pick PDF chunks for table extraction: prefer parts that mention the request,
+ * keep document order, and fall back to the start of the file when nothing matches.
+ */
+export function partsForExtract(pages: string[], request: string, limit = 30, size = EXTRACT_CHUNK_CHARS) {
+  const chunks = chunkPages(pages, size);
+  if (!chunks.length) return [];
+  const words = [...new Set(request.toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length > 2))];
+  const scored = chunks.map((chunk, index) => {
+    const lower = chunk.toLowerCase();
+    let score = 0;
+    for (const word of words) {
+      if (!lower.includes(word)) continue;
+      score += 1 + Math.min(2, lower.split(word).length - 2);
+    }
+    // Tables/lists often look like repeated short lines — a light boost.
+    const lines = chunk.split('\n').filter((line) => line.trim().length > 0);
+    if (lines.length >= 4) score += 1;
+    return { chunk, index, score };
+  });
+  const hits = scored.filter((item) => item.score > 0).sort((left, right) => left.index - right.index);
+  const chosen = (hits.length ? hits : scored).slice(0, limit);
+  return chosen.sort((left, right) => left.index - right.index).map((item) => item.chunk);
+}
+
+/** Keep only the requested columns, in order, with trimmed string values. */
+export function shapeRows(rows: Row[], keys: string[]): Row[] {
+  if (!keys.length) return rows;
+  return rows.map((row) => Object.fromEntries(keys.map((key) => [key, String(row[key] ?? '').trim()])));
 }
 
 function normalize(value: string) {

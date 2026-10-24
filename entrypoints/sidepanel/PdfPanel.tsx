@@ -1,12 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { chunkPages, cleanRows, pdfMarkdown, relevantText, UNVERIFIED, verifyRows } from '@/features/data/pdfContent';
+import {
+  chunkPages,
+  cleanRows,
+  partsForExtract,
+  pdfMarkdown,
+  relevantText,
+  shapeRows,
+  UNVERIFIED,
+  verifyRows,
+} from '@/features/data/pdfContent';
 import type { Row, Snapshot } from '@/shared/types';
 import { downloadText, fileName, type Command } from './api';
 import { ANSWER_CHARS, answer, extractRows } from '@/features/local-ai/localModel';
 import { pdfFromFile, pdfFromUrl, type PdfDocument } from '@/features/data/loadPdf';
 import type { ModelState } from '@/features/local-ai/useLocalModel';
 
-const MAX_PARTS = 30;
+const MAX_PARTS = 24;
 
 export function PdfPanel({
   snap,
@@ -78,22 +87,29 @@ export function PdfPanel({
 
   async function pullOut() {
     if (!pdf || !want.trim()) return;
+    const keys = columns
+      .split(',')
+      .map((column) => column.trim())
+      .filter(Boolean);
+    if (!keys.length) {
+      setStatus('Add Columns first (comma separated), for example: code, title, credits.');
+      return;
+    }
     setBusy(true);
     cancelled.current = false;
     try {
       if (!(await needModel())) return;
-      const parts = chunkPages(pdf.pages).slice(0, MAX_PARTS);
-      let keys = columns
-        .split(',')
-        .map((column) => column.trim())
-        .filter(Boolean);
+      const parts = partsForExtract(pdf.pages, want, MAX_PARTS);
+      if (!parts.length) {
+        setStatus('No text chunks were available to extract from.');
+        return;
+      }
       const collected: Row[] = [];
       for (let index = 0; index < parts.length; index += 1) {
         if (cancelled.current) break;
         setStatus(`Pulling table · part ${index + 1} of ${parts.length}…`);
         const rows = await extractRows(want, keys, parts[index] ?? '');
-        if (!keys.length && rows[0]) keys = Object.keys(rows[0]);
-        collected.push(...rows);
+        collected.push(...shapeRows(rows, keys));
       }
       const source = pdf.pages.join('\n');
       const checked = verifyRows(cleanRows(collected, keys), source);
@@ -104,11 +120,14 @@ export function PdfPanel({
         source: pdf.source,
       });
       if (!response?.ok) throw new Error('Could not save the table.');
-      const skipped = chunkPages(pdf.pages).length > MAX_PARTS ? ` Only the first ${MAX_PARTS} parts were read.` : '';
+      const totalParts = chunkPages(pdf.pages).length;
+      const skipped = totalParts > parts.length ? ` Used ${parts.length} of ${totalParts} text parts (most relevant first).` : '';
       setStatus(
-        `${checked.length} rows added to the table below.${
-          flagged ? ` ${flagged} rows have values that do not appear word for word in the PDF; check the “${UNVERIFIED}” column.` : ''
-        }${skipped}`,
+        checked.length === 0
+          ? `No rows matched “${want.trim()}”. Try clearer columns or a narrower request.${skipped}`
+          : `${checked.length} rows added to the table below.${
+              flagged ? ` ${flagged} rows have values that do not appear word for word in the PDF; check the “${UNVERIFIED}” column.` : ''
+            }${skipped}`,
       );
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'The model could not read the PDF.');
@@ -180,20 +199,21 @@ export function PdfPanel({
 
           <h2>Pull out a table (PDF scrape)</h2>
           <p className="hint">
-            Uses your local model. Fill Columns (required for good results), e.g. type, count — then describe what to extract.
+            Uses your local model. Name the columns first (required), then say what to extract — e.g. columns
+            <code> code, title, credits </code> and “course list rows”.
           </p>
           <label>
             What should be pulled out?
             <textarea
               rows={2}
               value={want}
-              placeholder="Cancer case counts for 2D and 3D"
+              placeholder="Course list with code, title, and credits"
               onChange={(event) => setWant(event.target.value)}
             />
           </label>
           <label>
             Columns (comma separated)
-            <input value={columns} placeholder="type, count" onChange={(event) => setColumns(event.target.value)} />
+            <input value={columns} placeholder="code, title, credits" onChange={(event) => setColumns(event.target.value)} />
           </label>
           <div className="row">
             <button type="button" disabled={busy || !want.trim() || !columns.trim()} onClick={() => void pullOut()}>
