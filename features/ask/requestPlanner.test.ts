@@ -67,6 +67,25 @@ describe('rulesPlan', () => {
     expect(rulesPlan('book a dentist appointment', [hold], false).action).toBe('agent');
     expect(rulesPlan('Add one Lumen Air laptop to the cart', [], false).action).toBe('agent');
     expect(rulesPlan('click Submit on this form', [], false).action).toBe('agent');
+    expect(rulesPlan('open gmail and read my last email', [], false).action).toBe('agent');
+  });
+
+  it('reopens recent tabs and answers tab-count questions without the agent', () => {
+    expect(rulesPlan('open my last 5 tabs', [], false)).toMatchObject({
+      action: 'reopen_tabs',
+      count: 5,
+      confident: true,
+    });
+    expect(rulesPlan('open the last three tabs', [], false)).toMatchObject({
+      action: 'reopen_tabs',
+      count: 3,
+    });
+    expect(rulesPlan('restore my previous 3 tabs', [], false)).toMatchObject({
+      action: 'reopen_tabs',
+      count: 3,
+    });
+    expect(rulesPlan('how many tabs do I have open?', [], false).action).toBe('tab_info');
+    expect(rulesPlan('list my open tabs', [], false).action).toBe('tab_info');
   });
 });
 

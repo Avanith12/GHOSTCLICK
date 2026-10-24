@@ -1,4 +1,5 @@
 import { filterPhrase } from '@/features/ask/keywordSearch';
+import { DEFAULT_REOPEN_COUNT, parseTabCount, wantsReopenTabs, wantsTabInfo } from '@/features/tabs/recentTabs';
 import { words } from '@/shared/textHelpers';
 import type { Workflow } from '@/shared/types';
 
@@ -11,6 +12,8 @@ export type PlanAction =
   | 'ask_data'
   | 'record'
   | 'read_pdf'
+  | 'reopen_tabs'
+  | 'tab_info'
   | 'agent';
 
 export type Plan = {
@@ -19,6 +22,8 @@ export type Plan = {
   variables?: Record<string, string>;
   question?: string;
   name?: string;
+  /** How many recent tabs to restore for reopen_tabs. */
+  count?: number;
   reply: string;
   source: 'model' | 'rules';
   confident?: boolean;
@@ -33,6 +38,8 @@ const ACTIONS: PlanAction[] = [
   'ask_data',
   'record',
   'read_pdf',
+  'reopen_tabs',
+  'tab_info',
   'agent',
 ];
 
@@ -72,6 +79,10 @@ export function validatePlan(raw: Record<string, unknown> | null, workflows: Wor
   }
   if (action === 'record') {
     return { action, name: String(raw.name ?? '').slice(0, 80), reply, source: 'model' };
+  }
+  if (action === 'reopen_tabs') {
+    const count = Math.min(10, Math.max(1, Number(raw.count) || parseTabCount(request)));
+    return { action, count, reply, source: 'model' };
   }
   return { action, reply, source: 'model' };
 }
@@ -143,6 +154,24 @@ export function choosePlan(model: Plan | null, rules: Plan, request: string): Pl
 
 export function rulesPlan(request: string, workflows: Workflow[], hasData: boolean): Plan {
   const text = request.toLowerCase();
+  if (wantsReopenTabs(request)) {
+    const count = parseTabCount(request, DEFAULT_REOPEN_COUNT);
+    return {
+      action: 'reopen_tabs',
+      count,
+      reply: `Reopen your last ${count} websites.`,
+      source: 'rules',
+      confident: true,
+    };
+  }
+  if (wantsTabInfo(request)) {
+    return {
+      action: 'tab_info',
+      reply: 'Count and list the tabs you have open.',
+      source: 'rules',
+      confident: true,
+    };
+  }
   if (/\bpdf\b/.test(text)) {
     return { action: 'read_pdf', reply: 'Read the PDF in this tab, then save it or pull out what you need.', source: 'rules', confident: true };
   }

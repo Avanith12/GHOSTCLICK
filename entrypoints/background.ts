@@ -1,3 +1,12 @@
+import {
+  isHttpUrl,
+  rememberVisit,
+  siteKey,
+  tabKey,
+  titleMatchesSite,
+  urlPatternsForSite,
+  type RecentTab,
+} from '@/features/tabs/recentTabs';
 import { stepSummary } from '@/shared/textHelpers';
 import { reachTab } from '@/shared/tabConnection';
 import type {
@@ -49,6 +58,8 @@ let settings: Settings = {
 // What the side panel's agent is doing, shown in that tab's on-page bar. Not persisted: a run ends
 // when the side panel closes.
 let agent = { tabId: null as number | null, text: '', stop: false };
+/** Sites you recently focused — used for “open my last N tabs”. */
+let recentTabs: RecentTab[] = [];
 let ready: Promise<void> | null = null;
 let writing: Promise<void> = Promise.resolve();
 
@@ -62,6 +73,15 @@ export default defineBackground(() => {
     port.onDisconnect.addListener(() => {
       agent = { tabId: null, text: '', stop: false };
     });
+  });
+
+  chrome.tabs.onActivated.addListener((info) => {
+    void chrome.tabs.get(info.tabId).then((tab) => trackRecentTab(tab)).catch(() => undefined);
+  });
+  chrome.tabs.onUpdated.addListener((_tabId, change, tab) => {
+    if (tab.active && (change.url || change.title || change.status === 'complete')) {
+      void trackRecentTab(tab);
+    }
   });
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -78,7 +98,7 @@ async function ensureReady() {
   if (!ready) {
     ready = (async () => {
       const [local, stored] = await Promise.all([
-        chrome.storage.local.get(['workflows', 'settings']),
+        chrome.storage.local.get(['workflows', 'settings', 'recentTabs']),
         chrome.storage.session.get(['session', 'results']),
       ]);
       workflows = ((local.workflows as Workflow[] | undefined) ?? []).map((workflow) => ({
@@ -92,6 +112,7 @@ async function ensureReady() {
         theme: saved.theme === 'light' ? 'light' : 'dark',
         showGhostCursor: saved.showGhostCursor !== false,
       };
+      recentTabs = Array.isArray(local.recentTabs) ? (local.recentTabs as RecentTab[]) : [];
       session = { ...emptySession(), ...((stored.session as Session | undefined) ?? {}) };
       results = (stored.results as Results | undefined) ?? emptyResults();
     })();
@@ -104,11 +125,20 @@ function persist() {
   const workflowCopy = structuredClone(workflows);
   const resultsCopy = structuredClone(results);
   const settingsCopy = structuredClone(settings);
+  const recentCopy = structuredClone(recentTabs);
   writing = writing.then(async () => {
     await chrome.storage.session.set({ session: sessionCopy, results: resultsCopy });
-    await chrome.storage.local.set({ workflows: workflowCopy, settings: settingsCopy });
+    await chrome.storage.local.set({ workflows: workflowCopy, settings: settingsCopy, recentTabs: recentCopy });
   });
   return writing;
+}
+
+async function trackRecentTab(tab: chrome.tabs.Tab) {
+  if (!tab.url || !isHttpUrl(tab.url)) return;
+  await ensureReady();
+  const before = recentTabs[0]?.url;
+  recentTabs = rememberVisit(recentTabs, tab.url, tab.title ?? '');
+  if (recentTabs[0]?.url !== before) await persist();
 }
 
 function log(text: string, tone: LogLine['tone'] = 'info') {
@@ -252,9 +282,201 @@ async function handle(message: { type?: string; [key: string]: unknown }, sender
     case 'VOICE_TRANSCRIPT':
       // Side panel listens for this; background only acknowledges.
       return { ok: true };
+    case 'GET_TAB_INFO':
+      return getTabInfo();
+    case 'REOPEN_RECENT_TABS':
+      return reopenRecentTabs(Math.min(10, Math.max(1, Number(message.count) || 5)));
     default:
       return { ok: false, error: 'Unknown message' };
   }
+}
+
+async function getTabInfo() {
+  await seedRecentFromOpenTabs();
+  const tabs = await chrome.tabs.query({});
+  const httpTabs = tabs.filter((tab) => isHttpUrl(tab.url));
+  const titles = httpTabs
+    .slice(0, 12)
+    .map((tab) => tab.title || tab.url || 'Untitled')
+    .map((title) => title.replace(/\s+/g, ' ').trim().slice(0, 60));
+  const remembered = recentTabs.length;
+  const lines = [
+    `You have ${tabs.length} tab${tabs.length === 1 ? '' : 's'} open (${httpTabs.length} on normal websites).`,
+    remembered ? `Ghostclick remembers ${remembered} recent site${remembered === 1 ? '' : 's'} you used.` : 'Browse a few sites first so Ghostclick can remember them for “open my last tabs”.',
+  ];
+  if (titles.length) lines.push(`Open now: ${titles.join('; ')}${httpTabs.length > titles.length ? '…' : ''}`);
+  return { ok: true, message: lines.join(' '), count: tabs.length, httpCount: httpTabs.length, remembered };
+}
+
+async function closedSessionTabs(): Promise<RecentTab[]> {
+  try {
+    const closed = await chrome.sessions.getRecentlyClosed({ maxResults: 20 });
+    const out: RecentTab[] = [];
+    for (const item of closed) {
+      const tab = item.tab;
+      if (tab?.url && isHttpUrl(tab.url)) {
+        out.push({ url: tab.url, title: tab.title || tab.url, at: item.lastModified ?? 0 });
+      }
+      for (const windowTab of item.window?.tabs ?? []) {
+        if (windowTab.url && isHttpUrl(windowTab.url)) {
+          out.push({ url: windowTab.url, title: windowTab.title || windowTab.url, at: item.lastModified ?? 0 });
+        }
+      }
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+function tabUrl(tab: chrome.tabs.Tab) {
+  return tab.url || tab.pendingUrl || '';
+}
+
+/** Merge remembered visits with Chrome’s recently closed list (most recent first, one per site). */
+async function candidateRecentTabs() {
+  const closed = await closedSessionTabs();
+  const merged: RecentTab[] = [];
+  const seen = new Set<string>();
+  for (const item of [...recentTabs, ...closed]) {
+    const key = siteKey(item.url) || tabKey(item.url);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(item);
+  }
+  return merged;
+}
+
+async function seedRecentFromOpenTabs() {
+  if (recentTabs.length) return;
+  const openTabs = await chrome.tabs.query({});
+  // Oldest first so the last rememberVisit ends up most recent.
+  const ordered = [...openTabs].reverse();
+  for (const tab of ordered) {
+    const url = tabUrl(tab);
+    if (isHttpUrl(url)) recentTabs = rememberVisit(recentTabs, url, tab.title ?? '');
+  }
+  if (recentTabs.length) await persist();
+}
+
+/** Find an already-open tab for this site. Prefer URL patterns — tab.url is often blank in queries. */
+async function findOpenTabForSite(url: string, usedIds: Set<number>) {
+  const patterns = urlPatternsForSite(url);
+  if (patterns.length) {
+    try {
+      const matched = await chrome.tabs.query({ url: patterns });
+      const hit = matched.find((tab) => tab.id !== undefined && !usedIds.has(tab.id));
+      if (hit) return hit;
+    } catch {
+      /* bad pattern — fall through */
+    }
+  }
+  const site = siteKey(url);
+  if (!site) return undefined;
+  for (const tab of await chrome.tabs.query({})) {
+    if (tab.id === undefined || usedIds.has(tab.id)) continue;
+    // Prefer a fresh get() — list queries often omit url in the side-panel/SW context.
+    let u = tabUrl(tab);
+    try {
+      const fresh = await chrome.tabs.get(tab.id);
+      u = tabUrl(fresh) || u;
+      if (u && siteKey(u) === site) return fresh;
+      if (titleMatchesSite(fresh.title || tab.title || '', site)) return fresh;
+    } catch {
+      if (u && siteKey(u) === site) return tab;
+      if (titleMatchesSite(tab.title || '', site)) return tab;
+    }
+  }
+  return undefined;
+}
+
+async function reloadRecentFromStorage() {
+  const local = await chrome.storage.local.get(['recentTabs']);
+  if (Array.isArray(local.recentTabs)) recentTabs = local.recentTabs as RecentTab[];
+}
+
+/** Only one reopen at a time — parallel Ask/voice calls were creating duplicate tabs. */
+let reopenInFlight: Promise<{
+  ok: boolean;
+  message?: string;
+  error?: string;
+  opened?: number;
+  created?: number;
+  focused?: number;
+  requested?: number;
+  total?: number;
+}> | null = null;
+
+async function reopenRecentTabs(count: number) {
+  if (reopenInFlight) return reopenInFlight;
+  reopenInFlight = runReopenRecentTabs(count).finally(() => {
+    reopenInFlight = null;
+  });
+  return reopenInFlight;
+}
+
+async function runReopenRecentTabs(count: number) {
+  const wanted = Math.min(10, Math.max(1, Math.floor(Number(count) || 5)));
+  await reloadRecentFromStorage();
+  await seedRecentFromOpenTabs();
+  const [current] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  const currentSite = siteKey(tabUrl(current ?? { url: '' } as chrome.tabs.Tab));
+
+  // Exactly `wanted` sites — never more.
+  const picks = (await candidateRecentTabs())
+    .filter((item) => siteKey(item.url) !== currentSite)
+    .slice(0, wanted);
+
+  if (!picks.length) {
+    return {
+      ok: false,
+      error:
+        'No recent websites to reopen yet. Browse a few pages (or close some tabs), then ask again — for example “open my last 5 tabs”.',
+    };
+  }
+
+  let focused = 0;
+  let created = 0;
+  let lastId: number | undefined;
+  const usedIds = new Set<number>();
+  for (const pick of picks) {
+    // Always re-check right before create — never open a second YouTube/Gmail/etc.
+    const existing = await findOpenTabForSite(pick.url, usedIds);
+    if (existing?.id !== undefined) {
+      usedIds.add(existing.id);
+      lastId = existing.id;
+      focused += 1;
+      continue;
+    }
+    const tab = await chrome.tabs.create({ url: pick.url, active: false });
+    if (tab.id === undefined) continue;
+    // If another tab for this site already existed (race / missed match), drop the copy we just made.
+    const other = await findOpenTabForSite(pick.url, new Set([tab.id]));
+    if (other?.id !== undefined) {
+      await chrome.tabs.remove(tab.id).catch(() => undefined);
+      usedIds.add(other.id);
+      lastId = other.id;
+      focused += 1;
+      continue;
+    }
+    usedIds.add(tab.id);
+    lastId = tab.id;
+    created += 1;
+  }
+  if (lastId !== undefined) await chrome.tabs.update(lastId, { active: true }).catch(() => undefined);
+
+  const total = (await chrome.tabs.query({})).length;
+  const names = picks.map((item) => item.title || item.url).slice(0, wanted);
+  const short =
+    picks.length < wanted
+      ? `You asked for ${wanted}, but only ${picks.length} recent site${picks.length === 1 ? '' : 's'} were on hand`
+      : `Restored exactly ${wanted} recent site${wanted === 1 ? '' : 's'}`;
+  const parts = [
+    created ? `opened ${created} new` : '',
+    focused ? `brought forward ${focused} already open` : '',
+  ].filter(Boolean);
+  const message = `${short}${parts.length ? ` (${parts.join(', ')})` : ''}: ${names.join('; ')}. You now have ${total} tabs open in total.`;
+  return { ok: true, message, opened: picks.length, created, focused, requested: wanted, total };
 }
 
 async function startRecording(name: string, goal: string) {

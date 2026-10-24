@@ -176,12 +176,17 @@ Actions:
 {"action":"ask_page","question":"<question>","reply":"..."}  answer a question about the current page
 {"action":"ask_data","question":"<question>","reply":"..."}  answer using data already scraped${hasData ? '' : ' (no data scraped yet)'}
 {"action":"read_pdf","reply":"..."}  the request is about a PDF document
+{"action":"reopen_tabs","count":5,"reply":"..."}  reopen the person's last N websites (default 5)
+{"action":"tab_info","reply":"..."}  how many tabs are open, or list open tabs
 {"action":"record","name":"<short name>","reply":"..."}  only when the user explicitly asks to record, teach, or show a new workflow
-{"action":"agent","reply":"..."}  do something on the page step by step (click, fill, navigate, buy, submit) when no saved workflow fits
+{"action":"agent","reply":"..."}  do something on the page step by step (click, fill, navigate, buy, submit, read email) when no saved workflow fits
 Examples:
 "Release the hold for Ada Lovelace, ID 1234567" -> {"action":"run","workflowId":"<id of the hold workflow>","variables":{"<name field>":"Ada Lovelace","<id field>":"1234567"},"reply":"Run the hold workflow for Ada Lovelace."}
 "which repos here are about databases" -> {"action":"find","question":"databases","reply":"Keep repos about databases."}
 "what is this page about" -> {"action":"ask_page","question":"what is this page about","reply":"Answer from the page."}
+"open my last 5 tabs" -> {"action":"reopen_tabs","count":5,"reply":"Reopen your last 5 websites."}
+"how many tabs do I have open" -> {"action":"tab_info","reply":"Count the open tabs."}
+"open gmail and read my last email" -> {"action":"agent","reply":"Open Gmail and read the latest email."}
 "Add one Lumen Air laptop to the cart" -> {"action":"agent","reply":"Work through adding the laptop on this page."}`,
     `Saved workflows:\n${catalog || 'none'}\n\nRequest: ${request}`,
     260,

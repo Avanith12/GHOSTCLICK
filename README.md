@@ -78,6 +78,9 @@ The side panel opens on a home screen. Click the ghost or **Voice** to speak a r
    - *“Find the items related to AI”* / *“Get every item on this page”* — collects a list
    - *“Save this page as a clean document”* — downloads Markdown
    - *“Read the PDF in this tab”* — opens PDF tools in Data
+   - *“Open my last 5 tabs”* / *“Restore my previous tabs”* — reopens recent websites you used (and recently closed ones)
+   - *“How many tabs do I have open?”* — counts and lists open tabs
+   - *“Open Gmail and read my last email”* — starts the agent (you must already be signed in)
    - *“Which three are cheapest?”* — after you have scraped rows
    - A sentence that matches a saved workflow fills in its values and offers **Run**
    - Page work with no matching workflow (*“Add one Lumen Air laptop to the cart”*) starts the agent
@@ -108,6 +111,7 @@ Open **⚙ → Data** (or ask to read a PDF / scrape and Ask will open Data). **
 
 **Tabs**
 - The model sees every open tab (title, site, which is current, which it opened, which still need permission) and decides itself when to switch, open, or close tabs
+- Ask can reopen your last N websites (*“open my last 5 tabs”*) from sites you recently focused plus Chrome’s recently closed list, and can answer *“how many tabs are open”*
 - Links that open a new tab are followed automatically
 - Page content is read only on sites you allow. The site you start on is allowed; any other site asks once per task (**Allow for this task**, **Always allow**, **Don't allow**). You can keep lists of always-allowed and never-touch sites.
 - Closing a tab the agent did not open needs your approval

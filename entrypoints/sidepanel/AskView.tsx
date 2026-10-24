@@ -4,6 +4,7 @@ import { agent } from '@/features/agent/chromeBrowser';
 import { bestKeywordMatches, rowTitle } from '@/features/ask/keywordSearch';
 import { choosePlan, rulesPlan, validatePlan, workflowFields, type Plan } from '@/features/ask/requestPlanner';
 import { dataContext } from '@/features/data/sortRowsForQuestion';
+import { parseTabCount } from '@/features/tabs/recentTabs';
 import type { Row, Snapshot } from '@/shared/types';
 import { downloadText, fileName, findList, pageMarkdown, type Command } from './api';
 import { answer, filterRows, planTask, textModelReady, visionReady } from '@/features/local-ai/localModel';
@@ -258,6 +259,20 @@ export function AskView({
       } else if (current.action === 'record') {
         setPlan(null);
         openTab('workflows');
+      } else if (current.action === 'reopen_tabs') {
+        // Re-parse the spoken/typed request so “three” / “3” always win over a stale plan count.
+        const count = parseTabCount(asked, current.count ?? 5);
+        const response = await command({ type: 'REOPEN_RECENT_TABS', count });
+        if (!response?.ok) throw new Error(response?.error || 'Could not reopen recent tabs.');
+        setReply(response.message || current.reply);
+        setReplyFrom('From your recent tabs');
+        setPlan(null);
+      } else if (current.action === 'tab_info') {
+        const response = await command({ type: 'GET_TAB_INFO' });
+        if (!response?.ok) throw new Error(response?.error || 'Could not read open tabs.');
+        setReply(response.message || current.reply);
+        setReplyFrom('From your open tabs');
+        setPlan(null);
       } else if (current.action === 'agent') {
         if (!(await needModel())) return;
         setPlan(null);

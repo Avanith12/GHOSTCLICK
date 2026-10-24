@@ -1,7 +1,9 @@
 import { reachTab } from '@/shared/tabConnection';
 import type { Row, Snapshot } from '@/shared/types';
 
-export type Command = (message: Record<string, unknown>) => Promise<{ ok?: boolean; snapshot?: Snapshot; id?: string; error?: string } | null>;
+export type Command = (
+  message: Record<string, unknown>,
+) => Promise<{ ok?: boolean; snapshot?: Snapshot; id?: string; error?: string; message?: string } | null>;
 
 export async function activeTabId() {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });

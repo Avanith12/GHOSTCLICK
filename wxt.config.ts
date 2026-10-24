@@ -4,10 +4,10 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
     name: 'Ghostclick',
-    version: '0.1.4',
+    version: '0.1.5',
     description:
       'Show a website task once, then ask for it again in plain words. Replays, scrapes, and checks pages with a local model that never leaves your computer.',
-    permissions: ['sidePanel', 'storage', 'unlimitedStorage', 'tabs', 'downloads', 'scripting', 'audioCapture', 'windows'],
+    permissions: ['sidePanel', 'storage', 'unlimitedStorage', 'tabs', 'sessions', 'downloads', 'scripting', 'audioCapture', 'windows'],
     host_permissions: ['http://*/*', 'https://*/*'],
     action: {
       default_title: 'Open Ghostclick',
