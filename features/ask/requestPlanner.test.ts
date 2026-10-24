@@ -59,11 +59,14 @@ describe('rulesPlan', () => {
 
   it('ignores filler words when matching workflows', () => {
     const wiki = { ...hold, id: 'wiki', name: 'Test https://en.wikipedia.org/wiki/Main_Page', goal: '' };
-    expect(rulesPlan('open the page about dentists', [wiki], false).action).toBe('ask_page');
+    // "open" is page work for the agent, not a fuzzy match on a Wikipedia-named workflow.
+    expect(rulesPlan('open the page about dentists', [wiki], false).action).toBe('agent');
   });
 
-  it('answers from the page when nothing else matches', () => {
-    expect(rulesPlan('book a dentist appointment', [hold], false).action).toBe('ask_page');
+  it('sends imperative page work to the agent when no workflow fits', () => {
+    expect(rulesPlan('book a dentist appointment', [hold], false).action).toBe('agent');
+    expect(rulesPlan('Add one Lumen Air laptop to the cart', [], false).action).toBe('agent');
+    expect(rulesPlan('click Submit on this form', [], false).action).toBe('agent');
   });
 });
 
@@ -88,9 +91,10 @@ describe('choosePlan', () => {
   });
 
   it('does not turn a page question into a list search or a recording', () => {
+    // Imperative booking is agent work; a model "find" guess must not win over confident rules.
     const model = { action: 'find' as const, question: 'book a dentist appointment', reply: '', source: 'model' as const };
     const text = 'book a dentist appointment on this site';
-    expect(choosePlan(model, rulesPlan(text, [hold], false), text).action).toBe('ask_page');
+    expect(choosePlan(model, rulesPlan(text, [hold], false), text).action).toBe('agent');
     const record = { action: 'record' as const, name: 'about', reply: '', source: 'model' as const };
     expect(choosePlan(record, rulesPlan('what is this page about', [hold], false), 'what is this page about').action).toBe(
       'ask_page',

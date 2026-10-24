@@ -53,12 +53,12 @@ try {
   await input.uploadFile(fixture);
   await panel.waitForFunction(
     () => {
-      const status = document.querySelector('.box .status')?.textContent ?? '';
+      const status = document.querySelector('.pdf-block .status, .data-view .status')?.textContent ?? '';
       return /Read “|Could not|still has almost no text|Chrome blocks/i.test(status) && !/^Reading the PDF/i.test(status);
     },
     { timeout: 60_000 },
   );
-  const status = await panel.$eval('.box .status', (element) => element.textContent);
+  const status = await panel.$eval('.pdf-block .status, .data-view .status', (element) => element.textContent);
   console.log('status:', status);
   if (problems.length) console.log('errors:\n' + problems.join('\n'));
   if (!/\d+\s*pages?/i.test(status ?? '')) throw new Error('PDF was not read as expected.');

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { siteList } from '@/features/agent/actions';
+import { agent } from '@/features/agent/chromeBrowser';
 import { bestKeywordMatches, rowTitle } from '@/features/ask/keywordSearch';
 import { choosePlan, rulesPlan, validatePlan, workflowFields, type Plan } from '@/features/ask/requestPlanner';
 import { dataContext } from '@/features/data/sortRowsForQuestion';
@@ -174,7 +176,11 @@ export function AskView({
   }
 
   async function needModel() {
-    return model.loadForText(snap.settings.model);
+    const ok = await model.loadForText(snap.settings.model);
+    if (!ok) {
+      setError('The local model did not load. Pick a model in ⚙ settings, or try again once WebGPU is available.');
+    }
+    return ok;
   }
 
   async function carryOut(current = plan, asked = request) {
@@ -235,6 +241,15 @@ export function AskView({
       } else if (current.action === 'record') {
         setPlan(null);
         openTab('workflows');
+      } else if (current.action === 'agent') {
+        if (!(await needModel())) return;
+        setPlan(null);
+        void agent.run(asked, {
+          maxSteps: snap.settings.agentMaxSteps,
+          allowed: siteList(snap.settings.agentAllowed),
+          blocked: siteList(snap.settings.agentBlocked),
+          readAnySite: snap.settings.agentReadAny,
+        });
       }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : 'That did not work.');
@@ -256,12 +271,12 @@ export function AskView({
   return (
     <section className="ask-panel">
       <label>
-        Tell Ghostclick what to do
+        Ask
         <textarea
           ref={textareaRef}
           value={request}
-          rows={4}
-          placeholder={listening ? 'Listening…' : 'Speak or type, then press Enter'}
+          rows={3}
+          placeholder={listening ? 'Listening…' : 'Speak or type, then Go'}
           onChange={(event) => setRequest(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {

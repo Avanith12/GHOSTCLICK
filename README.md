@@ -69,43 +69,36 @@ This serves **Northwind Works**, a fictional company app with a dashboard, emplo
 
 ## How to use it
 
-The side panel opens on a home screen. Click the ghost or **Voice** to speak a request, or the keyboard button (⌨) to type one; both open **Ask**. At the top of Ask, switch between **Do anything** (the agent) and **Quick ask**. The **⚙ settings** button leads to **Workflows** and **Data**, the theme, the ghost pointer shown during replays, and the default model.
+The side panel opens on a home screen. Click the ghost or **Voice** to speak a request, or the keyboard button (⌨) to type one; both open **Ask** on the home screen (no mode tabs). Ghostclick routes the request: answer a page question, scrape or filter a list, run a saved workflow, read a PDF, or drive the page step by step with the agent. The **⚙ settings** button opens **Workflows** and **Data**, plus theme, the ghost pointer during replays, and the default model. Ask itself can send you into those screens when the request needs them (for example “read this PDF” → Data).
 
-### Ask → Do anything (the agent)
+### Ask (home)
 
-1. Pick a model under **Task** (Phi-3.5 Mini or Llama 3.2 3B recommended; see [The AI model](#the-ai-model)) and type a task, for example:
-   - *“Go to the Employee Directory, show only Engineering, sort by last name, and export it as CSV.”*
-   - *“Open the two cheapest monitors in new tabs, compare their stock, and add the one with more units to the cart.”*
-   - *“Find Jordan Lee, check their department, then open that department's analytics for the last 30 days.”*
-2. Press **Start**. The panel shows the plan, the current action and why, every step taken with its result, and the final answer.
-3. **Pause**, **Resume**, and **Stop** are in the panel. The bar Ghostclick shows on the page while it works also has **Stop**.
-4. When the agent wants to do something consequential (place an order, pay, send, delete, publish, submit an application, save account settings, close a tab you opened), it waits for **Approve** or **Skip it**. When it needs you (a login, a captcha, a file to upload, missing information), it waits for **Continue**.
-5. When the run ends, **Save as workflow** turns the steps it took into an ordinary workflow you can rename, trim, rerun with new values, or run once per CSV row, all without the model.
-
-### Ask → Quick ask
-
-Fast, mostly rule-based answers that need no agent loop:
-- *“What is this page about?”* / *“Summarize this page”*: answers from the current page (needs a text model)
-- *“Find the items on this page related to AI”* / *“Get every item on this page”*: collects a list
-- *“Save this page as a clean document”*: downloads Markdown
-- *“Read the PDF in this tab”*: opens the PDF tools in Data
-- *“Which three are cheapest?”*: after you have scraped rows (needs a text model)
-- A sentence that matches a saved workflow (*“Clear the advising hold for Grace Hopper…”*) fills in its values and offers **Run**
+1. Speak or type a request and press **Go**. Examples:
+   - *“What is this page about?”* / *“Summarize this page”* — answers from the current page (needs a text model)
+   - *“Find the items related to AI”* / *“Get every item on this page”* — collects a list
+   - *“Save this page as a clean document”* — downloads Markdown
+   - *“Read the PDF in this tab”* — opens PDF tools in Data
+   - *“Which three are cheapest?”* — after you have scraped rows
+   - A sentence that matches a saved workflow fills in its values and offers **Run**
+   - Page work with no matching workflow (*“Add one Lumen Air laptop to the cart”*) starts the agent
+2. While the agent works, the home Ask area shows **Working…**, the plan and steps, and **Pause** / **Resume** / **Stop**. The on-page bar also has **Stop**.
+3. Consequential actions wait for **Approve** or **Skip it**; login, captcha, upload, or missing info waits for **Continue**.
+4. When the run ends, **Save as workflow** turns the steps into a normal workflow.
 
 ### Workflows: record and replay
 
-1. Open the website and click **Record this page**.
+1. Open **⚙ → Workflows**, then **Record this page**.
 2. Do the task as usual: type, click, submit.
 3. Click **Save workflow**.
 4. To repeat it, open the workflow, change the values, and click **Run**, or upload a CSV to run it once per row.
 
 ### Data
 
-**Scrape a list on this page**, then click one item. Ghostclick finds the rest. Download as CSV or JSON, download every linked file, save the page as Markdown, or ask questions about the rows. The agent's `EXTRACT` action fills the same table.
+Open **⚙ → Data** (or ask to read a PDF / scrape and Ask will open Data). **Scrape a list on this page**, then click one item. Ghostclick finds the rest. Download as CSV or JSON, download every linked file, save the page as Markdown, or ask questions about the rows. The agent's `EXTRACT` action fills the same table.
 
 ## Features
 
-**Autonomous agent (Ask → Do anything)**
+**Autonomous agent (from Ask on home)**
 - A loop of plan → look at the page → choose one action → validate → approve if needed → act → check the result → repeat, with a final check that the goal is really met before it accepts “done”
 - 24 schema-checked actions: `NAVIGATE`, `SEARCH`, `CLICK`, `TYPE` (optionally pressing Enter), `CLEAR`, `SELECT`, `SCROLL`, `HOVER`, `WAIT`, `READ`, `EXTRACT`, `NOTE`, `OPEN_TAB`, `SWITCH_TAB`, `CLOSE_TAB`, `GO_BACK`, `GO_FORWARD`, `DOWNLOAD`, `SUBMIT`, `UPLOAD_FILE` (asks you to pick the file), `SCREENSHOT`, `VERIFY`, `ASK_USER`, `FINISH`. The model only ever produces these JSON objects, never code.
 - Page understanding: a compact, numbered list of visible controls with their accessible names, roles, values, options, checked state, link targets, required and invalid flags, plus open dialogs, error messages, password fields, captchas, and the page text most relevant to the goal. Element names follow accessibility rules (`aria-labelledby`, labels, `aria-label`, then text), so it handles custom dropdowns, switches, and modals, not just plain forms.

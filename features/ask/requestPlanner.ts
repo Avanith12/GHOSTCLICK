@@ -2,7 +2,16 @@ import { filterPhrase } from '@/features/ask/keywordSearch';
 import { words } from '@/shared/textHelpers';
 import type { Workflow } from '@/shared/types';
 
-export type PlanAction = 'run' | 'find' | 'scrape' | 'save_page' | 'ask_page' | 'ask_data' | 'record' | 'read_pdf';
+export type PlanAction =
+  | 'run'
+  | 'find'
+  | 'scrape'
+  | 'save_page'
+  | 'ask_page'
+  | 'ask_data'
+  | 'record'
+  | 'read_pdf'
+  | 'agent';
 
 export type Plan = {
   action: PlanAction;
@@ -15,7 +24,21 @@ export type Plan = {
   confident?: boolean;
 };
 
-const ACTIONS: PlanAction[] = ['run', 'find', 'scrape', 'save_page', 'ask_page', 'ask_data', 'record', 'read_pdf'];
+const ACTIONS: PlanAction[] = [
+  'run',
+  'find',
+  'scrape',
+  'save_page',
+  'ask_page',
+  'ask_data',
+  'record',
+  'read_pdf',
+  'agent',
+];
+
+/** Imperative page work the autonomous agent should drive click-by-click. */
+const AGENT_HINT =
+  /\b(click|tap|press|type|enter|fill|select|choose|check|uncheck|toggle|submit|add|remove|delete|buy|purchase|cart|checkout|check out|open|go to|navigate|visit|login|log in|sign in|sign up|register|book|create|upload|download|search for|look up|find me|get me|put|place|order)\b/i;
 
 export function workflowFields(workflow: Workflow) {
   return workflow.steps
@@ -195,6 +218,14 @@ export function rulesPlan(request: string, workflows: Workflow[], hasData: boole
     };
   }
   if (wanted) return findWanted(false);
+  if (AGENT_HINT.test(text) || !/\?\s*$/.test(request.trim())) {
+    return {
+      action: 'agent',
+      reply: 'Work through this on the page, one step at a time.',
+      source: 'rules',
+      confident: AGENT_HINT.test(text),
+    };
+  }
   return {
     action: hasData ? 'ask_data' : 'ask_page',
     question: request,

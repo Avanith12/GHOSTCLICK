@@ -437,13 +437,13 @@ function buildUi(top: boolean) {
           <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
       </defs>
-      <path filter="url(#ghostclick-soft)" fill="#f4fbff" stroke="#5ce1ff" stroke-width="2.2"
+      <path filter="url(#ghostclick-soft)" fill="#fff0f7" stroke="#ff2d95" stroke-width="2.2"
         d="M32 6c-11.5 0-20 9-20 22v22c0 3.2 2.2 4.4 4.4 2.6 2.4-2 5.2-2 7.6 0 2.2 1.8 4.4.6 4.4-2.6V42c0-1.4 1.2-2.4 2.6-2.2 1.2.2 2 .1 3.2-1.8L48 18.4C50.6 14.2 47.4 6 32 6z"/>
-      <circle cx="24.5" cy="28" r="3.2" fill="#0b1c24"/>
-      <circle cx="36.5" cy="28" r="3.2" fill="#0b1c24"/>
-      <path d="M26 36c2.4 2.2 9.6 2.2 12 0" fill="none" stroke="#0b1c24" stroke-width="2" stroke-linecap="round"/>
-      <path d="M46 20l12 18" stroke="#5ce1ff" stroke-width="3.4" stroke-linecap="round"/>
-      <path d="M58 38l-8-2 3 8z" fill="#5ce1ff"/>
+      <circle cx="24.5" cy="28" r="3.2" fill="#1a0810"/>
+      <circle cx="36.5" cy="28" r="3.2" fill="#1a0810"/>
+      <path d="M26 36c2.4 2.2 9.6 2.2 12 0" fill="none" stroke="#1a0810" stroke-width="2" stroke-linecap="round"/>
+      <path d="M46 20l12 18" stroke="#ff2d95" stroke-width="3.4" stroke-linecap="round"/>
+      <path d="M58 38l-8-2 3 8z" fill="#ff2d95"/>
     </svg>
   `;
 
@@ -454,42 +454,42 @@ function buildUi(top: boolean) {
       position: fixed; right: 16px; bottom: 16px; z-index: 2147483646;
       display: none; align-items: center; gap: 10px;
       max-width: min(380px, calc(100vw - 32px)); padding: 10px 12px;
-      border-radius: 999px; background: #0f1a20; color: #e8f7ff;
+      border-radius: 999px; background: #1a0a12; color: #ffe8f4;
       font: 13px/1.3 "Segoe UI", sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,.35);
-      border: 1px solid rgba(92,225,255,.28);
+      border: 1px solid rgba(255,45,149,.28);
     }
     [data-ghostclick="dot"] {
-      width: 8px; height: 8px; border-radius: 99px; background: #5ce1ff; flex: none;
-      box-shadow: 0 0 0 0 rgba(92,225,255,.55);
+      width: 8px; height: 8px; border-radius: 99px; background: #ff2d95; flex: none;
+      box-shadow: 0 0 0 0 rgba(255,45,149,.55);
       animation: ghostclick-dot 1.4s ease-out infinite;
     }
     [data-ghostclick="hud"][data-mode="recording"] [data-ghostclick="dot"] {
-      background: #5ce1ff;
-      box-shadow: 0 0 0 0 rgba(92,225,255,.55);
+      background: #ff2d95;
+      box-shadow: 0 0 0 0 rgba(255,45,149,.55);
       animation-name: ghostclick-dot;
     }
     [data-ghostclick="stop"] {
-      border: 0; border-radius: 999px; background: #e8f7ff; color: #0f1a20;
+      border: 0; border-radius: 999px; background: #ffe8f4; color: #1a0a12;
       font: inherit; padding: 4px 10px; cursor: pointer;
     }
     [data-ghostclick="outline"] {
       position: fixed; z-index: 2147483645; pointer-events: none; display: none;
-      border: 2px solid #5ce1ff; background: rgba(92,225,255,.08); border-radius: 4px;
+      border: 2px solid #ff2d95; background: rgba(255,45,149,.08); border-radius: 4px;
     }
     [data-ghostclick="glow"] {
       position: fixed; inset: 0; z-index: 2147483644; pointer-events: none; display: none;
       border-radius: 0;
       box-shadow:
-        inset 0 0 0 3px rgba(92,225,255,.55),
-        inset 0 0 42px rgba(92,225,255,.22),
-        inset 0 0 90px rgba(92,225,255,.1);
+        inset 0 0 0 3px rgba(255,45,149,.55),
+        inset 0 0 42px rgba(255,45,149,.22),
+        inset 0 0 90px rgba(255,45,149,.1);
       animation: ghostclick-glow 1.8s ease-in-out infinite;
     }
     [data-ghostclick="glow"][data-mode="recording"] {
       box-shadow:
-        inset 0 0 0 4px rgba(92,225,255,.75),
-        inset 0 0 56px rgba(92,225,255,.32),
-        inset 0 0 120px rgba(92,225,255,.14);
+        inset 0 0 0 4px rgba(255,45,149,.75),
+        inset 0 0 56px rgba(255,45,149,.32),
+        inset 0 0 120px rgba(255,45,149,.14);
       animation-name: ghostclick-glow;
     }
     [data-ghostclick="cursor"] {
@@ -505,7 +505,7 @@ function buildUi(top: boolean) {
     [data-ghostclick="cursor-ghost"] { display: block; overflow: visible; }
     [data-ghostclick="cursor-ring"] {
       position: absolute; left: 34px; top: 40px; width: 10px; height: 10px; border-radius: 99px;
-      border: 2px solid rgba(92,225,255,.9); opacity: 0; transform: scale(.4);
+      border: 2px solid rgba(255,45,149,.9); opacity: 0; transform: scale(.4);
       pointer-events: none;
     }
     [data-ghostclick="cursor"].clicking [data-ghostclick="cursor-ring"] {
@@ -520,9 +520,9 @@ function buildUi(top: boolean) {
       50% { opacity: 1; }
     }
     @keyframes ghostclick-dot {
-      0% { box-shadow: 0 0 0 0 rgba(92,225,255,.5); }
-      70% { box-shadow: 0 0 0 10px rgba(92,225,255,0); }
-      100% { box-shadow: 0 0 0 0 rgba(92,225,255,0); }
+      0% { box-shadow: 0 0 0 0 rgba(255,45,149,.5); }
+      70% { box-shadow: 0 0 0 10px rgba(255,45,149,0); }
+      100% { box-shadow: 0 0 0 0 rgba(255,45,149,0); }
     }
     @keyframes ghostclick-dot-rec {
       0% { box-shadow: 0 0 0 0 rgba(255,107,90,.5); }

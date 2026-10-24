@@ -137,23 +137,23 @@ async function scenario(name, body) {
   }
 }
 
-await scenario('0. side panel shows the agent section and both Ask modes', async () => {
+await scenario('0. side panel opens Ask on the home screen (no mode tabs)', async () => {
   const problems = [];
   panel.on('pageerror', (error) => problems.push(error.message));
-  // Background tabs pause animation frames, which Puppeteer's waits rely on.
   await panel.bringToFront();
-  // The home screen's keyboard button opens Ask for typing (the ghost itself starts voice input).
+  // Keyboard on home opens Ask inline (voice/type are the same Ask).
   await panel.click('.key-btn');
-  await panel.waitForSelector('::-p-text(Do anything)', { timeout: 5000 });
-  await panel.click('::-p-text(Do anything)');
-  await panel.waitForSelector('::-p-text(Ask Ghostclick to Do Anything)', { timeout: 5000 });
-  const controls = await panel.$$eval('button', (buttons) => buttons.map((button) => button.textContent.trim()));
-  const hasModel = Boolean(await panel.$('select[aria-label="Model"]'));
-  await panel.click('::-p-text(Quick ask)');
-  await panel.waitForSelector('::-p-text(Tell Ghostclick what to do)', { timeout: 5000 });
-  await panel.click('::-p-text(Do anything)');
-  await panel.waitForSelector('::-p-text(Ask Ghostclick to Do Anything)', { timeout: 5000 });
-  note('0. side panel shows the agent section and both Ask modes', controls.includes('Start') && hasModel && problems.length === 0, `buttons: ${controls.slice(0, 8).join(', ')}${problems.length ? ` | errors: ${problems.join(' | ')}` : ''}`);
+  await panel.waitForSelector('textarea', { timeout: 5000 });
+  const tabs = await panel.$$eval('button', (buttons) =>
+    buttons.map((button) => button.textContent.trim()).filter((label) => /Do anything|Quick ask/i.test(label)),
+  );
+  const hasAsk = Boolean(await panel.$('textarea'));
+  const hasGo = await panel.$$eval('button', (buttons) => buttons.some((button) => button.textContent.trim() === 'Go'));
+  note(
+    '0. side panel opens Ask on the home screen (no mode tabs)',
+    hasAsk && hasGo && tabs.length === 0 && problems.length === 0,
+    `ask=${hasAsk}; go=${hasGo}; stray tabs=${tabs.join(', ') || 'none'}${problems.length ? ` | errors: ${problems.join(' | ')}` : ''}`,
+  );
 });
 
 await scenario('1. navigate by instruction', async () => {

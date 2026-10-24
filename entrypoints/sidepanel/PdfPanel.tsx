@@ -160,17 +160,14 @@ export function PdfPanel({
   }
 
   return (
-    <div className="box">
-      <h2>PDF</h2>
-      <p className="hint">
-        PDFs are not list-scraped. Read first (scanned pages use on-device OCR), then Ask or Pull out into a table.
-      </p>
+    <div className="pdf-block">
+      <p className="tag">PDF</p>
       <div className="row">
         <button type="button" className="ghost" disabled={busy} onClick={() => void readTab()}>
-          Read the PDF in this tab
+          Read tab
         </button>
         <label className="file">
-          Open a PDF file
+          Open file
           <input
             type="file"
             accept="application/pdf,.pdf"
@@ -197,13 +194,8 @@ export function PdfPanel({
             </button>
           </div>
 
-          <h2>Pull out a table (PDF scrape)</h2>
-          <p className="hint">
-            Uses your local model. Name the columns first (required), then say what to extract — e.g. columns
-            <code> code, title, credits </code> and “course list rows”.
-          </p>
           <label>
-            What should be pulled out?
+            Pull out
             <textarea
               rows={2}
               value={want}
@@ -212,12 +204,12 @@ export function PdfPanel({
             />
           </label>
           <label>
-            Columns (comma separated)
+            Columns
             <input value={columns} placeholder="code, title, credits" onChange={(event) => setColumns(event.target.value)} />
           </label>
           <div className="row">
             <button type="button" disabled={busy || !want.trim() || !columns.trim()} onClick={() => void pullOut()}>
-              {busy ? 'Working…' : 'Pull out into a table'}
+              {busy ? 'Working…' : 'Pull into table'}
             </button>
             {busy ? (
               <button type="button" className="ghost" onClick={() => (cancelled.current = true)}>
@@ -226,18 +218,17 @@ export function PdfPanel({
             ) : null}
           </div>
 
-          <h2>Ask about this PDF</h2>
           <label>
-            Question
+            Ask this PDF
             <textarea
               rows={2}
               value={question}
-              placeholder="Summarize the abstract. What is the deadline?"
+              placeholder="What is this form for?"
               onChange={(event) => setQuestion(event.target.value)}
             />
           </label>
           <button type="button" className="ghost" disabled={busy || !question.trim()} onClick={() => void ask()}>
-            Ask the local model
+            Ask
           </button>
           {reply ? <div className="answer">{reply}</div> : null}
         </>

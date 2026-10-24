@@ -106,10 +106,10 @@ export function AgentView({
 
   return (
     <section className="agent">
-      <h2>Ask Ghostclick to Do Anything</h2>
+      <h2>{running || state.phase === 'planning' || state.phase === 'waiting' || state.phase === 'paused' ? 'Working' : 'Ask'}</h2>
       <p className="hint">
-        Describe a task in your own words. Ghostclick looks at the page, picks one action at a time with the local model, checks the
-        result, and keeps going until the task is done. It asks before anything consequential.
+        Ghostclick looks at the page, picks one action at a time, and keeps going until the task is done. It asks before anything
+        consequential.
       </p>
       {interrupted && !running ? (
         <div className="prompt">

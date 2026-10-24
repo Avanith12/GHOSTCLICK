@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { Candidate, Snapshot } from '@/shared/types';
 import type { Command } from './api';
 import { agent } from '@/features/agent/chromeBrowser';
@@ -11,7 +11,7 @@ import { useModel, type ModelState } from '@/features/local-ai/useLocalModel';
 import { SettingsCog } from './SettingsCog';
 import { StepList, WorkflowsView } from './WorkflowsView';
 
-type Panel = 'home' | 'ask' | 'workflows' | 'data';
+type Panel = 'home' | 'workflows' | 'data';
 
 export function App() {
   const [snap, setSnap] = useState<Snapshot | null>(null);
@@ -19,9 +19,9 @@ export function App() {
   const [waking, setWaking] = useState(false);
   const [cogOpen, setCogOpen] = useState(false);
   const [askMode, setAskMode] = useState<'voice' | 'type'>('voice');
+  const [askOpen, setAskOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [autoReadPdf, setAutoReadPdf] = useState(false);
-  const [askView, setAskView] = useState<'agent' | 'quick'>('agent');
   const agentState = useSyncExternalStore(
     (listener) => agent.subscribe(listener),
     () => agent.state,
@@ -55,9 +55,103 @@ export function App() {
     return response;
   };
 
-  useEffect(() => {
-    const theme = snap?.settings?.theme === 'light' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = theme;
+  useLayoutEffect(() => {
+    if (!snap) return;
+    const theme = snap.settings.theme === 'light' ? 'light' : 'dark';
+    const root = document.documentElement;
+    root.dataset.theme = theme;
+    const style = root.style;
+    if (theme === 'light') {
+      style.setProperty('--bg', '#ffffff');
+      style.setProperty('--bg-lift', '#f5f8ff');
+      style.setProperty('--ink', '#1e3a8a');
+      style.setProperty('--accent', '#2563eb');
+      style.setProperty('--accent-bright', '#3b82f6');
+      style.setProperty('--accent-dim', '#1d4ed8');
+      style.setProperty('--accent-rgb', '37, 99, 235');
+      style.setProperty('--accent-dim-rgb', '29, 78, 216');
+      style.setProperty('--muted', '#64748b');
+      style.setProperty('--line', '#c5d4f0');
+      style.setProperty('--line-strong', '#2563eb');
+      style.setProperty('--panel', 'rgba(255, 255, 255, 0.92)');
+    } else {
+      style.setProperty('--bg', '#05080f');
+      style.setProperty('--bg-lift', '#0c121c');
+      style.setProperty('--ink', '#ffe8f4');
+      style.setProperty('--accent', '#ff2d95');
+      style.setProperty('--accent-bright', '#ff7ac8');
+      style.setProperty('--accent-dim', '#c2186a');
+      style.setProperty('--accent-rgb', '255, 45, 149');
+      style.setProperty('--accent-dim-rgb', '194, 24, 106');
+      style.setProperty('--muted', '#c48aa8');
+      style.setProperty('--line', '#402030');
+      style.setProperty('--line-strong', '#6a3048');
+      style.setProperty('--panel', 'rgba(10, 20, 30, 0.82)');
+    }
+
+    // Element-level !important overrides (no data-theme dependency) so light can never stay pink.
+    let force = document.getElementById('ghostclick-theme-force') as HTMLStyleElement | null;
+    if (!force) {
+      force = document.createElement('style');
+      force.id = 'ghostclick-theme-force';
+      document.head.appendChild(force);
+    }
+    force.textContent =
+      theme === 'light'
+        ? `
+.ghost-mist { display: none !important; }
+.ghost-wake img,
+.ghost-wake-xl img {
+  box-shadow: none !important;
+  filter: none !important;
+  border: 2px solid #2563eb !important;
+  background: #ffffff !important;
+}
+.ghost-ring { display: none !important; }
+.ghost-hint, .ghost-title, .voice-label { color: #1d4ed8 !important; text-shadow: none !important; }
+.voice-dot, .voice-wave i { background: #2563eb !important; }
+.voice-dot { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2) !important; }
+.voice-strip {
+  border-color: #2563eb !important;
+  color: #1d4ed8 !important;
+  background: #ffffff !important;
+}
+.voice-strip:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.1) !important;
+  border-color: #2563eb !important;
+  box-shadow: none !important;
+}
+.cog-btn, .key-btn, button.ghost, button.choice, button.workflow, button.back, button.chip, .cog-link {
+  border-color: #2563eb !important;
+  color: #1d4ed8 !important;
+}
+button:hover:not(:disabled),
+.cog-btn:hover:not(:disabled), .key-btn:hover:not(:disabled),
+button.ghost:hover:not(:disabled), button.choice:hover:not(:disabled),
+button.workflow:hover:not(:disabled), button.back:hover:not(:disabled),
+button.chip:hover:not(:disabled), .cog-link:hover:not(:disabled),
+.voice-strip:hover:not(:disabled), .tabs button:hover:not(:disabled) {
+  border-color: #2563eb !important;
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+  box-shadow: none !important;
+}
+button:not(.ghost):not(.choice):not(.workflow):not(.back):not(.chip):not(.cog-link):not(.wordmark):not(.ghost-wake):not(.voice-strip):not(.key-btn) {
+  background: #2563eb !important;
+  color: #fff !important;
+}
+button:not(.ghost):not(.choice):not(.workflow):not(.back):not(.chip):not(.cog-link):not(.wordmark):not(.ghost-wake):not(.voice-strip):not(.key-btn):hover:not(:disabled) {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+body, html {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #1e3a8a !important;
+}
+`
+        : '';
   }, [snap?.settings?.theme]);
 
   /** Workflows / Data from settings — leave settings and stay on that screen. */
@@ -65,6 +159,7 @@ export function App() {
     window.clearTimeout(wakeTimer.current);
     setWaking(false);
     setCogOpen(false);
+    setAskOpen(false);
     setPanel(next);
     if (next === 'workflows') setSelectedId(null);
   }
@@ -81,19 +176,15 @@ export function App() {
     if (cogOpen) return;
     window.clearTimeout(wakeTimer.current);
     setAskMode(mode);
-    // Voice and typing from the home screen go to Quick ask, where the voice input lives.
-    setAskView('quick');
+    setPanel('home');
+    setAskOpen(true);
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce || mode === 'type') {
       setWaking(false);
-      setPanel('ask');
       return;
     }
     setWaking(true);
-    wakeTimer.current = window.setTimeout(() => {
-      setWaking(false);
-      setPanel('ask');
-    }, 550);
+    wakeTimer.current = window.setTimeout(() => setWaking(false), 550);
   }
 
   /** Home from anywhere. */
@@ -102,6 +193,7 @@ export function App() {
     setWaking(false);
     setPanel('home');
     setCogOpen(false);
+    setAskOpen(false);
     setAskMode('voice');
   }
 
@@ -139,7 +231,17 @@ export function App() {
 
   const idle = snap.mode === 'idle';
   const showHome = idle && !cogOpen && (panel === 'home' || waking);
-  const showAsk = idle && !cogOpen && panel === 'ask' && !waking;
+  const agentBusy =
+    agent.running ||
+    agentState.phase === 'waiting' ||
+    agentState.phase === 'paused' ||
+    agentState.phase === 'planning';
+  const agentSession =
+    agentBusy ||
+    (Boolean(agentState.goal) &&
+      (agentState.phase === 'done' || agentState.phase === 'failed' || agentState.phase === 'stopped'));
+  const showAskOnHome = showHome && !waking && (askOpen || agentSession);
+  const showGhostHome = showHome && !showAskOnHome;
   const showWorkflows = idle && !cogOpen && panel === 'workflows';
   const showData = idle && !cogOpen && panel === 'data';
 
@@ -177,18 +279,6 @@ export function App() {
       />
 
       {snap.statusText && !cogOpen && !showHome ? <p className="status">{snap.statusText}</p> : null}
-      {agentState.phase !== 'idle' && agent.running && !(showAsk && askView === 'agent') ? (
-        <button
-          type="button"
-          className="ghost agent-banner"
-          onClick={() => {
-            openPanel('ask');
-            setAskView('agent');
-          }}
-        >
-          {agentState.pending ? 'The agent needs you. Open the task' : `Agent working: ${agentState.current || 'step ' + agentState.step}`}
-        </button>
-      ) : null}
 
       {!cogOpen && snap.mode === 'recording' && snap.draft ? <RecordView snap={snap} command={command} /> : null}
       {!cogOpen && snap.mode === 'picking' ? <PickView command={command} /> : null}
@@ -196,7 +286,7 @@ export function App() {
         <RunView snap={snap} model={model} command={command} />
       ) : null}
 
-      {showHome ? (
+      {showGhostHome ? (
         <section className={`ghost-home agent-home${waking ? ' waking' : ''}`}>
           <div className="ghost-mist" aria-hidden="true" />
           <button
@@ -237,19 +327,27 @@ export function App() {
         </section>
       ) : null}
 
-      {showAsk ? (
-        <>
-          <div className="mode-toggle" role="tablist" aria-label="Ask mode">
-            <button type="button" role="tab" aria-selected={askView === 'agent'} className={askView === 'agent' ? '' : 'ghost'} onClick={() => setAskView('agent')}>
-              Do anything
-            </button>
-            <button type="button" role="tab" aria-selected={askView === 'quick'} className={askView === 'quick' ? '' : 'ghost'} onClick={() => setAskView('quick')}>
-              Quick ask
-            </button>
-          </div>
+      {showAskOnHome ? (
+        <section className="home-ask">
+          {agentSession ? (
+            <p className="status home-working" aria-live="polite">
+              {agentState.pending
+                ? 'Needs you…'
+                : agentState.phase === 'paused'
+                  ? 'Paused'
+                  : agentBusy
+                    ? 'Working…'
+                    : agentState.phase === 'done'
+                      ? 'Done'
+                      : agentState.phase === 'failed'
+                        ? 'Could not finish'
+                        : 'Stopped'}
+              {agentState.current ? ` · ${agentState.current}` : ''}
+            </p>
+          ) : null}
           <LastRun snap={snap} command={command} />
-          {askView === 'agent' ? (
-            <AgentView snap={snap} model={model} command={command} openData={() => setPanel('data')} />
+          {agentSession ? (
+            <AgentView snap={snap} model={model} command={command} openData={() => openPanel('data')} />
           ) : (
             <AskView
               key={askMode}
@@ -259,13 +357,26 @@ export function App() {
               autoVoice={askMode === 'voice'}
               focusType={askMode === 'type'}
               openTab={(next, workflowId, readPdf) => {
+                setAskOpen(false);
                 setPanel(next);
                 setSelectedId(workflowId ?? null);
                 if (readPdf) setAutoReadPdf(true);
               }}
             />
           )}
-        </>
+          {!agentBusy ? (
+            <button
+              type="button"
+              className="ghost back-home"
+              onClick={() => {
+                if (agentSession) agent.reset();
+                goHome();
+              }}
+            >
+              Back to home
+            </button>
+          ) : null}
+        </section>
       ) : null}
 
       {showWorkflows ? (

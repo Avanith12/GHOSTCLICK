@@ -38,9 +38,7 @@ export function DataView({
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     const url = tab?.url ?? '';
     if (/^file:/i.test(url) || /\.pdf(\?|#|$)/i.test(url) || /\/pdf(\?|#|$)/i.test(url)) {
-      setNote(
-        'This looks like a PDF tab. “Scrape a list” is for web pages. Use PDF below: Read / Open a PDF file, then Ask or Pull out into a table.',
-      );
+      setNote('That tab looks like a PDF. Use Read / Open a PDF below instead of scrape.');
       return;
     }
     await command({ type: 'START_PICK' });
@@ -72,20 +70,24 @@ export function DataView({
   }
 
   return (
-    <section>
-      <div className="row">
-        <button type="button" onClick={() => void scrapeList()}>
-          Scrape a list on this page
-        </button>
-        <button type="button" className="ghost" onClick={() => void savePage()}>
-          Save page as document
-        </button>
-      </div>
-      <p className="hint">
-        Web pages: scrape a repeated list/table. PDFs: use the PDF section below (Read → Ask or Pull out into a table).
-      </p>
+    <section className="data-view">
+      <h2 className="data-title">Data</h2>
+      <p className="hint">Pull a table from a PDF, or scrape a list on a web page. One place for results.</p>
       {note ? <p className="status">{note}</p> : null}
+
       <PdfPanel snap={snap} model={model} command={command} autoRead={autoReadPdf} onAutoReadDone={onAutoReadDone} />
+
+      <div className="data-quiet">
+        <p className="tag">Web page</p>
+        <div className="row">
+          <button type="button" className="ghost" onClick={() => void scrapeList()}>
+            Scrape list
+          </button>
+          <button type="button" className="ghost" onClick={() => void savePage()}>
+            Save as Markdown
+          </button>
+        </div>
+      </div>
 
       {rows.length ? (
         <>
@@ -130,9 +132,7 @@ export function DataView({
               <button
                 type="button"
                 className="ghost"
-                onClick={() =>
-                  void downloadUrls(files).then((count) => setNote(`Started ${count} downloads.`))
-                }
+                onClick={() => void downloadUrls(files).then((count) => setNote(`Started ${count} downloads.`))}
               >
                 Download {Math.min(files.length, 50)} linked files
               </button>
@@ -142,24 +142,24 @@ export function DataView({
             </button>
           </div>
 
-          <div className="box">
-            <h2>Ask about this data</h2>
+          <label>
+            Ask about this table
             <textarea
               rows={2}
               value={question}
-              placeholder="Which three are cheapest? Group these headlines by topic."
+              placeholder="Which three are cheapest?"
               onChange={(event) => setQuestion(event.target.value)}
             />
-            <div className="row">
-              <button type="button" disabled={busy || !question.trim()} onClick={() => void ask()}>
-                {busy ? 'Thinking…' : 'Ask the local model'}
-              </button>
-            </div>
-            {reply ? <div className="answer">{reply}</div> : null}
+          </label>
+          <div className="row">
+            <button type="button" className="ghost" disabled={busy || !question.trim()} onClick={() => void ask()}>
+              {busy ? 'Thinking…' : 'Ask'}
+            </button>
           </div>
+          {reply ? <div className="answer">{reply}</div> : null}
         </>
       ) : (
-        <p>No data yet. Scrape a list, or run a workflow that has a scrape step.</p>
+        <p className="hint">No rows yet — read a PDF and pull a table, or scrape a list on a page.</p>
       )}
     </section>
   );
