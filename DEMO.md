@@ -102,4 +102,4 @@ CHROME_PATH="C:/Program Files/Google/Chrome/Application/chrome.exe" npm run test
 CHROME_PATH="C:/Program Files/Google/Chrome/Application/chrome.exe" npm run test:agent
 ```
 
-`test:demo` completes all 13 challenges by hand in a real Chrome and confirms each one turns green, and that nothing passes on fresh data. `test:agent` loads the extension and drives the agent loop with scripted decisions through 16 scenarios on this site, checking results with the challenge grader. Neither test downloads a model. `browser-tests/agent-bench.mjs` runs the challenges with the real model; see the README's Verified results for what has been measured.
+`test:demo` completes all 13 challenges by hand in a real Chrome and confirms each one turns green, and that nothing passes on fresh data. `test:agent` loads the extension and drives the agent loop with scripted decisions through 16 scenarios on this site, checking results with the challenge grader. Neither test downloads a model. `browser-tests/agent-bench.mjs` runs the challenges with the real model; see [verifiedresults.md](verifiedresults.md) for what has been measured.

@@ -10,7 +10,7 @@
 
 Ghostclick is a Chrome extension with a local AI browser agent. Describe a task in plain words and the agent looks at the page, picks one action at a time, checks the result, and keeps going across pages and tabs. It can also record a task you show it once and replay it with new values, scrape lists, and read PDFs.
 
-> **Status (25 Oct 2026).** Chrome E2E for agent, Ask, tabs, and workflows is in good shape. For repeat work, prefer record-and-replay; the live model is slower and less reliable at knowing when to stop. Details: [Verified results](#verified-results).
+> **Status (25 Oct 2026).** Chrome E2E for agent, Ask, tabs, and workflows is in good shape. For repeat work, prefer record-and-replay; the live model is slower and less reliable at knowing when to stop. Measured checks: [verifiedresults.md](verifiedresults.md).
 
 The AI model ([WebLLM](https://github.com/mlc-ai/web-llm)) runs on your own graphics card. Your pages and data are never sent to a server, and no account or API key is needed. Optional voice input uses Chrome's speech service.
 
@@ -169,7 +169,7 @@ Choose a model in **Ask** (home) or in ⚙ settings. It downloads once from Hugg
 | Phi-3.5 Mini | about 2.2 GB | The strongest text model here; the first choice for agent tasks |
 | Phi-3.5 Vision | about 4 GB | Only for repairing replays from a screenshot; not used by the agent or for questions |
 
-Only Phi-3.5 Mini has been benchmarked on the agent (see [Verified results](#verified-results)); the other rows are guidance from model size. Measured on an Intel Arc 140V laptop GPU: first download and load 294 s, later loads from cache 12–13 s, and 15–21 s per agent step, nearly all of it spent reading the prompt.
+Only Phi-3.5 Mini has been benchmarked on the agent (see [verifiedresults.md](verifiedresults.md)); the other rows are guidance from model size. Load and per-step times depend on your GPU — rough numbers are in that file.
 
 Small local models make mistakes. They sometimes pick the wrong control or stop early. The loop is built around that: every action is validated, failures are fed back, consequential steps need you, and “done” is double-checked. Long, open-ended research across many sites is still beyond what a 1.5–4 B model does reliably. Short, concrete tasks on one or two sites work best.
 
@@ -213,32 +213,7 @@ CHROME_PATH="<path to chrome>" MODEL=Phi-3.5-mini-instruct-q4f16_1-MLC MAX_STEPS
 CHROME_PATH="<path to chrome>" MAX_STEPS=12 node browser-tests/public-bench.mjs
 ```
 
-`test:agent` swaps the model for scripted decisions that read the real prompt, so it checks everything except the model's judgement: observation, element ids, validation, approvals, site permissions, tab switching, new-tab handling, Stop (panel and page), extraction, saving the run as a workflow, and replaying it without a model. Results are checked against the demo's own challenge grader. `test:live` (external websites) and `model-test.mjs` (real WebLLM models; needs a GPU and the model downloads) cover the older features.
-
-## Verified results
-
-Everything below was run on 23 October 2026 on a Windows laptop with an Intel Arc 140V GPU (8 GB shared) and Chrome 156.
-
-**Without a model (deterministic)**
-
-| Check | Result |
-|-------|--------|
-| Type check, production build, packaged `.zip` | pass |
-| Unit tests | 122 passed (20 skipped tests need saved copies of real websites) |
-| Demo site, every challenge done by hand and graded | 29 / 29 |
-| Agent in real Chrome with scripted decisions | 16 / 16: navigation, look-alike names and modals, a two-step form with approval, declining a consequential action, multi-page tasks, custom dropdowns and switches, a report export, extraction, recovery from bad ids, tab discovery, switching, and reading, site permissions, closing tabs only with approval, Stop in the panel and on the page, reporting an impossible task, saving the run as a workflow and replaying it with new values without a model |
-
-The scripted runs prove the machinery, not the model's judgement.
-
-**With the real model (Phi-3.5 Mini, 12-step limit, one run each)**
-
-| Challenge | Verifier | What happened | Time |
-|-----------|----------|---------------|------|
-| 1. Find a colleague | pass | Searched “Jordan Lee”, opened the right person (not a look-alike) on its 2nd action, later opened the profile in a new tab; did not send FINISH and used all 12 steps | 278 s |
-| 3. Add a product to the cart | pass (after a fix) | Picked the product search box, searched, added Lumen Air on its 4th action; then kept going until loop protection stopped it. The first run failed because a hint pointed at the people search box; that hint was fixed | 240 s |
-| 2. Turn on dark mode | fail | Toggled the top-bar theme button on and off instead of saving in Settings; loop protection stopped it | 126 s |
-
-The other 10 challenges were not run with the real model before release. Earlier real-model runs, before the fixes below, failed every attempt; they exposed and led to fixing: replies that were not one valid action (now grammar-constrained JSON), relative URLs, relevance ranking that buried the target, ignoring search boxes, and a prompt budget that cut late-page controls such as **Next page**.
+`test:agent` swaps the model for scripted decisions that read the real prompt, so it checks everything except the model's judgement: observation, element ids, validation, approvals, site permissions, tab switching, new-tab handling, Stop (panel and page), extraction, saving the run as a workflow, and replaying it without a model. Results are checked against the demo's own challenge grader. `test:live` (external websites) and `model-test.mjs` (real WebLLM models; needs a GPU and the model downloads) cover the older features. Recorded outcomes: [verifiedresults.md](verifiedresults.md).
 
 ## Team
 
