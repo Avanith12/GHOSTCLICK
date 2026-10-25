@@ -10,7 +10,7 @@
 
 Ghostclick is a Chrome extension with a local AI browser agent. Describe a task in plain words and the agent looks at the page, picks one action at a time, checks the result, and keeps going across pages and tabs. It can also record a task you show it once and replay it with new values, scrape lists, and read PDFs.
 
-> **Status (23 Oct 2026).** The agent's machinery (observation, actions, tabs, approvals, Stop, saving runs as workflows) is tested end to end in Chrome. With the real local model (Phi-3.5 Mini) it reaches the goal on short, single-site tasks, slowly (about 20 seconds per step on an integrated GPU), and it does not yet reliably recognize when it is done. Record-and-replay workflows are the dependable path for repeat tasks. See [Verified results](#verified-results).
+> **Status (25 Oct 2026).** Chrome E2E for agent, Ask, tabs, and workflows is in good shape. For repeat work, prefer record-and-replay; the live model is slower and less reliable at knowing when to stop. Details: [Verified results](#verified-results).
 
 The AI model ([WebLLM](https://github.com/mlc-ai/web-llm)) runs on your own graphics card. Your pages and data are never sent to a server, and no account or API key is needed. The one exception is optional voice input, which uses Chrome's speech service (see [Limits](#limits)).
 
