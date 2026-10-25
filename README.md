@@ -82,8 +82,8 @@ The side panel opens on a home screen. Click the ghost or **Voice** to speak a r
    - *“Read the PDF in this tab”* — opens PDF tools in Data
    - *“Open my last 5 tabs”* / *“Restore my previous tabs”* — reopens recent websites you used (and recently closed ones)
    - *“How many tabs do I have open?”* — counts and lists open tabs
-   - *“Open Gmail and read my last email”* — starts the agent (you must already be signed in)
    - *“Which three are cheapest?”* — after you have scraped rows
+   - *“go to example.com”* — opens that site (no model needed for plain open/go-to)
    - A sentence that matches a saved workflow fills in its values and offers **Run**
    - Page work with no matching workflow (*“Add one Lumen Air laptop to the cart”*) starts the agent
 2. While the agent works, the home Ask area shows **Working…**, the plan and steps, and **Pause** / **Resume** / **Stop**. The on-page bar also has **Stop**.
@@ -128,7 +128,7 @@ Open **⚙ → Data** (or ask to read a PDF / scrape and Ask will open Data). **
 - Record clicks, typing, checkboxes, and dropdowns as steps; passwords are never saved
 - Replay with new values, or once per row of a CSV file
 - Page checks (“the page should show *Request submitted*”) with pass/fail results
-- If a button was renamed or moved, Ghostclick finds the closest match, asks the model, or asks you, and avoids Cancel, Delete, and Log out. With Phi-3.5 Vision, it can pick from a screenshot.
+- If a button was renamed or moved, Ghostclick often repairs it from page structure (for example Continue → Next); if unsure it asks the model or you, and avoids Cancel, Delete, and Log out. With Phi-3.5 Vision, it can pick from a screenshot.
 - Pauses at captchas so you can solve them, then continues
 
 **Data and documents**
@@ -147,11 +147,11 @@ Open **⚙ → Data** (or ask to read a PDF / scrape and Ask will open Data). **
 
 ## The AI model
 
-Choose a model in the **Do anything** panel or in ⚙ settings. It downloads once from Hugging Face, then runs on your graphics card through WebGPU.
+Choose a model in **Ask** (home) or in ⚙ settings. It downloads once from Hugging Face, then runs on your graphics card through WebGPU.
 
 | Model | Download | Use it for |
 |-------|----------|------------|
-| Qwen2.5 1.5B | about 1 GB | Fastest. Fine for Quick ask; loses track on longer agent tasks |
+| Qwen2.5 1.5B | about 1 GB | Fastest. Fine for short Ask answers; loses track on longer agent tasks |
 | Llama 3.2 3B | about 2 GB | A good balance for agent tasks |
 | Phi-3.5 Mini | about 2.2 GB | The strongest text model here; the first choice for agent tasks |
 | Phi-3.5 Vision | about 4 GB | Only for repairing replays from a screenshot; not used by the agent or for questions |
@@ -168,7 +168,7 @@ Recording, replay, scraping, and saving pages all work without a model.
 entrypoints/
   background.ts           Session state, recording, replay, batch runs, agent status, saving agent runs
   content.ts              Runs in web pages: records, replays, scrapes, and answers the agent's observe/act messages
-  sidepanel/              Side panel UI (AgentView = “Ask Ghostclick to Do Anything”, AskView, Workflows, Data)
+  sidepanel/              Side panel UI (home Ask, agent run view, Workflows, Data, settings)
   voice/                  The small Voice window
 features/
   agent/                  The autonomous agent
@@ -177,7 +177,8 @@ features/
     agentPrompt.ts        Compact prompts within a 3,072-token window
     observePage.ts        Page observation and action execution (runs in the content script)
     chromeBrowser.ts      Chrome tabs/scripting implementation of the loop's browser
-  ask/                    Quick ask: request routing, keyword search
+  ask/                    Ask routing (page Q&A, scrape, workflows, agent, tabs, PDF)
+  tabs/                   Recent-tab memory for “open my last N tabs”
   data/                   Scraping, Markdown, PDFs, OCR, questions about rows
   workflows/              Record/replay helpers, self-repair, captcha detection
   local-ai/               WebLLM loading and calls shared by all features
@@ -189,7 +190,7 @@ browser-tests/            Real-Chrome tests (see Testing)
 ## Testing
 
 ```bash
-npm test                                   # 108 unit tests (vitest): agent loop, actions, prompts, page observation, planner, scraping, PDFs
+npm test                                   # unit tests (vitest): agent loop, actions, prompts, page observation, Ask planner, tabs, scraping, PDFs
 npx tsc --noEmit -p .                      # type check
 npm run build                              # or: npx wxt zip, for a packaged .zip
 CHROME_PATH="<path to chrome>" npm run test:demo    # demo site: every page, deep links, refresh, all 13 challenges by hand, scoring
@@ -210,7 +211,7 @@ Everything below was run on 23 October 2026 on a Windows laptop with an Intel Ar
 | Check | Result |
 |-------|--------|
 | Type check, production build, packaged `.zip` | pass |
-| Unit tests | 108 passed (20 skipped tests need saved copies of real websites) |
+| Unit tests | 122 passed (20 skipped tests need saved copies of real websites) |
 | Demo site, every challenge done by hand and graded | 29 / 29 |
 | Agent in real Chrome with scripted decisions | 16 / 16: navigation, look-alike names and modals, a two-step form with approval, declining a consequential action, multi-page tasks, custom dropdowns and switches, a report export, extraction, recovery from bad ids, tab discovery, switching, and reading, site permissions, closing tabs only with approval, Stop in the panel and on the page, reporting an impossible task, saving the run as a workflow and replaying it with new values without a model |
 
@@ -226,7 +227,7 @@ The scripted runs prove the machinery, not the model's judgement.
 
 The other 10 challenges were not run with the real model before release. Earlier real-model runs, before the fixes below, failed every attempt; they exposed and led to fixing: replies that were not one valid action (now grammar-constrained JSON), relative URLs, relevance ranking that buried the target, ignoring search boxes, and a prompt budget that cut late-page controls such as **Next page**.
 
-**Public websites (real model, read-only):** a check on books.toscrape.com, quotes.toscrape.com, and Wikipedia (navigation, reading, and switching between two tabs) was still running at release time; results will be added here. The scripted end-to-end tests above cover tab discovery, switching, reading, and extraction on the local demo site.
+**Public websites (real model, read-only):** not fully reported here. The scripted end-to-end tests above cover tab discovery, switching, reading, and extraction on the local demo site.
 
 ## Limits
 
