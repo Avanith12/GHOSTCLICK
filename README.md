@@ -227,8 +227,6 @@ The scripted runs prove the machinery, not the model's judgement.
 
 The other 10 challenges were not run with the real model before release. Earlier real-model runs, before the fixes below, failed every attempt; they exposed and led to fixing: replies that were not one valid action (now grammar-constrained JSON), relative URLs, relevance ranking that buried the target, ignoring search boxes, and a prompt budget that cut late-page controls such as **Next page**.
 
-**Public websites (real model, read-only):** not fully reported here. The scripted end-to-end tests above cover tab discovery, switching, reading, and extraction on the local demo site.
-
 ## Limits
 
 - The agent works in one Chrome window's tabs at a time. Closing the side panel ends the run; when it reopens, Ghostclick offers to resume from the last step's checkpoint
