@@ -71,6 +71,10 @@ This serves **Northwind Works**, a fictional company app with a dashboard, emplo
 
 ## How to use it
 
+<p align="center">
+  <img src="docs/UI/ui.png" alt="Ghostclick side panel home: Ask with Voice and keyboard" width="320" />
+</p>
+
 The side panel opens on a home screen. Click the ghost or **Voice** to speak a request, or the keyboard button (⌨) to type one; both open **Ask** on the home screen (no mode tabs). Ghostclick routes the request: answer a page question, scrape or filter a list, run a saved workflow, read a PDF, or drive the page step by step with the agent. The **⚙ settings** button opens **Workflows** and **Data**, plus theme, the ghost pointer during replays, and the default model. Ask itself can send you into those screens when the request needs them (for example “read this PDF” → Data).
 
 ### Ask (home)
