@@ -16,6 +16,8 @@ The AI model ([WebLLM](https://github.com/mlc-ai/web-llm)) runs on your own grap
 
 See **[DEMO.md](DEMO.md)** for the hackathon demo: a multi-page enterprise practice site with 13 graded automation challenges.
 
+**Poster:** [canva.link/cbd1h9bidyjug36](https://canva.link/cbd1h9bidyjug36) · **Slides:** [canva.link/6gn42uw1ggqe10i](https://canva.link/6gn42uw1ggqe10i)
+
 ## Install
 
 You need [Node.js](https://nodejs.org) 20 or newer, Google Chrome, and for the AI features a graphics card with WebGPU (most from the last few years).
