@@ -12,7 +12,7 @@ Ghostclick is a Chrome extension with a local AI browser agent. Describe a task 
 
 > **Status (25 Oct 2026).** Chrome E2E for agent, Ask, tabs, and workflows is in good shape. For repeat work, prefer record-and-replay; the live model is slower and less reliable at knowing when to stop. Details: [Verified results](#verified-results).
 
-The AI model ([WebLLM](https://github.com/mlc-ai/web-llm)) runs on your own graphics card. Your pages and data are never sent to a server, and no account or API key is needed. The one exception is optional voice input, which uses Chrome's speech service (see [Limits](#limits)).
+The AI model ([WebLLM](https://github.com/mlc-ai/web-llm)) runs on your own graphics card. Your pages and data are never sent to a server, and no account or API key is needed. Optional voice input uses Chrome's speech service.
 
 See **[DEMO.md](DEMO.md)** for the hackathon demo: a multi-page enterprise practice site with 13 graded automation challenges.
 
@@ -239,18 +239,6 @@ The scripted runs prove the machinery, not the model's judgement.
 | 2. Turn on dark mode | fail | Toggled the top-bar theme button on and off instead of saving in Settings; loop protection stopped it | 126 s |
 
 The other 10 challenges were not run with the real model before release. Earlier real-model runs, before the fixes below, failed every attempt; they exposed and led to fixing: replies that were not one valid action (now grammar-constrained JSON), relative URLs, relevance ranking that buried the target, ignoring search boxes, and a prompt budget that cut late-page controls such as **Next page**.
-
-## Limits
-
-- The agent works in one Chrome window's tabs at a time. Closing the side panel ends the run; when it reopens, Ghostclick offers to resume from the last step's checkpoint
-- With Phi-3.5 Mini the agent is slow (15–21 s per step here) and often reaches the goal without recognizing it is done: watch it and press Stop. Only 3 of the 13 challenges have been run with a real model
-- Saved agent workflows replay in one tab: tab switches become “open this page” steps
-- Captchas are never solved, passwords are never typed, and files are never chosen automatically
-- Scraping covers one page at a time (no automatic “Next page” in the Data tab; the agent can click Next itself)
-- OCR for scanned PDFs is English-only and covers the first 20 scanned pages
-- PDFs opened from `file://` tabs must be loaded with **Open a PDF file**
-- Apps drawn on a canvas, such as Figma or Google Docs, cannot be recorded or read
-- Voice input goes through Chrome's speech service, so it is the one feature that sends audio off your computer
 
 ## Team
 
