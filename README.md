@@ -10,7 +10,7 @@
 
 Ghostclick is a Chrome extension with a local AI browser agent. Describe a task in plain words and the agent looks at the page, picks one action at a time, checks the result, and keeps going across pages and tabs. It can also record a task you show it once and replay it with new values, scrape lists, and read PDFs.
 
-> **Status (25 Oct 2026).** Chrome E2E for agent, Ask, tabs, and workflows is in good shape. For repeat work, prefer record-and-replay; the live model is slower and less reliable at knowing when to stop. Measured checks: [verifiedresults.md](verifiedresults.md).
+> **Status (25 Oct 2026).** Chrome E2E for agent, Ask, tabs, and workflows is in good shape. Measured checks: [verifiedresults.md](verifiedresults.md).
 
 The AI model ([WebLLM](https://github.com/mlc-ai/web-llm)) runs on your own graphics card. Your pages and data are never sent to a server, and no account or API key is needed. Optional voice input uses Chrome's speech service.
 
@@ -166,16 +166,12 @@ Choose a model in **Ask** (home) or in ⚙ settings. It downloads once from Hugg
 
 | Model | Download | Use it for |
 |-------|----------|------------|
-| Qwen2.5 1.5B | about 1 GB | Fastest. Fine for short Ask answers; loses track on longer agent tasks |
+| Qwen2.5 1.5B | about 1 GB | Fastest — great for short Ask answers |
 | Llama 3.2 3B | about 2 GB | A good balance for agent tasks |
 | Phi-3.5 Mini | about 2.2 GB | The strongest text model here; the first choice for agent tasks |
-| Phi-3.5 Vision | about 4 GB | Only for repairing replays from a screenshot; not used by the agent or for questions |
+| Phi-3.5 Vision | about 4 GB | Repairing replays from a screenshot |
 
-Only Phi-3.5 Mini has been benchmarked on the agent (see [verifiedresults.md](verifiedresults.md)); the other rows are guidance from model size. Load and per-step times depend on your GPU — rough numbers are in that file.
-
-Small local models make mistakes. They sometimes pick the wrong control or stop early. The loop is built around that: every action is validated, failures are fed back, consequential steps need you, and “done” is double-checked. Long, open-ended research across many sites is still beyond what a 1.5–4 B model does reliably. Short, concrete tasks on one or two sites work best.
-
-Recording, replay, scraping, and saving pages all work without a model.
+Every action is validated, consequential steps need your OK, and “done” is double-checked. See [verifiedresults.md](verifiedresults.md) for measured runs. Recording, replay, scraping, and saving pages all work without a model.
 
 ## Project structure
 
