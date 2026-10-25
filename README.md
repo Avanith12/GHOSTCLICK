@@ -128,8 +128,17 @@ Open **⚙ → Data** (or ask to read a PDF / scrape and Ask will open Data). **
 - Record clicks, typing, checkboxes, and dropdowns as steps; passwords are never saved
 - Replay with new values, or once per row of a CSV file
 - Page checks (“the page should show *Request submitted*”) with pass/fail results
-- If a button was renamed or moved, Ghostclick often repairs it from page structure (for example Continue → Next); if unsure it asks the model or you, and avoids Cancel, Delete, and Log out. With Phi-3.5 Vision, it can pick from a screenshot.
+- Self-repair when a step’s control is missing or renamed (table below). Unchanged pages need no repair and no model. Cancel, Delete, and Log out are avoided
 - Pauses at captchas so you can solve them, then continues
+
+Self-repair ladder (cheapest first):
+
+| Level | What runs | Example |
+|-------|-----------|---------|
+| 1 · Structural | Match by label / similar text on the page | Continue → Next |
+| 2 · Text model | Local model picks among candidate controls | Suggests Next, not Cancel |
+| 3 · Vision | Phi-3.5 Vision picks a numbered button on a screenshot | Icon-only button |
+| 4 · Human | Asks you to choose (or pauses for a captcha) | Button removed |
 
 **Data and documents**
 - Scrape lists and tables to CSV or JSON, including lists that load more as you scroll
