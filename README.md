@@ -16,7 +16,7 @@ The AI model ([WebLLM](https://github.com/mlc-ai/web-llm)) runs on your own grap
 
 See **[DEMO.md](DEMO.md)** for the hackathon demo: a multi-page enterprise practice site with 13 graded automation challenges.
 
-**Poster:** [canva.link/cbd1h9bidyjug36](https://canva.link/cbd1h9bidyjug36) · **Slides:** [canva.link/6gn42uw1ggqe10i](https://canva.link/6gn42uw1ggqe10i)
+**Poster:** [canva.link/cbd1h9bidyjug36](https://canva.link/cbd1h9bidyjug36) · **Slides:** [canva.link/6gn42uw1ggqe10i](https://canva.link/6gn42uw1ggqe10i) · **Demo videos:** [Google Drive](https://drive.google.com/drive/folders/1T96NF83ThHsy3r5mKL45U8i7iUJs-FCq?usp=sharing)
 
 ## Install
 
