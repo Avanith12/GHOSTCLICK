@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/ghostclick_banner.gif" alt="Ghostclick: a ghost clicking a cursor" width="100%" />
+  <img src="docs/new/ghostclick_banner_click_fixed.gif" alt="Ghostclick: a ghost clicking a cursor" width="100%" />
 </p>
 
 <h1 align="center">Ghostclick</h1>
@@ -240,7 +240,7 @@ The other 10 challenges were not run with the real model before release. Earlier
 
 ## Team
 
-<img src="docs/ghostclick_mini_animated.gif" alt="Ghostclick ghost" width="96" align="right" />
+<img src="docs/new/ghostclick_exact_dark_animated.gif" alt="Ghostclick ghost" width="96" align="right" />
 
 - Avanith Kanamarlapudi
 - Chelsea Nguyen
