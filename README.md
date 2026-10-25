@@ -20,10 +20,12 @@ See **[DEMO.md](DEMO.md)** for the hackathon demo: a multi-page enterprise pract
 
 ## Install
 
-You need [Node.js](https://nodejs.org) 20 or newer, Google Chrome, and for the AI features a graphics card with WebGPU (most from the last few years).
+A stable build on the [Chrome Web Store](https://chrome.google.com/webstore) is coming soon (one-click install, no Node). Until then, load from source as below.
+
+You need [Node.js](https://nodejs.org) 20 or newer and Google Chrome. Install the **LTS** build from [nodejs.org](https://nodejs.org) (v20+); then `node -v` and `npm -v` should work in a new terminal. For Ask, agent, and Repair B/C, you also need a graphics card with WebGPU (most from the last few years). **Record and replay work without a model.** Node is only required to build; day-to-day use is just Chrome.
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/Avanith12/GHOSTCLICK.git
 cd GHOSTCLICK
 npm install        # also generates WXT's types
 npm run build
@@ -32,10 +34,10 @@ npm run build
 Then in Chrome:
 
 1. Go to `chrome://extensions` and turn on **Developer mode** (top right).
-2. Click **Load unpacked** and choose the `.output/chrome-mv3` folder inside the project.
+2. Click **Load unpacked** and choose the `.output/chrome-mv3` folder inside the project (not the repo root).
 3. Pin Ghostclick from the puzzle-piece icon, then click it to open the side panel.
 
-Reload any tabs that were open before you installed it.
+Reload any tabs that were open before you installed it. After every `git pull`, run `npm install` and `npm run build` again, then **Reload** the extension at `chrome://extensions`.
 
 ### Updating on another computer
 
@@ -57,10 +59,10 @@ Then at `chrome://extensions` → Ghostclick → **Reload**.
 ### The demo site
 
 ```bash
-npm run demo       # http://127.0.0.1:4173
+npm run demo       # open http://127.0.0.1:4173 in Chrome
 ```
 
-This serves **Northwind Works**, a fictional company app with a dashboard, employee directory, job application portal, product inventory, analytics, settings, and an **Automation Challenges** page that grades each task from the real page state. The original single-page practice form is still at `/advising.html`. Opening `demo/index.html` with VS Code's Live Server works too. Ghostclick only runs on `http(s)` pages, so double-clicking the file (`file://`) will not work.
+This serves **Northwind Works**, a fictional company app with a dashboard, employee directory, job application portal, product inventory, analytics, settings, and an **Automation Challenges** page that grades each task from the real page state. The original single-page practice form is still at `/advising.html`. Opening `demo/index.html` with VS Code's Live Server works too. Ghostclick only runs on `http(s)` pages — use the URL above; double-clicking the file (`file://`) will not work.
 
 ### Dev vs production build
 
