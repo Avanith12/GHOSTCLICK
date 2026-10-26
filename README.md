@@ -219,7 +219,7 @@ CHROME_PATH="<path to chrome>" MAX_STEPS=12 node browser-tests/public-bench.mjs
 
 - Avanith Kanamarlapudi
 - Chelsea Nguyen
-- Ana Maria Fahlböck
+- Ana Fahlböck
 - Kurt Sooknanan
 - Kalysha MelendezHernandez
 - Ila Lama
